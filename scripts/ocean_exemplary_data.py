@@ -38,7 +38,7 @@ if __name__ == "__main__":
     USER_LABEL = "__user__"
     NEWS_WEBSITE_LABEL = "__news_website__"
     NEWS_LABEL = "__news__"
-    SUBSCRIBES_TO_RELATION = "__subscribes_to___"
+    SUBSCRIBES_TO_RELATION = "__subscribes_to__"
     PRODUDES_RELATION = "__produces__"
 
     # Add users

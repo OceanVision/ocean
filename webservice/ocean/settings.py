@@ -1,4 +1,5 @@
 import settings_local
+import neo4django
 
 # Django settings for ocean project.
 
@@ -12,6 +13,10 @@ ADMINS = (
 MANAGERS = ADMINS
 
 DATABASES = settings_local.DATABASES
+
+NEO4J_DATABASES = settings_local.NEO4J_DATABASES
+
+DATABASE_ROUTERS = ['neo4django.utils.Neo4djangoIntegrationRouter']
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts

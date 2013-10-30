@@ -9,3 +9,11 @@ DATABASES = {
         'PORT': '',                      # Set to empty string for default.
     }
 }
+
+NEO4J_DATABASES = {
+    'default' : {
+        'HOST':'localhost',
+        'PORT':7474,
+        'ENDPOINT':'/db/data'
+    }
+}
