@@ -4,15 +4,6 @@ from django.core.urlresolvers import reverse
 from django.shortcuts import render
 
 
-def index(request):
-    if request.user.is_authenticated():
-        # Do something for authenticated users.
-        return render(request, 'rss/message.html', {'message': 'You are logged in'})
-    else:
-        # Redirect anonymous users to login page.
-        return render(request, 'rss/message.html', {'message': 'You are not logged in'})
-
-
 def login(request):
     username = request.POST['username']
     password = request.POST['password']
@@ -34,3 +25,12 @@ def logout(request):
     logout(request)
     # User is logged out
     return HttpResponseRedirect(reverse('rss:index'))
+
+
+def index(request):
+    if request.user.is_authenticated():
+        # Do something for authenticated users.
+        return render(request, 'rss/message.html', {'message': 'You are logged in'})
+    else:
+        # Redirect anonymous users to login page.
+        return render(request, 'rss/message.html', {'message': 'You are not logged in'})
