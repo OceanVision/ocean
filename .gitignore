@@ -1,0 +1,8 @@
+# Binary files
+*.pyc
+
+# Temporary files
+*.~lock*
+*.swp
+*.vim
+
