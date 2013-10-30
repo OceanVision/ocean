@@ -25,6 +25,12 @@ In order to run Ocean webservice you need to install:
 
 	* Linux (Arch/Ubuntu): python-psycopg2
 
+* ***pillow***
+
+	(For user pictures):
+
+	* Pillow 2.2.1
+
 ## Database setup
 
 ### PostgreSQL database setup
