@@ -1,7 +1,7 @@
 import os
 from django.db import models
 from django.contrib.auth.models import User
-from neo4django.db import models
+from neo4django.db import models as neo4j_models
 
 def get_image_path(instance, filename):
     return os.path.join('photos', str(instance.id), filename)
@@ -16,14 +16,14 @@ class UserProfile(models.Model):
         return User.get_full_name()
 
 
-class NeoUser (models.NodeModel):
-    username = models.StringProperty()
-    subscribes_to = models.Relationship ('self', rel_type='__subscribes_to__')
+class NeoUser (neo4j_models.NodeModel):
+    username = neo4j_models.StringProperty()
+    subscribes_to = neo4j_models.Relationship('self', rel_type='__subscribes_to__')
 
 
-class NewsWebsite (models.NodeModel):
-    url = models.URLProperty()
+class NewsWebsite (neo4j_models.NodeModel):
+    url = neo4j_models.URLProperty()
 
 
-class News (models.NodeModel):
-    url = models.URLProperty()
+class News (neo4j_models.NodeModel):
+    url = neo4j_models.URLProperty()
