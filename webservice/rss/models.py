@@ -21,6 +21,9 @@ class UserProfile(models.Model):
 
 
 class NeoUser (neo4j_models.NodeModel):
+    """
+        Auxiliary node in graph database, to query easy for subscribed websites
+    """
     label = neo4j_models.StringProperty(default="__user__")
     username = neo4j_models.StringProperty()
     subscribes_to = neo4j_models.Relationship('self', rel_type='__subscribes_to__', related_name="subscribed")
