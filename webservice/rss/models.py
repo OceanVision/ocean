@@ -17,13 +17,17 @@ class UserProfile(models.Model):
 
 
 class NeoUser (neo4j_models.NodeModel):
+    label = neo4j_models.StringProperty(default="__user__")
     username = neo4j_models.StringProperty()
     subscribes_to = neo4j_models.Relationship('self', rel_type='__subscribes_to__')
 
 
 class NewsWebsite (neo4j_models.NodeModel):
-    url = neo4j_models.URLProperty()
+    label = neo4j_models.StringProperty(default="__news_website__")
+    produces = neo4j_models.Relationship('self', rel_type='__subscribes_to__')
+    url = neo4j_models.URLProperty("__produces__")
 
 
 class News (neo4j_models.NodeModel):
+    label = neo4j_models.StringProperty(default="__news__")
     url = neo4j_models.URLProperty()

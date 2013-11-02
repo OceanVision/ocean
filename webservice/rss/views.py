@@ -28,8 +28,8 @@ def logout(request):
 
 
 def index(request):
-    NewsWebsite.objects.create(url="http://google.pl")
-    print NewsWebsite.objects.all()
+
+
     if request.user.is_authenticated():
         # Do something for authenticated users.
         return render(request, 'rss/message.html', {'message': 'You are logged in'})
