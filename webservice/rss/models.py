@@ -40,6 +40,6 @@ class NeoUser (neo4j_models.NodeModel):
     # There has to be related user in django.contrib.auth.User !! TODO: relation?
     username = neo4j_models.StringProperty()
 
-    subscribes_to = neo4j_models.Relationship('NewsWebsite', rel_type='__subscribes_to__', related_name="subscribed", related_query_name="subscribed")
+    subscribes_to = neo4j_models.Relationship('NewsWebsite', rel_type='__subscribes_to__', related_name="subscribed")
 
 
