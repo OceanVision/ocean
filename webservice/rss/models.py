@@ -16,16 +16,20 @@ class UserProfile(models.Model):
         return User.get_full_name()
 
 
+
+
+
+
 class NeoUser (neo4j_models.NodeModel):
     label = neo4j_models.StringProperty(default="__user__")
     username = neo4j_models.StringProperty()
-    subscribes_to = neo4j_models.Relationship('self', rel_type='__subscribes_to__')
+    subscribes_to = neo4j_models.Relationship('self', rel_type='__subscribes_to__', related_name="subscribed")
 
 
 class NewsWebsite (neo4j_models.NodeModel):
     label = neo4j_models.StringProperty(default="__news_website__")
-    produces = neo4j_models.Relationship('self', rel_type='__subscribes_to__')
-    url = neo4j_models.URLProperty("__produces__")
+    produces = neo4j_models.Relationship('self', rel_type='__produces__', related_name="produced")
+    url = neo4j_models.URLProperty()
 
 
 class News (neo4j_models.NodeModel):

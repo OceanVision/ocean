@@ -28,6 +28,11 @@ def logout(request):
 
 
 def index(request):
+    from models import *
+
+    n = NewsWebsite(url="trlala")
+
+    print NewsWebsite.objects.all()
 
 
     if request.user.is_authenticated():
