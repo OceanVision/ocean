@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ocean</title>
+<link type="text/css" rel="stylesheet" href="general.css" />
+<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+<script src="main.js"></script>
+</head>
+<body>
+    <nav id="menu">
+       <a class="item" href="#">register</a>
+       <a class="item highlighted" href="#">sign in</a>
+    </nav>
+    <!-- <img id="logo" src="img/logo.png"/> -->
+    
+    <a id="navigatorSwitcher"></a>
+    <nav id="navigator">
+       <p class="header">NAVIGATOR</p>
+       <div class="container">
+           <!-- <p class="category">your categories</p> -->
+           <a class="item category" href="#" data-color="#e5e5e5">cooking</a>
+           <a class="item category" href="#" data-color="#e5e5e5">Barack Obama</a>
+           <a class="item category" href="#" data-color="#e5e5e5">tennis</a>
+           <a class="item category" href="#" data-color="#e5e5e5">iPhone</a>
+       </div>
+    </nav>
+    
+    <div id="content">
+        <p class="header">TOP STORIES</p>
+        <div id="items" class="container">
+            {% block content_items %} {% endblock %}
+        </div>
+    </div>
+</body>
+</html>
