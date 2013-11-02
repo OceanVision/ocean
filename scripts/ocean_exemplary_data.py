@@ -42,23 +42,27 @@ if __name__ == "__main__":
     PRODUDES_RELATION = "__produces__"
 
     # Add users
-    query = node(username="kudkudak")
-    users = [node(username="kudkudak"), node(username="konrad")] # Create abstract nodes
+    users = [node(label=USER_LABEL, username="kudkudak"), node(label=USER_LABEL,username="konrad")] # Create abstract nodes
     users = graph_db.create(*users) # Create nodes in graph database
-    map(lambda u: u.add_labels(USER_LABEL),users) # Add labels
-    print [x for x in  graph_db.find(USER_LABEL)] # Sanity check
+    
+# 1.9 doesnt support labels!
+#     map(lambda u: u.add_labels(USER_LABEL),users) # Add labels
+#     print [x for x in  graph_db.find(USER_LABEL)] # Sanity check,
 
 
-    websites = [node(url="www.antyweb.pl"), node(url="www.onet.pl"), node(url="www.wp.pl")] # Create abstract nodes
+    websites = [node(label=NEWS_WEBSITE_LABEL,url="www.antyweb.pl"), 
+node(label=NEWS_WEBSITE_LABEL,url="www.onet.pl"), 
+node(label=NEWS_WEBSITE_LABEL,url="www.wp.pl")] # Create abstract nodes
     websites = graph_db.create(*websites) # Create nodes in graph database
-    map(lambda w: w.add_labels(NEWS_WEBSITE_LABEL),websites) # Add labels
-    print [x for x in  graph_db.find(NEWS_WEBSITE_LABEL)] # Sanity check
+#     map(lambda w: w.add_labels(NEWS_WEBSITE_LABEL),websites) # Add labels
+#     print [x for x in  graph_db.find(NEWS_WEBSITE_LABEL)] # Sanity check
 
-    news = [node(url="http://konflikty.wp.pl/kat,106090,title,Nowe-smiglowce-USA-"\
+    news = [node(label = NEWS_LABEL,
+url="http://konflikty.wp.pl/kat,106090,title,Nowe-smiglowce-USA-"\
     "Wielki-projekt-zbrojeniowy-w-cieniu-budzetowych-ciec,wid,16116470,wiadomosc.html?ticaid=111908")]
 
     news = graph_db.create(*news) # Create nodes in graph database
-    map(lambda w: w.add_labels(NEWS_LABEL),news) # Add labels
+#     map(lambda w: w.add_labels(NEWS_LABEL),news) # Add labels
 
     graph_db.create(rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),\
                     rel(users[0], SUBSCRIBES_TO_RELATION, websites[1]),\

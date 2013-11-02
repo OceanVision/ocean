@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.shortcuts import render
-
+from models import NewsWebsite
 
 def login(request):
     username = request.POST['username']
@@ -28,6 +28,8 @@ def logout(request):
 
 
 def index(request):
+    NewsWebsite.objects.create(url="http://google.pl")
+    print NewsWebsite.objects.all()
     if request.user.is_authenticated():
         # Do something for authenticated users.
         return render(request, 'rss/message.html', {'message': 'You are logged in'})
