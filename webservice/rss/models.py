@@ -19,6 +19,18 @@ class UserProfile(models.Model):
 
 
 
+class News (neo4j_models.NodeModel):
+    label = neo4j_models.StringProperty(default="__news__")
+    slug = neo4j_models.StringProperty() # slug-field is used to create nice-urls
+    url = neo4j_models.URLProperty()
+
+
+
+class NewsWebsite (neo4j_models.NodeModel):
+    label = neo4j_models.StringProperty(default="__news_website__")
+    produces = neo4j_models.Relationship('News', rel_type='__produces__', related_name="produced")
+    url = neo4j_models.URLProperty()
+
 
 class NeoUser (neo4j_models.NodeModel):
     """
@@ -28,16 +40,6 @@ class NeoUser (neo4j_models.NodeModel):
     # There has to be related user in django.contrib.auth.User !! TODO: relation?
     username = neo4j_models.StringProperty()
 
-    subscribes_to = neo4j_models.Relationship('self', rel_type='__subscribes_to__', related_name="subscribed")
+    subscribes_to = neo4j_models.Relationship('NewsWebsite', rel_type='__subscribes_to__', related_name="subscribed", related_query_name="subscribed")
 
 
-class NewsWebsite (neo4j_models.NodeModel):
-    label = neo4j_models.StringProperty(default="__news_website__")
-    produces = neo4j_models.Relationship('self', rel_type='__produces__', related_name="produced")
-    url = neo4j_models.URLProperty()
-
-
-class News (neo4j_models.NodeModel):
-    label = neo4j_models.StringProperty(default="__news__")
-    slug = neo4j_models.StringProperty() # slug-field is used to create nice-urls
-    url = neo4j_models.URLProperty()

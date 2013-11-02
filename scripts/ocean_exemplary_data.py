@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     my_batch = neo4j.WriteBatch(graph_db)
     my_batch.append_cypher("start r=relationship(*) delete r;")
-    my_batch.append_cypher("start n=node(*) delete n;")
+    my_batch.append_cypher("start n=node(*) WHERE ID(n) <> 0 delete n ;") # fix: do not delete the root
     my_batch.submit()
 
     my_batch = neo4j.ReadBatch(graph_db)
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     result = my_batch.submit()
     print "Nodes in graph erased. Sanity check : ",result
 
-    if result[0]!=0:
+    if result[0]!=1:
         raise Exception("Not erased graph properly")
         exit(1)
 

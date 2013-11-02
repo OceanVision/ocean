@@ -10,8 +10,6 @@ TEMPLATE_DEBUG = DEBUG
 import os
 PROJECT_PATH = os.path.realpath(os.path.dirname(__file__))
 
-
-
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
@@ -68,11 +66,10 @@ STATIC_ROOT = ''
 
 # URL prefix for static files.
 # Example: "http://example.com/static/", "http://static.example.com/"
-STATIC_URL = PROJECT_PATH+"/../static" # TODO : workaround !! Mateusz, popraw :)
+STATIC_URL = '/static/' # TODO : workaround !! Mateusz, popraw :)
 
 # Additional locations of static files
 STATICFILES_DIRS = (
-    PROJECT_PATH+"../static/"
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.

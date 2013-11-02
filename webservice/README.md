@@ -80,3 +80,13 @@ an error in neo4django you have to have at least one node in graph).
 
 * rss - temporary application handling rss requests (show_news)
 
+
+## Side notes
+
+* Neo4j database restarting 
+
+    Sometimes database gets corrupted. You can erase all nodes using ocean_exemplary_data.py. If you want to purge database it can be done by (check neo4j home by dpkg -L neo4j)
+
+        sudo rm /var/lib/neo4j/data/graph.db/* -r -f
+
+
