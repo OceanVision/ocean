@@ -6,6 +6,12 @@ import neo4django
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+# TODO: project_path includes /ocean - so it doesnt work and all paths has to be of form PROJECT_PATH+"../dir"
+import os
+PROJECT_PATH = os.path.realpath(os.path.dirname(__file__))
+
+
+
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
@@ -62,10 +68,11 @@ STATIC_ROOT = ''
 
 # URL prefix for static files.
 # Example: "http://example.com/static/", "http://static.example.com/"
-STATIC_URL = '/static/'
+STATIC_URL = PROJECT_PATH+"/../static" # TODO : workaround !! Mateusz, popraw :)
 
 # Additional locations of static files
 STATICFILES_DIRS = (
+    PROJECT_PATH+"../static/"
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
@@ -82,12 +89,7 @@ STATICFILES_FINDERS = (
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'gb55qeo+dw(o-u9)28nphe5@+=-n^@j(0injvdn($)7mv=bx%w'
 
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
-#     'django.template.loaders.eggs.Loader',
-)
+
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
@@ -104,11 +106,24 @@ ROOT_URLCONF = 'ocean.urls'
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'ocean.wsgi.application'
 
+
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
+    PROJECT_PATH+"/../templates/"
 )
+
+
+# List of callables that know how to import templates from various sources.
+# List of callables that know how to import templates from various sources.
+TEMPLATE_LOADERS = (
+    'django.template.loaders.filesystem.Loader',
+    'django.template.loaders.app_directories.Loader',
+#     'django.template.loaders.eggs.Loader',
+)
+
+
 
 INSTALLED_APPS = (
     'django.contrib.auth',

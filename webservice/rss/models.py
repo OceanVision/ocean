@@ -25,7 +25,9 @@ class NeoUser (neo4j_models.NodeModel):
         Auxiliary node in graph database, to query easy for subscribed websites
     """
     label = neo4j_models.StringProperty(default="__user__")
+    # There has to be related user in django.contrib.auth.User !! TODO: relation?
     username = neo4j_models.StringProperty()
+
     subscribes_to = neo4j_models.Relationship('self', rel_type='__subscribes_to__', related_name="subscribed")
 
 
@@ -37,4 +39,5 @@ class NewsWebsite (neo4j_models.NodeModel):
 
 class News (neo4j_models.NodeModel):
     label = neo4j_models.StringProperty(default="__news__")
+    slug = neo4j_models.StringProperty() # slug-field is used to create nice-urls
     url = neo4j_models.URLProperty()

@@ -68,3 +68,15 @@ an error in neo4django you have to have at least one node in graph).
 * And finally
     
         python manage.py runserver <port>
+        
+* Note: to log in go to /admin page and log in (for testing)
+
+
+## Directories in project, explained
+
+* templates - all templates (added in TEMPLATES_DIR)
+
+* static - reference https://docs.djangoproject.com/en/dev/howto/static-files/ , all CSS/img files served by webservice
+
+* rss - temporary application handling rss requests (show_news)
+
