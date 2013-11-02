@@ -6,9 +6,8 @@ import neo4django
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
-# TODO: project_path includes /ocean - so it doesnt work and all paths has to be of form PROJECT_PATH+"../dir"
 import os
-PROJECT_PATH = os.path.realpath(os.path.dirname(__file__))
+PROJECT_PATH = os.path.realpath(os.path.dirname(__file__)) + '/../'
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
@@ -51,7 +50,7 @@ USE_TZ = True
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/var/www/example.com/media/"
-MEDIA_ROOT = 'path/to/my/project/media'
+MEDIA_ROOT = ''
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.
@@ -70,6 +69,7 @@ STATIC_URL = '/static/' # TODO : workaround !! Mateusz, popraw :)
 
 # Additional locations of static files
 STATICFILES_DIRS = (
+    os.path.join(PROJECT_PATH, 'static'),
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
@@ -108,7 +108,7 @@ TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-    PROJECT_PATH+"/../templates/"
+    os.path.join(PROJECT_PATH, 'templates'),
 )
 
 

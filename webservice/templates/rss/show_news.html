@@ -1,16 +1,17 @@
 {% extends 'base/base.html' %}
 {% block content_items %}
 
-
-        <div id="items" class="container">
-        {% for one_news in news %}
-	        <div class="item" title="{{ news.category }}" style="border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: rgb(240, 240, 240);">
-	            <span class="no">1</span>
-	            <p class="title" style="background-color: rgb(255, 255, 255);">{{ news.title }}</p>
-	            <p class="description">
-                    {{ news.content }}
-	            </p>
-	        </div>
-	    {% endfor %}
+<p class="header">TOP STORIES</p>
+<div id="items" class="container">
+    {% for one_news in news %}
+    <div class="item" title="{{ news.category }}">
+        <span class="no">1</span>
+        <p class="title" style="background-color: rgb(255, 255, 255);">{{ news.title }}</p>
+        <p class="description">
+            {{ news.content }}
+        </p>
+    </div>
+    {% endfor %}
+</div>
 
 {% endblock %}

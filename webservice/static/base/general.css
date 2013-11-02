@@ -30,6 +30,19 @@ a.star {
     border-radius: 15px;
 }
 
+p#bigBanner {
+    display: inline-block;
+    margin: 0px auto;
+    font-size: 300px;
+    color: #f2f2f2;
+}
+
+img#signInArrow {
+    position: absolute;
+    right: 5px;
+    top: 50px;
+}
+
 /* ========== M E N U ========== */
 
 nav#menu {
