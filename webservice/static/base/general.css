@@ -1,3 +1,5 @@
+/* ========== G E N E R A L ========== */
+
 * {
     margin: 0px;
     padding: 0px;
@@ -18,23 +20,18 @@ p.header {
     color: #e5e5e5;
 }
 
-a.star {
-    background-image: url("img/star.png");
-    background-color: #e5e5e5;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: 60%;
-    width: 30px;
-    height: 30px;
-    display: inline-block;
-    border-radius: 15px;
-}
-
 p#bigBanner {
     display: inline-block;
-    margin: 0px auto;
+    margin-left: 15%;
     font-size: 300px;
     color: #f2f2f2;
+    cursor: default;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 img#signInArrow {
@@ -46,28 +43,31 @@ img#signInArrow {
 /* ========== M E N U ========== */
 
 nav#menu {
-    padding: 0px 50px;
-    position: absolute;
-    right: 0px;
-    top: 0px;
-    z-index: 1;
+    margin-right: 15%;
+    float: right;
 }
 
 nav#menu a.item {
     display: inline-block;
-    padding: 6px 10px;
-    font-size: 14px;
+    padding: 10px 20px;
+    font-size: 60px;
     color: #888;
 }
 
 nav#menu a.item.highlighted {
     background-color: #6fc41b;
     color: #fff;
+    border-radius: 15px;
 }
 
 img#logo {
     height: 40px;
     margin-left: 50px;
+}
+
+div#signInForm {
+    position: absolute;
+    right: 50px;
 }
 
 /* ========== N A V I G A T O R ========== */

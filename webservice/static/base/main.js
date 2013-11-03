@@ -21,6 +21,10 @@ function Main() {
 		this.addEvents();
 	};
 	
+	Main.prototype.getRandomInteger = function(a, b) {
+	    return Math.round(Math.random() * b) + a;
+	};
+
 	Main.prototype.getRandomColor = function() {
 		return this.colors[Math.floor(Math.random() * 20)];
 	};
@@ -109,23 +113,3 @@ $(document).on("ready", function() {
 	new Main();
 });
 
-
-//	$("#navigator .item.category").each(function() {
-//		var color = getRandomColor(),
-//			mouseenter = function() {
-//				$(this).css("background-color", "#" + color);
-//			},
-//			mouseleave = function() {
-//				$(this).css("background-color", "#fff");
-//			};
-//		$(this).css("border-left", "5px solid #" + color);
-//		$(this).hover(mouseenter, mouseleave);
-//		$("#content .item[title='" + $(this).text() + "'] .title")
-//			.hover(mouseenter, mouseleave);
-//		
-//		$("#content .item[title='" + $(this).text() + "'] .description img")
-//			.css("border-left", "10px solid #" + color);
-//		
-//		$("#content .item[title='" + $(this).text() + "'] .description .star")
-//			.css("background-color", "10px solid #" + color);
-//	});

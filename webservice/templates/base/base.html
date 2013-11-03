@@ -11,17 +11,21 @@
 <script src="{% static 'base/main.js' %}"></script>
 </head>
 <body>
-    <nav id="menu">
-       <a class="item" href="#">register</a>
-       <a class="item highlighted" href="#">sign in</a>
-    </nav>
     <!-- <img id="logo" src="img/logo.png"/> -->
 
     {% block navigator %} {% endblock %}
 
     {% if not logged_in %}
         <p id="bigBanner">Ocean</p>
-        <img id="signInArrow" src="{% static 'base/img/signInArrow.png' %}">
+        <!-- <img id="signInArrow" src="{% static 'base/img/signInArrow.png' %}"> -->
+        <nav id="menu">
+           <a class="item" href="#">register</a>
+           <a class="item highlighted" href="#">sign in</a>
+           <div id="signInForm" style="display: none">
+               <input id="username" type="text"/>
+               <input id="password" type="password"/>
+           </div>
+        </nav>
     {% endif %}
 
     <div id="content">
