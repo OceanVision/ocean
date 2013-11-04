@@ -12,10 +12,27 @@ from django.template import loader
 def login(request):
     username = request.POST['username']
     password = request.POST['password']
+
+
+
+    # TODO: add hash authentication
     user = authenticate(username=username, password=password)
+    print user
     if user is not None:
+        print user
+        print dir(user)
+        print user.is_active
+        print request
+        login(request, user)
+        print "Logged in ",user
+        return
+
+
+        # TODO: is_active flag checking
         if user.is_active:
+            print "Logging in ",user
             login(request, user)
+            print "Logged in ",user
             # User is logged in
             # TODO
         else:
@@ -93,11 +110,11 @@ def show_news(request):
     if request.user.is_authenticated():
         # Do something for authenticated users.
         print request.user
-        print NeoUser.objects.filter(username__exact=str(request.user))[0]._get_pk_val()
+        print NeoUser.objects.filter(username__exact="kudkudak")[0]._get_pk_val()
 
-        print NeoUser.objects.filter(username__exact=str(request.user))[0].subscribes_to.all()
-        u = NeoUser.objects.filter(username__exact=str(request.user))[0]
-        print type(NeoUser.objects.filter(username__exact=str(request.user))[0])
+        print NeoUser.objects.filter(username__exact="kudkudak")[0].subscribes_to.all()
+        u = NeoUser.objects.filter(username__exact="kudkudak")[0]
+        print type(NeoUser.objects.filter(username__exact="kudkudak")[0])
         print u.subscribes_to.all().select_related('produces') #Add tests
         return render(request, 'rss/show_news.html', {'message': 'Logged in'})
     else:
