@@ -57,7 +57,7 @@ div.form input {
     padding: 5px 20px;
     font-size: 20px;
     font-style: italic;
-    color: #bbb;
+    color: #d1d1d1;
     outline: none;
 }
 
@@ -76,16 +76,16 @@ div#signInForm {
     position: absolute;
 }
 
-div#signInForm input {
+div.form input {
     font-size: 40px;
 }
 
-div#signInForm input.focus {
+div.form input.focus {
     color: #888;
     font-style: normal;
 }
 
-div#signInForm a.submit {
+div#signInForm a.submit, div#editProfileForm a.submit {
     padding: 6px 13px;
     font-size: 40px;
     border-radius: 10px;
@@ -93,6 +93,7 @@ div#signInForm a.submit {
 }
 
 div#editProfileForm {
+    width: 400px;
     position: absolute;
     font-size: 20px;
     font-style: italic;
@@ -100,23 +101,11 @@ div#editProfileForm {
 }
 
 div#editProfileForm input {
-    font-size: 40px;
+    width: 360px;
 }
 
 div#editProfileForm input#avatar {
     font-size: 15px;
-}
-
-div#editProfileForm input.focus {
-    color: #888;
-    font-style: normal;
-}
-
-div#editProfileForm a.submit {
-    padding: 6px 13px;
-    font-size: 40px;
-    border-radius: 10px;
-    cursor: pointer;
 }
 
 /* ========== B A C K G R O U N D ========== */
@@ -126,7 +115,7 @@ p#bigBanner {
     position: absolute;
     left: 15%;
     font-size: 300px;
-    color: #ddd;
+    color: #f1f1f1;
     cursor: default;
     -webkit-touch-callout: none;
     -webkit-user-select: none;

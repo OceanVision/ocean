@@ -2,11 +2,12 @@ from django.shortcuts import render
 
 
 def index(request):
-    return render(request, 'base/base.html', {'navigator_item_color': 'e5e5e5', 'logged_in': False})
+    return render(request, 'base/base.html', {'navigator_item_color': 'e5e5e5'})
 
-def sign_in(request):
+
+def get_sign_in_view(request):
     return render(request, 'base/signInForm.html')
 
-def edit_profile(request):
-    return render(request, 'base/editProfileForm.html')
 
+def get_edit_profile_view(request):
+    return render(request, 'base/editProfileForm.html')

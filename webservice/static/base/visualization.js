@@ -27,6 +27,7 @@ function Visualization() {
 		return this.colors[Math.floor(Math.random() * 20)];
 	};
 	
+	// TODO: more generic showing methods
 	Visualization.prototype.showSignInForm = function(signInForm) {
 	    console.log("Visualization.showSignInForm");
 	    signInForm
@@ -48,17 +49,24 @@ function Visualization() {
 	            if (!el.hasClass("focus") && el.val() == el.data("value")) {
 	                el.val("")
 	                    .addClass("focus");
+
+	                if(el.data("type") == "password") {
+	                    el.attr("type", "password");
+	                }
 	            }
-	            
 	        })
 	        .on("blur", function() {
 	            var el = $(this);
 	            if (el.hasClass("focus") && el.val() == "") {
 	                el.val(el.data("value"))
-	                    .removeClass("focus");;
+	                    .removeClass("focus");
+
+	                if(el.data("type") == "password") {
+	                    el.attr("type", "text");
+	                }
 	            }
 	        });
-	    
+
 	    this.transition($("#bigBanner, #menu"), signInForm);
 	};
     

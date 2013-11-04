@@ -15,8 +15,8 @@ urlpatterns = patterns('',
 
     # Uncomment the next line to enable the admin:
     url(r'^$', views.index),
-    url(r'^sign_in_view$', views.sign_in),
-    url(r'^edit_profile_view$', views.edit_profile),
+    url(r'^get_sign_in_view$', views.get_sign_in_view),
+    url(r'^get_edit_profile_view$', views.get_edit_profile_view),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^rss/', include('rss.urls', namespace="rss")),
     url(r'^show_my_ocean_view$', "rss:index"),

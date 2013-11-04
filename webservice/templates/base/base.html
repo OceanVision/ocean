@@ -26,9 +26,10 @@
     </nav>
 
     {% else %}
+    <!-- TODO: move menu to the header as in the preview -->
     <nav id="menu">
+        <a id="myProfile" class="item" href="javascript:main.showEditProfileForm()">account</a>
         <a id="myOcean" class="item highlighted" href="javascript:main.showMyOcean()">my ocean</a>
-        <a id="myProfile" class="item highlighted" href="javascript:main.showEditProfileForm()">account</a>
     </nav>
 
     {% endif %}

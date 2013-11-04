@@ -10,7 +10,7 @@ from django.template import loader
 
 
 
-def logme(request):
+def sign_in(request):
     username = request.POST['username']
     password = request.POST['password']
     # TODO: add hash authentication
@@ -28,7 +28,7 @@ def logme(request):
         return render(request, 'rss/index.html', {'message': 'Your username and password didn\'t match. Please try again.'})
 
 
-def logmeout(request):
+def sign_out(request):
     logout(request)
     # User is logged out
     return HttpResponseRedirect(reverse('rss:index'))
