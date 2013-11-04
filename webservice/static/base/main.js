@@ -43,7 +43,7 @@ function Main() {
 
 (function() {
 	'use strict';
-	
+
 	Main.prototype.getRandomInteger = function(a, b) {
 	    return Math.round(Math.random() * b) + a;
 	};
@@ -52,7 +52,15 @@ function Main() {
 	    console.log("Main.showSignInForm");
 	    visualization.showSignInForm($(ajax.request("sign_in_view")));
 	};
-	
+
+        Main.prototype.showEditProfileForm = function() {
+	    visualization.showSignInForm($(ajax.request("edit_profile_view")));
+        };
+
+        Main.prototype.showMyOcean = function() {
+	    visualization.showSignInForm($(ajax.request("rss")));
+        };
+
 	Main.prototype.signIn = function() {
 
         var csrftoken = getCookie('csrftoken');
@@ -80,6 +88,7 @@ function Main() {
              success:
                  function(response){
                      console.log(response);
+                     window.location.replace("")
                  },
             error:
                 function(xhr, ajaxOptions, thrownError){

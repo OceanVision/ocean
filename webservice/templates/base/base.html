@@ -17,14 +17,21 @@
 <body>
     {% block navigator %} {% endblock %}
 
-    {% if not logged_in %}
     <p id="bigBanner">Ocean</p>
+
+    {% if not user.is_authenticated %}
     <nav id="menu">
         <a id="signUp" class="item" href="javascript:void(0)">register</a>
         <a id="signIn" class="item highlighted" href="javascript:main.showSignInForm()">sign in</a>
     </nav>
-    {% endif %}
 
+    {% else %}
+    <nav id="menu">
+        <a id="myOcean" class="item highlighted" href="javascript:main.showMyOcean()">my ocean</a>
+        <a id="myProfile" class="item highlighted" href="javascript:main.showEditProfileForm()">account</a>
+    </nav>
+
+    {% endif %}
     <div class="content">
         {% block content_items %} {% endblock %}
     </div>
