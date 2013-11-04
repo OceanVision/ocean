@@ -54,9 +54,12 @@ function Main() {
 	};
 	
 	Main.prototype.signIn = function() {
+
+        var csrftoken = getCookie('csrftoken');
         $.ajaxSetup({
             beforeSend: function(xhr, settings) {
                 if (!csrfSafeMethod(settings.type) && sameOrigin(settings.url)) {
+
                     // Send the token to same-origin, relative URLs only.
                     // Send the token only if the method warrants CSRF protection
                     // Using the CSRFToken value acquired earlier
@@ -65,12 +68,29 @@ function Main() {
             }
         });
 	    console.log("Main.signIn");
-	    var data = {
-	        username : $("#username").val(),
-	        password : $("#password").val() //Crypto.SHA256($("#password").val())
+	    var datavar = {
+	        'username' : $("#username").val(),
+	        'password' : $("#password").val() //$("Crypto.SHA256($("#password").val())
 	    };
-	    var csrftoken = getCookie('csrftoken');
-	    alert($(ajax.request("rss/login/", "POST", data)));
+
+        $.ajax({
+             type:"POST",
+             url: "rss/login/",
+             data: datavar,
+             success:
+                 function(response){
+                     console.log(response);
+                 },
+            error:
+                function(xhr, ajaxOptions, thrownError){
+                    alert(JSON.stringify(thrownError));
+                    alert(JSON.stringify(ajaxOptions));
+                    alert(JSON.stringify(xhr));
+                }
+            }
+
+         );
+
 	};
 }());
 

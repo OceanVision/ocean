@@ -1,5 +1,6 @@
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, logout
 from django.contrib.auth.models import User
+import django.contrib.auth
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.shortcuts import render
@@ -9,32 +10,16 @@ from django.template import loader
 
 
 
-def login(request):
+def logme(request):
     username = request.POST['username']
     password = request.POST['password']
-
-
-
     # TODO: add hash authentication
     user = authenticate(username=username, password=password)
-    print user
     if user is not None:
-        print user
-        print dir(user)
-        print user.is_active
-        print request
-        login(request, user)
-        print "Logged in ",user
-        return
-
-
         # TODO: is_active flag checking
         if user.is_active:
-            print "Logging in ",user
-            login(request, user)
-            print "Logged in ",user
-            # User is logged in
-            # TODO
+            django.contrib.auth.login(request, user)
+            return HttpResponseRedirect("/") # TODO: not working with ajax, return here OK and do redirect in ajax
         else:
             # User in inactive
             return render(request, 'rss/index.html', {'message': 'User is inactive'})
@@ -43,7 +28,7 @@ def login(request):
         return render(request, 'rss/index.html', {'message': 'Your username and password didn\'t match. Please try again.'})
 
 
-def logout(request):
+def logmeout(request):
     logout(request)
     # User is logged out
     return HttpResponseRedirect(reverse('rss:index'))
