@@ -28,7 +28,9 @@ class News (neo4j_models.NodeModel):
 
 class NewsWebsite (neo4j_models.NodeModel):
     label = neo4j_models.StringProperty(default="__news_website__")
+
     produces = neo4j_models.Relationship('News', rel_type='__produces__', related_name="produced")
+
     url = neo4j_models.URLProperty()
 
 

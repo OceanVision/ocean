@@ -54,13 +54,17 @@ if __name__ == "__main__":
         ),
         node (
             app_label = "rss", name = "rss:NeoUser", model_name = "NeoUser"
+        ),
+        node (
+            app_label = "rss", name = "rss:News", model_name = "News"
         )
     ]
     types = graph_db.create(*types)
     # Create type relations
     graph_db.create (
         rel ( root, HAS_TYPE_RELATION, types[0] ),
-        rel ( root, HAS_TYPE_RELATION, types[1] )
+        rel ( root, HAS_TYPE_RELATION, types[1] ),
+        rel ( root, HAS_TYPE_RELATION, types[2] )
     )
 
     ### Add users ###
@@ -104,6 +108,10 @@ if __name__ == "__main__":
         url="http://konflikty.wp.pl/kat,106090,title,Nowe-smiglowce-USA-"\
     "Wielki-projekt-zbrojeniowy-w-cieniu-budzetowych-ciec,wid,16116470,wiadomosc.html?ticaid=111908"
         )
+         ,node (
+            label = NEWS_LABEL,
+            url= "www.news.pl"
+        )
     ]
 
     news = graph_db.create(*news) # Create nodes in graph database
@@ -113,7 +121,13 @@ if __name__ == "__main__":
         rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),
         rel(users[0], SUBSCRIBES_TO_RELATION, websites[1]),
         rel(users[1], SUBSCRIBES_TO_RELATION, websites[1]),
-        rel(websites[2],PRODUDES_RELATION, news[0] )
+        rel(websites[2],PRODUDES_RELATION, news[0] ),
+        rel(websites[1],PRODUDES_RELATION, news[1] )
+    )
+
+    graph_db.create (
+        rel ( types[2], HAS_INSTANCE_RELATION, news[0]),
+        rel ( types[2], HAS_INSTANCE_RELATION, news[1])
     )
 
     print "Graph populated successfully"

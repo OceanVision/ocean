@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate, logout
 from django.contrib.auth.models import User
 import django.contrib.auth
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.core.urlresolvers import reverse
 from django.shortcuts import render
 from models import NewsWebsite,News,NeoUser
@@ -19,7 +19,7 @@ def logme(request):
         # TODO: is_active flag checking
         if user.is_active:
             django.contrib.auth.login(request, user)
-            return HttpResponseRedirect("/") # TODO: not working with ajax, return here OK and do redirect in ajax
+            return HttpResponse(content="Ok")
         else:
             # User in inactive
             return render(request, 'rss/index.html', {'message': 'User is inactive'})
@@ -100,8 +100,24 @@ def show_news(request):
         print NeoUser.objects.filter(username__exact="kudkudak")[0].subscribes_to.all()
         u = NeoUser.objects.filter(username__exact="kudkudak")[0]
         print type(NeoUser.objects.filter(username__exact="kudkudak")[0])
+        print u.subscribes_to.all()
+
+
         print u.subscribes_to.all().select_related('produces') #Add tests
-        return render(request, 'rss/show_news.html', {'message': 'Logged in'})
+
+
+        news_array = [] # building news to be rendered (isn't very efficient..)
+
+        n = 0
+        for news_website in u.subscribes_to.all():
+
+            for news in news_website.produces.all():
+                n += 1
+                news_array+=[{"category":2, "title":"TestTitle "+str(n), "content":news.url}]
+                #TODO: next iteration : add fetching
+
+        print n
+        return render(request, 'rss/show_news.html', {'logged_in':True, 'news':news_array})
     else:
         # Redirect anonymous users to login page.
        return render(request, 'rss/message.html', {'message': 'You are not logged in'})
