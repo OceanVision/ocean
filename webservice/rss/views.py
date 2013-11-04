@@ -9,7 +9,6 @@ from django.template import loader
 
 
 
-
 def login(request):
     username = request.POST['username']
     password = request.POST['password']
@@ -33,11 +32,27 @@ def logout(request):
     return HttpResponseRedirect(reverse('rss:index'))
 
 def index(request):
-    from models import *
+    #from models import *
 
+    sub_list = NeoUser.objects.get_or_create(username=request.user)[0].subscribes_to.all()
+    sub_str = ''
 
-    # Insert exemplary data : TODO: i01t05 integrate neo4j and django (ocean_exemplary_data.py)
+    for web in sub_list:
+        sub_str += web.url + '; '
+
+    if request.user.is_authenticated():
+        # Do something for authenticated users.
+        return render ( request, 'rss/message.html', {
+            'message': 'Hello, ' + str(request.user) + '! Here are your subscriptions: ' +
+            sub_str
+            }
+        )
+    else:
+        # Redirect anonymous users to login page.
+        return render(request, 'rss/message.html', {'message': 'You are not logged in'+ str(User.objects.filter(username__exact="admin"))})
+
     # TODO: add as unit test
+
     n1 = NewsWebsite.objects.filter(url="http://antyweb.pl")
     if len(n1) == 0:
         n1 = NewsWebsite.objects.create(url="http://antyweb.pl")
@@ -60,30 +75,18 @@ def index(request):
         u.save()
         print "Inserted ",u
 
-        u.subscribed.add(n1)
-        u.subscribed.add(n2)
+        u.subscribes_to.add(n1)
+        u.subscribes_to.add(n2)
         print "subscribed to"
-        print u.subscribed.all() #Add tests
+        print u.subscribes_to.all() #Add tests
         print u._get_pk_val()
         print type(u)
         u.save()
         n1.save()
         n2.save()
 
+    #str(NeoUser.objects.filter(username__exact="admin")[0].subscribes_to.all()[]
 
-
-
-    w1 = News(url="http://google.pl",slug="google_test")
-    w1.save()
-
-
-
-    if request.user.is_authenticated():
-        # Do something for authenticated users.
-        return render(request, 'rss/message.html', {'message': 'You are logged in'})
-    else:
-        # Redirect anonymous users to login page.
-        return render(request, 'rss/message.html', {'message': 'You are not logged in'+ str(User.objects.filter(username__exact="admin"))})
 
 
 def show_news(request):
@@ -92,12 +95,11 @@ def show_news(request):
         print request.user
         print NeoUser.objects.filter(username__exact=str(request.user))[0]._get_pk_val()
 
-        print NeoUser.objects.filter(username__exact=str(request.user))[0].subscribed.all()
+        print NeoUser.objects.filter(username__exact=str(request.user))[0].subscribes_to.all()
         u = NeoUser.objects.filter(username__exact=str(request.user))[0]
         print type(NeoUser.objects.filter(username__exact=str(request.user))[0])
-        print u.subscribed.all() #Add tests
-        #select_related('produces')
-        return render(request, 'rss/show_news.html')
+        print u.subscribes_to.all().select_related('produces') #Add tests
+        return render(request, 'rss/show_news.html', {'message': 'Logged in'})
     else:
         # Redirect anonymous users to login page.
        return render(request, 'rss/message.html', {'message': 'You are not logged in'})

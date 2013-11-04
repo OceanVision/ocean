@@ -16,5 +16,5 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     url(r'^$', views.index, name='index'),
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^rss/', include('rss.urls', namespace="rss")),
+    url(r'^rss/', include('rss.urls', namespace="rss"))
 )

@@ -38,36 +38,82 @@ if __name__ == "__main__":
     USER_LABEL = "__user__"
     NEWS_WEBSITE_LABEL = "__news_website__"
     NEWS_LABEL = "__news__"
+
+    HAS_TYPE_RELATION = "<<TYPE>>"
+    HAS_INSTANCE_RELATION = "<<INSTANCE>>"
     SUBSCRIBES_TO_RELATION = "__subscribes_to__"
     PRODUDES_RELATION = "__produces__"
 
-    # Add users
-    users = [node(label=USER_LABEL, username="kudkudak"), node(label=USER_LABEL,username="konrad")] # Create abstract nodes
-    users = graph_db.create(*users) # Create nodes in graph database
-    
-# 1.9 doesnt support labels!
-#     map(lambda u: u.add_labels(USER_LABEL),users) # Add labels
-#     print [x for x in  graph_db.find(USER_LABEL)] # Sanity check,
+    root = graph_db.node(0)
 
+    ### Add webservice types ###
+    # Create nodes
+    types = [
+        node (
+            app_label = "rss", name = "rss:NewsWebsite", model_name = "NewsWebsite"
+        ),
+        node (
+            app_label = "rss", name = "rss:NeoUser", model_name = "NeoUser"
+        )
+    ]
+    types = graph_db.create(*types)
+    # Create type relations
+    graph_db.create (
+        rel ( root, HAS_TYPE_RELATION, types[0] ),
+        rel ( root, HAS_TYPE_RELATION, types[1] )
+    )
 
-    websites = [node(label=NEWS_WEBSITE_LABEL,url="www.antyweb.pl"), 
-node(label=NEWS_WEBSITE_LABEL,url="www.onet.pl"), 
-node(label=NEWS_WEBSITE_LABEL,url="www.wp.pl")] # Create abstract nodes
-    websites = graph_db.create(*websites) # Create nodes in graph database
-#     map(lambda w: w.add_labels(NEWS_WEBSITE_LABEL),websites) # Add labels
-#     print [x for x in  graph_db.find(NEWS_WEBSITE_LABEL)] # Sanity check
+    ### Add users ###
+    # Create nodes
+    users = [
+        node(label=USER_LABEL, username="kudkudak"),
+        node(label=USER_LABEL,username="konrad")
+    ]
+    users = graph_db.create(*users)
+    # Create instance relations
+    graph_db.create (
+        rel ( types[1], HAS_INSTANCE_RELATION, users[0] ),
+        rel ( types[1], HAS_INSTANCE_RELATION, users[1] )
+    )
 
-    news = [node(label = NEWS_LABEL,
-url="http://konflikty.wp.pl/kat,106090,title,Nowe-smiglowce-USA-"\
-    "Wielki-projekt-zbrojeniowy-w-cieniu-budzetowych-ciec,wid,16116470,wiadomosc.html?ticaid=111908")]
+    # 1.9 doesnt support labels!
+    #map(lambda u: u.add_labels(USER_LABEL),users) # Add labels
+    #print [x for x in  graph_db.find(USER_LABEL)] # Sanity check,
+
+    ### Add websites ###
+    # Create nodes
+    websites = [
+        node(label=NEWS_WEBSITE_LABEL,url="www.antyweb.pl"),
+        node(label=NEWS_WEBSITE_LABEL,url="www.onet.pl"),
+        node(label=NEWS_WEBSITE_LABEL,url="www.wp.pl")
+    ]
+    websites = graph_db.create(*websites)
+    # Create instance relations
+    graph_db.create (
+        rel ( types[0], HAS_INSTANCE_RELATION, websites[0] ),
+        rel ( types[0], HAS_INSTANCE_RELATION, websites[1] ),
+        rel ( types[0], HAS_INSTANCE_RELATION, websites[2] )
+    )
+
+    #map(lambda w: w.add_labels(NEWS_WEBSITE_LABEL),websites) # Add labels
+    #print [x for x in  graph_db.find(NEWS_WEBSITE_LABEL)] # Sanity check
+
+    news = [
+        node (
+        label = NEWS_LABEL,
+        url="http://konflikty.wp.pl/kat,106090,title,Nowe-smiglowce-USA-"\
+    "Wielki-projekt-zbrojeniowy-w-cieniu-budzetowych-ciec,wid,16116470,wiadomosc.html?ticaid=111908"
+        )
+    ]
 
     news = graph_db.create(*news) # Create nodes in graph database
-#     map(lambda w: w.add_labels(NEWS_LABEL),news) # Add labels
+    #map(lambda w: w.add_labels(NEWS_LABEL),news) # Add labels
 
-    graph_db.create(rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),\
-                    rel(users[0], SUBSCRIBES_TO_RELATION, websites[1]),\
-                    rel(users[1], SUBSCRIBES_TO_RELATION, websites[1]),\
-                    rel(websites[2],PRODUDES_RELATION, news[0] )
-                    )
+    graph_db.create (
+        rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),
+        rel(users[0], SUBSCRIBES_TO_RELATION, websites[1]),
+        rel(users[1], SUBSCRIBES_TO_RELATION, websites[1]),
+        rel(websites[2],PRODUDES_RELATION, news[0] )
+    )
 
     print "Graph populated successfully"

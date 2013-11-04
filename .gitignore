@@ -6,6 +6,3 @@
 *.swp
 *.vim
 
-# Settings
-webservice/ocean/settings_local.py
-
