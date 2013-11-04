@@ -20,31 +20,12 @@ p.header {
     color: #e5e5e5;
 }
 
-p#bigBanner {
-    display: inline-block;
-    margin-left: 15%;
-    font-size: 300px;
-    color: #f2f2f2;
-    cursor: default;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-
-img#signInArrow {
-    position: absolute;
-    right: 5px;
-    top: 50px;
-}
-
 /* ========== M E N U ========== */
 
 nav#menu {
-    margin-right: 15%;
-    float: right;
+    position: absolute;
+    left: 55%;
+    top: 300px;
 }
 
 nav#menu a.item {
@@ -55,19 +36,77 @@ nav#menu a.item {
 }
 
 nav#menu a.item.highlighted {
-    background-color: #6fc41b;
+    background-color: #e5e5e5;
     color: #fff;
     border-radius: 15px;
 }
 
-img#logo {
-    height: 40px;
-    margin-left: 50px;
+/* ========== F O R M ========== */
+
+div.form {
+    width: 340px;
+}
+
+div.form input {
+    background-color: transparent;
+    border: 0px;
+    border-bottom: 1px solid #eee;
+    width: 300px;
+    display: inline-block;
+    margin-bottom: 25px;
+    padding: 5px 20px;
+    font-size: 20px;
+    font-style: italic;
+    color: #ddd;
+    outline: none;
+}
+
+div.form a.submit {
+    background-color: #e5e5e5;
+    border: 0px;
+    display: block;
+    float: right;
+    padding: 5px 10px;
+    font-size: 20px;
+    color: #fff;
+    border-radius: 5px;
 }
 
 div#signInForm {
     position: absolute;
-    right: 50px;
+}
+
+div#signInForm input {
+    font-size: 40px;
+}
+
+div#signInForm input.focus {
+    color: #888;
+    font-style: normal;
+}
+
+div#signInForm a.submit {
+    padding: 6px 13px;
+    font-size: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+/* ========== B A C K G R O U N D ========== */
+
+p#bigBanner {
+    display: inline-block;
+    position: absolute;
+    left: 15%;
+    font-size: 300px;
+    color: #f2f2f2;
+    cursor: default;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 /* ========== N A V I G A T O R ========== */
@@ -131,20 +170,20 @@ nav#navigator p.category {
 
 /* ========== C O N T E N T ========== */
 
-div#content {
+div.content {
     width: 65%;
     margin: 0px auto;
     z-index: 0;
 }
 
-div#content div.item {
+div.content div.item {
     background-color: #fff;
     border-bottom: 1px solid #f0f0f0;
     display: block;
     position: relative;
 }
 
-div#content div.item span.no {
+div.content div.item span.no {
     position: absolute;
     left: 10px;
     top: 0px;
@@ -152,7 +191,7 @@ div#content div.item span.no {
     color: #fff;
 }
 
-div#content div.item p.title {
+div.content div.item p.title {
     -font-family: "Lucida Sans Unicode";
     padding: 7px 0px 6px 60px;
     font-size: 21px;
@@ -160,11 +199,11 @@ div#content div.item p.title {
     cursor: pointer;
 }
 
-div#content div.item p.title:hover {
+div.content div.item p.title:hover {
     color: #fff;
 }
 
-div#content div.item p.description {
+div.content div.item p.description {
     background-color: #fff;
     display: none;
     padding: 3px 0px 6px 60px;
@@ -174,7 +213,7 @@ div#content div.item p.description {
     overflow: auto;
 }
 
-div#content div.item p.description img {
+div.content div.item p.description img {
     max-width: 50%;
     max-height: 200px;
     margin: 0px 10px 10px 0px;
