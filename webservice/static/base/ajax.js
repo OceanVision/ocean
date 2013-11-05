@@ -72,7 +72,3 @@ function Ajax() {
             !(/^(\/\/|http:|https:).*/.test(url));
     };
 }());
-
-$(document).on("ready", function() {
-    ajax = new Ajax();
-});

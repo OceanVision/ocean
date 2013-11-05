@@ -1,15 +1,12 @@
-{% extends 'base/base.html' %}
 {% block navigator %}
 
 <a id="navigatorSwitcher"></a>
 <nav id="navigator">
     <p class="header">NAVIGATOR</p>
     <div class="container">
-        <!-- <p class="category">your categories</p> -->
-        <a class="item category" href="#" data-color="#{{ navigator_item_color }}">cooking</a>
-        <a class="item category" href="#" data-color="#{{ navigator_item_color }}">Barack Obama</a>
-        <a class="item category" href="#" data-color="#{{ navigator_item_color }}">tennis</a>
-        <a class="item category" href="#" data-color="#{{ navigator_item_color }}">iPhone</a>
+        {% for item in categories %}
+            <a class="item category" href="#" data-color="#{{ item.color }}">{{ item.name }}</a>
+        {% endfor %}
     </div>
 </nav>
 

@@ -29,11 +29,10 @@ function Visualization() {
 	
 	// TODO: more generic showing methods
 	Visualization.prototype.showSignInForm = function(signInForm) {
-	    console.log("Visualization.showSignInForm");
 	    signInForm
 	        .appendTo("body")
 	        .css({
-	            "left" : ($("#menu").position().left + $("#menu").width()) + "px",
+	            "left" : ($(".menu").position().left + $(".menu").width()) + "px",
 	            "top" : (($(window).height() - signInForm.height()) / 2 * 0.6) + "px",
 	            "opacity" : 0
 	        });
@@ -67,7 +66,7 @@ function Visualization() {
 	            }
 	        });
 
-	    this.transition($("#bigBanner, #menu"), signInForm);
+	    this.transition($("#bigBanner, .menu"), signInForm);
 	};
     
     Visualization.prototype.transition = function(leftEl, rightEl) {
@@ -87,26 +86,37 @@ function Visualization() {
     Visualization.prototype.addEvents = function() {
 		var self = this;
 		
-		// kolor dla sign in
-		$("#menu .item.highlighted").each(function() {
+		// sign_in item color
+		$(".menu .item.highlighted").each(function() {
 		    self.state.signInColor = self.getRandomColor();
 			$(this).css("background-color", "#" + self.state.signInColor);
 		});
 		
-		// ukrywanie krawędzi przy rozwijaniu
-		$("#content .item")
-		.find(".title")
+		// rss items colors and opening item
+		$(".content .item .title")
 		.hover(function() {
+		    $(this).css("background-color", "#" + $(this).data("color"));
 			if ($(this).parent().find(".description:hidden").length == 1) {
 				$(this).parent().css("border-bottom", "1px solid #fff");
 			}
 		}, function() {
+		    $(this).css("background-color", "#fff");
 			if ($(this).parent().find(".description:hidden").length == 1) {
 				$(this).parent().css("border-bottom", "1px solid #f0f0f0");
 			}
+		})
+		.on("click", function(e) {
+		    e.stopImmediatePropagation();
+			if($(this).parent().find(".description:hidden").length == 1) {
+				$(this).parent().find(".description").show(200);
+				$(this).css("font-weight", "bold");
+			} else {
+				$(this).parent().find(".description").hide(100);
+				$(this).css("font-weight", "normal");
+			}
 		});
 		
-		// kolory dla kategorii w nawigatorze
+		// navigator categories colors
 		$("#navigator .item.category").each(function() {
 			var color = $(this).data("color");
 			$(this).css("border-left", "5px solid " + color);
@@ -118,9 +128,10 @@ function Visualization() {
 			});
 		});
 		
-		// otwieranie nawigatora
-		$("#navigatorSwitcher").on("click", function() {
+		// opening navigator
+		$("#navigatorSwitcher").on("click", function(e) {
 			var animationSpeed = 400;
+			e.stopImmediatePropagation();
 			if (!self.state.navigatorVisibility) {
 				$("#navigator").animate({
 					left : "0px",
@@ -151,20 +162,5 @@ function Visualization() {
 				self.state.navigatorVisibility = false;
 			}
 		});
-		
-		// klikanie w tytuł
-		$("#content .item .title").on("click", function() {
-			if($(this).parent().find(".description:hidden").length == 1) {
-				$(this).parent().find(".description").show(200);
-				$(this).css("font-weight", "bold");
-			} else {
-				$(this).parent().find(".description").hide(100);
-				$(this).css("font-weight", "normal");
-			}
-		});
 	};
 }());
-
-$(document).on("ready", function() {
-    visualization = new Visualization();
-});

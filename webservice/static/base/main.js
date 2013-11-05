@@ -11,7 +11,7 @@ function Main() {
 
 	Main.prototype.showSignInForm = function() {
 	    var response = null;
-	    ajax.request("get_sign_in_view", "GET", "", function(r) {
+	    ajax.request("user_profile/get_sign_in_form", "GET", "", function(r) {
 	        response = r;
 	    });
 
@@ -21,7 +21,7 @@ function Main() {
     //under construction
     Main.prototype.showEditProfileForm = function() {
         var response = null;
-	    ajax.request("get_edit_profile_view", "GET", "", function(r) {
+	    ajax.request("user_profile/get_edit_profile_form", "GET", "", function(r) {
 	        response = r;
 	    });
 
@@ -31,7 +31,7 @@ function Main() {
     //under construction
     Main.prototype.showMyOcean = function() {
         var response = null;
-	    ajax.request("rss", "GET", "", function(r) {
+	    ajax.request("rss/", "GET", "", function(r) {
 	        response = r;
 	    });
 
@@ -39,13 +39,12 @@ function Main() {
     };
 
 	Main.prototype.signIn = function() {
-        console.log("Main.signIn");
 	    var data = {
 	        'username' : $("#username").val(),
 	        'password' : $("#password").val() //$("Crypto.SHA256($("#password").val())
 	    };
 
-	    ajax.request("rss/sign_in/", "POST", data, function(response) {
+	    ajax.request("user_profile/sign_in", "POST", data, function(response) {
 	        console.log(response);
 	        window.location.replace("");
         }, function(xhr, ajaxOptions, thrownError) {
@@ -58,4 +57,6 @@ function Main() {
 
 $(document).on("ready", function() {
     main = new Main();
+    ajax = new Ajax();
+    visualization = new Visualization();
 });

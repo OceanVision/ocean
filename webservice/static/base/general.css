@@ -22,23 +22,46 @@ p.header {
 
 /* ========== M E N U ========== */
 
-nav#menu {
+nav.menu {
     position: absolute;
+}
+
+nav.menu a.item {
+    display: inline-block;
+    color: #888;
+}
+
+nav.menu a.item.highlighted {
+    background-color: #e5e5e5;
+    color: #fff;
+}
+
+nav#welcomeMenu {
     left: 55%;
     top: 300px;
 }
 
-nav#menu a.item {
-    display: inline-block;
+nav#welcomeMenu a.item {
     padding: 10px 20px;
     font-size: 60px;
-    color: #888;
 }
 
-nav#menu a.item.highlighted {
-    background-color: #e5e5e5;
-    color: #fff;
+nav#welcomeMenu a.item.highlighted {
     border-radius: 15px;
+}
+
+nav#regularMenu {
+    right: 50px;
+    top: 0px;
+}
+
+nav#regularMenu a.item {
+    padding: 6px 10px;
+    font-size: 15px;
+}
+
+nav#regularMenu a.item.highlighted {
+    border-radius: 0px 0px 6px 6px;
 }
 
 /* ========== F O R M ========== */
@@ -57,7 +80,7 @@ div.form input {
     padding: 5px 20px;
     font-size: 20px;
     font-style: italic;
-    color: #d1d1d1;
+    color: #e1e1e1;
     outline: none;
 }
 
@@ -85,6 +108,10 @@ div.form input.focus {
     font-style: normal;
 }
 
+div.form p.header {
+    color: #bbb;
+}
+
 div#signInForm a.submit, div#editProfileForm a.submit {
     padding: 6px 13px;
     font-size: 40px;
@@ -95,9 +122,6 @@ div#signInForm a.submit, div#editProfileForm a.submit {
 div#editProfileForm {
     width: 400px;
     position: absolute;
-    font-size: 20px;
-    font-style: italic;
-    color: #bbb;
 }
 
 div#editProfileForm input {

@@ -1,0 +1,18 @@
+{% extends 'base/base.html' %}
+{% block content %}
+
+<p id="bigBanner">Ocean</p>
+
+{% if not user.is_authenticated %}
+<nav id="welcomeMenu" class="menu">
+    <a id="signUp" class="item" href="javascript:void(0)">register</a>
+    <a id="signIn" class="item highlighted" href="javascript:main.showSignInForm()">sign in</a>
+</nav>
+{% else %}
+<nav id="welcomeMenu" class="menu">
+    <a id="myProfile" class="item" href="javascript:main.showEditProfileForm()">account</a>
+    <a id="myOcean" class="item highlighted" href="rss/">my ocean</a>
+</nav>
+{% endif %}
+
+{% endblock %}
