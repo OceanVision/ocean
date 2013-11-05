@@ -20,6 +20,15 @@ p.header {
     color: #e5e5e5;
 }
 
+p.message {
+    position: absolute;
+    display: inline-block;
+    top: 400px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ef2929;
+}
+
 /* ========== M E N U ========== */
 
 nav.menu {

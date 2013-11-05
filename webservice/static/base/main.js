@@ -28,6 +28,23 @@ function Main() {
 	    visualization.showSignInForm($(response));
     };
 
+    Main.prototype.editProfile = function() {
+        var data = {
+            'current_password' : $("#currentPassword").val(),
+            'new_password' : $("#newPassword").val(),
+            'retyped_password' : $("#retypedPassword").val()
+        };
+
+        ajax.request("user_profile/edit_profile", "POST", data, function(response) {
+	    console.log(response);
+	    window.location.replace("");
+        }, function(xhr, ajaxOptions, thrownError) {
+            alert(JSON.stringify(thrownError));
+            alert(JSON.stringify(ajaxOptions));
+            alert(JSON.stringify(xhr));
+        });
+    };
+
     //under construction
     Main.prototype.showMyOcean = function() {
         var response = null;
