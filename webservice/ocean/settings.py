@@ -7,10 +7,11 @@ DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 import os
+
 PROJECT_PATH = os.path.realpath(os.path.dirname(__file__)) + '/../'
 
 ADMINS = (
-    # ('Your Name', 'your_email@example.com'),
+# ('Your Name', 'your_email@example.com'),
 )
 
 MANAGERS = ADMINS
@@ -65,7 +66,7 @@ STATIC_ROOT = ''
 
 # URL prefix for static files.
 # Example: "http://example.com/static/", "http://static.example.com/"
-STATIC_URL = '/static/' # TODO : workaround !! Mateusz, popraw :)
+STATIC_URL = '/static/'  # TODO : workaround !! Mateusz, popraw :)
 
 # Additional locations of static files
 STATICFILES_DIRS = (
@@ -80,13 +81,11 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-#    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+    #    'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'gb55qeo+dw(o-u9)28nphe5@+=-n^@j(0injvdn($)7mv=bx%w'
-
-
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
@@ -103,7 +102,6 @@ ROOT_URLCONF = 'ocean.urls'
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'ocean.wsgi.application'
 
-
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
@@ -113,14 +111,11 @@ TEMPLATE_DIRS = (
 
 
 # List of callables that know how to import templates from various sources.
-# List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
-#     'django.template.loaders.eggs.Loader',
+    #     'django.template.loaders.eggs.Loader',
 )
-
-
 
 INSTALLED_APPS = (
     'django.contrib.auth',

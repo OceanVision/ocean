@@ -29,13 +29,15 @@ def sign_in(request):
             return render(request, 'rss/index.html', {'message': 'User is inactive'})
     else:
         # Wrong user's data
-        return render(request, 'rss/index.html', {'message': 'Your username and password didn\'t match. Please try again.'})
+        return render(request, 'rss/index.html',
+                      {'message': 'Your username and password didn\'t match. Please try again.'})
 
 
 def sign_out(request):
     logout(request)
     # User is logged out
     return HttpResponseRedirect(reverse('rss:index'))
+
 
 def edit_profile(request):
     # Logged in
@@ -53,4 +55,4 @@ def edit_profile(request):
         else:
             return render(request, 'rss/message.html', {'message': 'New password and retyped password do not match!'})
     else:
-            return render(request, 'rss/message.html', {'message': 'You are not allowed to this page!'})
+        return render(request, 'rss/message.html', {'message': 'You are not allowed to this page!'})
