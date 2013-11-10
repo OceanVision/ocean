@@ -1,31 +1,59 @@
 function Main() {
 	'use strict';
+	this.init();
 }
 
 (function() {
 	'use strict';
 
-	Main.prototype.getRandomInteger = function(a, b) {
-	    return Math.round(Math.random() * b) + a;
+	Main.prototype.init = function() {
+	    this.loadInitialContent();
 	};
 
+	Main.prototype.loadInitialContent = function() {
+        for (var i = 0; i < contentToLoad.length; ++i) {
+            visualization.fadeIn(contentToLoad[i]);
+        }
+    };
+
+    Main.prototype.load = function(path) {
+	    var response = null;
+	    ajax.request(path, "GET", "", function(r) {
+	        response = r;
+	    });
+
+	    //TODO: not a good choice for every next case
+	    visualization.transit($("body").children(), $(response));
+	};
+
+    // deprecated
 	Main.prototype.showSignInForm = function() {
 	    var response = null;
-	    ajax.request("user_profile/get_sign_in_form", "GET", "", function(r) {
+	    ajax.request("ajax/sign_in", "GET", "", function(r) {
 	        response = r;
 	    });
 
-	    visualization.showSignInForm($(response));
+	    visualization.transit($("body").children(), $(response));
 	};
 
-    //under construction
+	// deprecated
     Main.prototype.showEditProfileForm = function() {
         var response = null;
-	    ajax.request("user_profile/get_edit_profile_form", "GET", "", function(r) {
+	    ajax.request("ajax/edit_profile", "GET", "", function(r) {
 	        response = r;
 	    });
 
-	    visualization.showSignInForm($(response));
+	    visualization.transit($("body").children(), $(response));
+    };
+
+    // deprecated
+    Main.prototype.showRSS = function() {
+        var response = null;
+	    ajax.request("ajax/rss", "GET", "", function(r) {
+	        response = r;
+	    });
+
+	    visualization.transit($("body").children(), $(response));
     };
 
     Main.prototype.editProfile = function() {
@@ -36,23 +64,12 @@ function Main() {
         };
 
         ajax.request("user_profile/edit_profile", "POST", data, function(response) {
-	    console.log(response);
-	    window.location.replace("");
+	        console.log(response);
         }, function(xhr, ajaxOptions, thrownError) {
-            alert(JSON.stringify(thrownError));
-            alert(JSON.stringify(ajaxOptions));
-            alert(JSON.stringify(xhr));
+            console.log(JSON.stringify(thrownError));
+            console.log(JSON.stringify(ajaxOptions));
+            console.log(JSON.stringify(xhr));
         });
-    };
-
-    //under construction
-    Main.prototype.showMyOcean = function() {
-        var response = null;
-	    ajax.request("rss/", "GET", "", function(r) {
-	        response = r;
-	    });
-
-	    visualization.showSignInForm($(response));
     };
 
 	Main.prototype.signIn = function() {
@@ -63,17 +80,20 @@ function Main() {
 
 	    ajax.request("user_profile/sign_in", "POST", data, function(response) {
 	        console.log(response);
-	        window.location.replace("");
+	        main.load("ajax/rss");
         }, function(xhr, ajaxOptions, thrownError) {
-            alert(JSON.stringify(thrownError));
-            alert(JSON.stringify(ajaxOptions));
-            alert(JSON.stringify(xhr));
+            console.log(JSON.stringify(thrownError));
+            console.log(JSON.stringify(ajaxOptions));
+            console.log(JSON.stringify(xhr));
         });
 	};
 }());
 
 $(document).on("ready", function() {
-    main = new Main();
-    ajax = new Ajax();
     visualization = new Visualization();
+    main = new Main();
+    utils = new Utils();
+    ajax = new Ajax();
 });
+
+var contentToLoad = [];

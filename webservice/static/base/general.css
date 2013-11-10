@@ -8,6 +8,7 @@
 }
 
 body {
+    position: relative;
     overflow-x: hidden;
     overflow-y: scroll;
 }
@@ -73,78 +74,10 @@ nav#regularMenu a.item.highlighted {
     border-radius: 0px 0px 6px 6px;
 }
 
-/* ========== F O R M ========== */
+/* ========== W E L C O M E ========== */
 
-div.form {
-    width: 340px;
-}
-
-div.form input {
-    background-color: transparent;
-    border: 0px;
-    border-bottom: 1px solid #eee;
-    width: 300px;
-    display: inline-block;
-    margin-bottom: 25px;
-    padding: 5px 20px;
-    font-size: 20px;
-    font-style: italic;
-    color: #e1e1e1;
-    outline: none;
-}
-
-div.form a.submit {
-    background-color: #e5e5e5;
-    border: 0px;
-    display: block;
-    float: right;
-    padding: 5px 10px;
-    font-size: 20px;
-    color: #fff;
-    border-radius: 5px;
-}
-
-div#signInForm {
-    position: absolute;
-}
-
-div.form input {
-    font-size: 40px;
-}
-
-div.form input.focus {
-    color: #888;
-    font-style: normal;
-}
-
-div.form p.header {
-    color: #bbb;
-}
-
-div#signInForm a.submit, div#editProfileForm a.submit {
-    padding: 6px 13px;
-    font-size: 40px;
-    border-radius: 10px;
-    cursor: pointer;
-}
-
-div#editProfileForm {
-    width: 400px;
-    position: absolute;
-}
-
-div#editProfileForm input {
-    width: 360px;
-}
-
-div#editProfileForm input#avatar {
-    font-size: 15px;
-}
-
-/* ========== B A C K G R O U N D ========== */
-
-p#bigBanner {
-    display: inline-block;
+p#banner {
+    display: none;
     position: absolute;
     left: 15%;
     font-size: 300px;
@@ -168,7 +101,7 @@ a#navigatorSwitcher {
     background-size: 64%;
     width: 50px;
     height: 50px;
-    display: block;
+    display: none;
     position: absolute;
     left: 40px;
     top: 40px;
@@ -190,8 +123,8 @@ nav#navigator {
     z-index: 1;
 }
 
-nav#navigator div.container {
-    margin-top: 25px;
+nav#navigator p.header {
+    margin-bottom: 25px;
 }
 
 nav#navigator a.item {
@@ -217,22 +150,21 @@ nav#navigator p.category {
     color: #bbb;
 }
 
-/* ========== C O N T E N T ========== */
+/* ========== C O N T A I N E R ========== */
 
-div.content {
-    width: 65%;
+.container {
+    display: none;
     margin: 0px auto;
-    z-index: 0;
 }
 
-div.content div.item {
+.container div.item {
     background-color: #fff;
     border-bottom: 1px solid #f0f0f0;
     display: block;
     position: relative;
 }
 
-div.content div.item span.no {
+.container div.item span.no {
     position: absolute;
     left: 10px;
     top: 0px;
@@ -240,7 +172,7 @@ div.content div.item span.no {
     color: #fff;
 }
 
-div.content div.item p.title {
+.container div.item p.title {
     -font-family: "Lucida Sans Unicode";
     padding: 7px 0px 6px 60px;
     font-size: 21px;
@@ -248,11 +180,11 @@ div.content div.item p.title {
     cursor: pointer;
 }
 
-div.content div.item p.title:hover {
+.container div.item p.title:hover {
     color: #fff;
 }
 
-div.content div.item p.description {
+.container div.item p.description {
     background-color: #fff;
     display: none;
     padding: 3px 0px 6px 60px;
@@ -262,9 +194,88 @@ div.content div.item p.description {
     overflow: auto;
 }
 
-div.content div.item p.description img {
+.container div.item p.description img {
     max-width: 50%;
     max-height: 200px;
     margin: 0px 10px 10px 0px;
     float: left;
+}
+
+div#rssItems {
+    width: 65%;
+    position: absolute;
+}
+
+/* ========== F O R M ========== */
+
+div.form {
+    width: 340px;
+}
+
+div.form input {
+    background-color: transparent;
+    border: 0px;
+    border-bottom: 1px solid #eee;
+    width: 300px;
+    display: inline-block;
+    margin-bottom: 25px;
+    padding: 5px 20px;
+    font-size: 20px;
+    font-style: italic;
+    color: #e1e1e1;
+    outline: none;
+}
+
+div.form a.submit, div.form a.back {
+    background-color: #e5e5e5;
+    border: 0px;
+    display: inline-block;
+    float: right;
+    padding: 5px 10px;
+    font-size: 20px;
+    color: #fff;
+    border-radius: 5px;
+}
+
+div.form a.back {
+    background-color: transparent;
+    color: #888;
+}
+
+div.form input {
+    font-size: 40px;
+}
+
+div.form input.focus {
+    color: #888;
+    font-style: normal;
+}
+
+div.form p.header {
+    color: #bbb;
+}
+
+div#signInForm {
+    position: absolute;
+}
+
+div#signInForm a.submit, div#editProfileForm a.submit,
+div#signInForm a.back, div#editProfileForm a.back {
+    padding: 6px 13px;
+    font-size: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+div#editProfileForm {
+    width: 400px;
+    position: absolute;
+}
+
+div#editProfileForm input {
+    width: 360px;
+}
+
+div#editProfileForm input#avatar {
+    font-size: 15px;
 }

@@ -1,13 +1,11 @@
 {% block navigator %}
 
-<a id="navigatorSwitcher"></a>
-<nav id="navigator">
+<a id="navigatorSwitcher" data-transit="false"></a>
+<nav id="navigator" class="container" data-center_h="false" data-center_v="false">
     <p class="header">NAVIGATOR</p>
-    <div class="container">
-        {% for item in categories %}
-            <a class="item category" href="#" data-color="#{{ item.color }}">{{ item.name }}</a>
-        {% endfor %}
-    </div>
+    {% for item in categories %}
+        <a class="item category" href="#" data-color="#{{ item.color }}">{{ item.name }}</a>
+    {% endfor %}
 </nav>
 
 {% endblock %}

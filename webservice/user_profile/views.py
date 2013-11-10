@@ -6,14 +6,6 @@ from django.contrib.auth.models import User
 import django.contrib.auth
 
 
-def get_sign_in_form(request):
-    return render(request, 'base/signInForm.html')
-
-
-def get_edit_profile_form(request):
-    return render(request, 'base/editProfileForm.html')
-
-
 def sign_in(request):
     username = request.POST['username']
     password = request.POST['password']
@@ -26,10 +18,10 @@ def sign_in(request):
             return HttpResponse(content="Ok")
         else:
             # User in inactive
-            return render(request, 'rss/index.html', {'message': 'User is inactive'})
+            return render(request, 'rss/message.html', {'message': 'User is inactive'})
     else:
         # Wrong user's data
-        return render(request, 'rss/index.html',
+        return render(request, 'rss/message.html',
                       {'message': 'Your username and password didn\'t match. Please try again.'})
 
 

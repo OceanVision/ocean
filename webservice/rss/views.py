@@ -8,49 +8,17 @@ from py2neo import node, rel
 from django.contrib.auth.decorators import login_required
 from django.views.generic.detail import DetailView
 from django.template import loader
+from ocean import views as ocean_views
 
-
-def index(request):
-    if request.user.is_authenticated():
-        # Do something for authenticated users.
-        #print request.user
-        #print NeoUser.objects.filter(username__exact="kudkudak")[0]._get_pk_val()
-        #print NeoUser.objects.filter(username__exact="kudkudak")[0].subscribes_to.all()
-        u = NeoUser.objects.filter(username__exact="kudkudak")[0]
-        #print type(NeoUser.objects.filter(username__exact="kudkudak")[0])
-        #print u.subscribes_to.all()
-        #print u.subscribes_to.all().select_related('produces')  # Add tests
-
-        rss_items_array = []  # building news to be rendered (isn't very efficient..)
-
-        n = 0
-        for rss_channel in u.subscribes_to.all():
-            for news in rss_channel.produces.all():
-                n += 1
-                rss_items_array += [{'category': 2, 'title': 'TestTitle ' + str(n), 'description': news.link,
-                                     'color': 'e5e5e5'}]
-                #TODO: next iteration : add fetching
-
-        #TODO: make color dependent of various features
-        category_array = [{'name': 'Barack Obama', 'color': 'ffbd0c'},
-                          {'name': 'tennis', 'color': '00c6c4'},
-                          {'name': 'iPhone', 'color': '74899c'},
-                          {'name': 'cooking', 'color': '976833'}]
-
-        return render(request, 'rss/index.html', {'logged_in': True, 'rss_items': rss_items_array,
-                                                  'categories': category_array})
-    else:
-        # Redirect anonymous users to login page.
-        return render(request, 'rss/message.html', {'message': 'You are not logged in'})
 
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
-def get_news(request):
+def get_rss_content(request):
     if request.user.is_authenticated():
         rss_items_array = []  # building news to be rendered (isn't very efficient..)
-        user = NeoUser.objects.filter(username__exact=User.username)[0]
-
+        #user = NeoUser.objects.filter(username__exact=NeoUser.username)[0]
+        u = NeoUser.objects.filter(username__exact="kudkudak")[0]
         # Get news for authenticated users.
-        for rss_channel in user.subscribes_to.all():
+        for rss_channel in u.subscribes_to.all():
             for news in rss_channel.produces.all():
                 rss_items_array += [{'title': news.title, 'description': news.description,
                                      'link': news.link, 'pubDate': news.pubDate,
@@ -62,14 +30,19 @@ def get_news(request):
                           {'name': 'iPhone', 'color': '74899c'},
                           {'name': 'cooking', 'color': '976833'}]
 
-        # Return HttpResponse with headers
-        response = HttpResponse()
-        response['rss_items'] = rss_items_array[request.page * request.pageSize:(request.page + 1) * request.pageSize]
-        response['category_array'] = category_array
-        return response
+        return {'signed_in': True,
+                'rss_items': rss_items_array,
+                'categories': category_array}
     else:
-        # Redirect anonymous users to login page.
-        return render(request, 'rss/message.html', {'message': 'You are not logged in'})
+        return {}
+
+
+def index(request):
+    data = get_rss_content(request)
+    if len(data) > 0:
+        return render(request, 'rss/rss_index.html', data)
+    else:
+        return ocean_views.sign_in(request)
 
 
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')

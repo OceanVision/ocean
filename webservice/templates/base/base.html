@@ -11,12 +11,11 @@
 <script src="{% static 'base/crypto-min.js' %}"></script>
 <script src="{% static 'base/crypto-sha256.js' %}"></script>
 <script src="{% static 'base/main.js' %}"></script>
+<script src="{% static 'base/utils.js' %}"></script>
 <script src="{% static 'base/visualization.js' %}"></script>
 <script src="{% static 'base/ajax.js' %}"></script>
 </head>
 <body>
-    <div class="content">
-        {% block content %} {% endblock %}
-    </div>
+    {% block body %} {% endblock %}
 </body>
 </html>
