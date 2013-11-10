@@ -4,7 +4,18 @@ function Utils() {
 
 (function() {
     'use strict';
+
+    Utils.prototype = {
+        colors : ["00c6c5", "c500fe", "ff1701", "976834", "9c8c5b", 
+		         "00a001", "7b00fe", "bc002c", "bc002c", "896fa1", 
+		         "6fc41c", "005dfe", "fa0086", "ffbd0d", "74899d", 
+		         "bee301", "1fbbfe", "ff84f2", "ff7901", "7e9c75"]
+    };
     
+    Utils.prototype.getRandomColor = function() {
+		return this.colors[Math.floor(Math.random() * 20)];
+	};
+
     /* ========== A J A X ========== */
     Utils.prototype.getCookie = function(name) {
         var cookieValue = null;

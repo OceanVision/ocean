@@ -104,9 +104,9 @@ if __name__ == "__main__":
     websites = graph_db.create(*websites)
     # Create instance relations
     graph_db.create(
-        rel(types[0], HAS_INSTANCE_RELATION, channels[0]),
-        rel(types[0], HAS_INSTANCE_RELATION, channels[1]),
-        rel(types[0], HAS_INSTANCE_RELATION, channels[2])
+        rel(types[0], HAS_INSTANCE_RELATION, websites[0]),
+        rel(types[0], HAS_INSTANCE_RELATION, websites[1]),
+        rel(types[0], HAS_INSTANCE_RELATION, websites[2])
     )
 
     #map(lambda w: w.add_labels(NEWS_CHANNELS_LABEL),channels) # Add labels
@@ -135,11 +135,11 @@ if __name__ == "__main__":
     #map(lambda w: w.add_labels(NEWS_LABEL),news) # Add labels
 
     graph_db.create(
-        rel(users[0], SUBSCRIBES_TO_RELATION, channels[2]),
-        rel(users[0], SUBSCRIBES_TO_RELATION, channels[1]),
-        rel(users[1], SUBSCRIBES_TO_RELATION, channels[1]),
-        rel(channels[1], PRODUDES_RELATION, news[0]),
-        rel(channels[2], PRODUDES_RELATION, news[1])
+        rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),
+        rel(users[0], SUBSCRIBES_TO_RELATION, websites[1]),
+        rel(users[1], SUBSCRIBES_TO_RELATION, websites[1]),
+        rel(websites[1], PRODUDES_RELATION, news[0]),
+        rel(websites[2], PRODUDES_RELATION, news[1])
     )
 
     graph_db.create(
