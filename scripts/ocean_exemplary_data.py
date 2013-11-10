@@ -83,9 +83,9 @@ if __name__ == "__main__":
     #map(lambda u: u.add_labels(USER_LABEL),users) # Add labels
     #print [x for x in  graph_db.find(USER_LABEL)] # Sanity check,
 
-    ### Add channels ###
+    ### Add websites ###
     # Create nodes
-    channels = [
+    websites = [
         node(label=NEWS_WEBSITE_LABEL, link="http://www.gry-online.pl/rss/news.xml",
              title="GRY-OnLine Wiadomosci", description="Najnowsze Wiadomosci",
              image_width="144", image_height="18", image_link="http://www.gry-online.pl/S012.asp",
@@ -101,7 +101,7 @@ if __name__ == "__main__":
              description="Czytaj najnowsze informacje i ogladaj wideo w portalu informacyjnym TVN24! U nas zawsze "
                          "aktualne wiadomosci z kraju, ze swiata, relacje na zywo i wiele wiecej.", language="pl"),
     ]
-    channels = graph_db.create(*channels)
+    websites = graph_db.create(*websites)
     # Create instance relations
     graph_db.create(
         rel(types[0], HAS_INSTANCE_RELATION, channels[0]),
