@@ -44,7 +44,7 @@ class News(neo4j_models.NodeModel):
     pubDate = neo4j_models.DateTimeProperty()
 
 
-class NewsChannel(neo4j_models.NodeModel):
+class NewsWebsite(neo4j_models.NodeModel):
     label = neo4j_models.StringProperty(default="__news_channel__")
     produces = neo4j_models.Relationship('News', rel_type='__produces__', related_name="produced")
 
@@ -63,7 +63,7 @@ class NeoUser(neo4j_models.NodeModel):
         Auxiliary node in graph database, to query easy for subscribed websites
     """
     label = neo4j_models.StringProperty(default="__user__")
-    subscribes_to = neo4j_models.Relationship('NewsChannel', rel_type='__subscribes_to__', related_name="subscribed")
+    subscribes_to = neo4j_models.Relationship('NewsWebsite', rel_type='__subscribes_to__', related_name="subscribed")
 
     # There has to be related user in django.contrib.auth.User !! TODO: relation?
     username = neo4j_models.StringProperty()

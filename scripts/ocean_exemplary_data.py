@@ -35,7 +35,7 @@ if __name__ == "__main__":
         exit(1)
 
     USER_LABEL = "__user__"
-    NEWS_CHANNEL_LABEL = "__news_channel__"
+    NEWS_WEBSITE_LABEL = "__news_channel__"
     NEWS_LABEL = "__news__"
 
     HAS_TYPE_RELATION = "<<TYPE>>"
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     # Create nodes
     types = [
         node(
-            app_label="rss", name="rss:NewsChannel", model_name="NewsChannel"
+            app_label="rss", name="rss:NewsWebsite", model_name="NewsWebsite"
         ),
         node(
             app_label="rss", name="rss:NeoUser", model_name="NeoUser"
@@ -86,17 +86,17 @@ if __name__ == "__main__":
     ### Add channels ###
     # Create nodes
     channels = [
-        node(label=NEWS_CHANNEL_LABEL, link="http://www.gry-online.pl/rss/news.xml",
+        node(label=NEWS_WEBSITE_LABEL, link="http://www.gry-online.pl/rss/news.xml",
              title="GRY-OnLine Wiadomosci", description="Najnowsze Wiadomosci",
              image_width="144", image_height="18", image_link="http://www.gry-online.pl/S012.asp",
              image_url="http://www.gry-online.pl/rss/rss_logo.gif", language="pl"),
-        node(label=NEWS_CHANNEL_LABEL, link="http://wiadomosci.wp.pl/kat,1329,ver,rss,rss.xml",
+        node(label=NEWS_WEBSITE_LABEL, link="http://wiadomosci.wp.pl/kat,1329,ver,rss,rss.xml",
              title="Wiadomosci WP - Wiadomosci - Wirtualna Polska",
              description="Wiadomosci.wp.pl to serwis, dzieki ktoremu mozna zapoznac sie z biezaca sytuacja w kraju i na"
                          " swiecie.",
              image_width="70", image_height="28", image_link="http://wiadomosci.wp.pl",
              image_url="http://i.wp.pl/a/i/finanse/logozr/WP.gif", language="pl"),
-        node(label=NEWS_CHANNEL_LABEL, link="http://www.tvn24.pl/najwazniejsze.xml",
+        node(label=NEWS_WEBSITE_LABEL, link="http://www.tvn24.pl/najwazniejsze.xml",
              title="TVN24.pl - Wiadomosci z kraju i ze swiata - najnowsze informacje w TVN24",
              description="Czytaj najnowsze informacje i ogladaj wideo w portalu informacyjnym TVN24! U nas zawsze "
                          "aktualne wiadomosci z kraju, ze swiata, relacje na zywo i wiele wiecej.", language="pl"),

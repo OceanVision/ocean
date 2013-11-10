@@ -13,6 +13,7 @@ def edit_profile(request):
 def rss(request):
     data = rss_views.get_rss_content(request)
     if len(data) > 0:
-        return render(request, 'ajax/rss_index.html', data)
+        return re
+        nder(request, 'ajax/rss_index.html', data)
     else:
         return sign_in(request)

@@ -45,6 +45,11 @@ def index(request):
         return ocean_views.sign_in(request)
 
 
+
+#TODO: Refactor NewsWebsite ----> Content Source
+#TODO: Refactor News --> Content
+
+# TODO: refactor (it is not news channel..)
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 def add_channel(request):
     if request.user.is_authenticated():
@@ -63,13 +68,13 @@ def add_channel(request):
         # Redirect anonymous users to login page.
         return render(request, 'rss/message.html', {'message': 'You are not logged in'})
 
-
+# TODO: refactor (it is not news channel..)
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 def delete_channel(request):
     if request.user.is_authenticated():
         graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
         user = NeoUser.objects.filter(username__exact=User.username)[0]
-        channel = user.subscribes_to.all().filter(link__exact=request.link)[0]
+        website = user.subscribes_to.all().filter(link__exact=request.link)[0]
         graph_db.delete(channel)
 
         return HttpResponse(content="Ok")
