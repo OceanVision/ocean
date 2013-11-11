@@ -6,6 +6,7 @@ Connection done using RESTApi and wrapper for python py2neo
 
 from py2neo import neo4j
 from py2neo import node, rel
+import time
 
 if __name__ == "__main__":
     # Create connection
@@ -35,7 +36,7 @@ if __name__ == "__main__":
         exit(1)
 
     USER_LABEL = "__user__"
-    NEWS_WEBSITE_LABEL = "__news_channel__"
+    NEWS_WEBSITE_LABEL = "__news_website__"
     NEWS_LABEL = "__news__"
 
     HAS_TYPE_RELATION = "<<TYPE>>"
@@ -89,62 +90,77 @@ if __name__ == "__main__":
         node(label=NEWS_WEBSITE_LABEL, link="http://www.gry-online.pl/rss/news.xml",
              title="GRY-OnLine Wiadomosci", description="Najnowsze Wiadomosci",
              image_width="144", image_height="18", image_link="http://www.gry-online.pl/S012.asp",
-             image_url="http://www.gry-online.pl/rss/rss_logo.gif", language="pl"),
+             image_url="http://www.gry-online.pl/rss/rss_logo.gif", language="pl",
+             last_updated=int(time.time() - 100000), source_type="rss"
+        ),
         node(label=NEWS_WEBSITE_LABEL, link="http://wiadomosci.wp.pl/kat,1329,ver,rss,rss.xml",
              title="Wiadomosci WP - Wiadomosci - Wirtualna Polska",
              description="Wiadomosci.wp.pl to serwis, dzieki ktoremu mozna zapoznac sie z biezaca sytuacja w kraju i na"
                          " swiecie.",
              image_width="70", image_height="28", image_link="http://wiadomosci.wp.pl",
-             image_url="http://i.wp.pl/a/i/finanse/logozr/WP.gif", language="pl"),
+             image_url="http://i.wp.pl/a/i/finanse/logozr/WP.gif", language="pl",
+             last_updated=int(time.time() - 1000000), source_type="rss"
+        ),
         node(label=NEWS_WEBSITE_LABEL, link="http://www.tvn24.pl/najwazniejsze.xml",
              title="TVN24.pl - Wiadomosci z kraju i ze swiata - najnowsze informacje w TVN24",
              description="Czytaj najnowsze informacje i ogladaj wideo w portalu informacyjnym TVN24! U nas zawsze "
-                         "aktualne wiadomosci z kraju, ze swiata, relacje na zywo i wiele wiecej.", language="pl"),
+                         "aktualne wiadomosci z kraju, ze swiata, relacje na zywo i wiele wiecej.", language="pl",
+             last_updated=int(time.time() - 100000), source_type="rss")
     ]
     websites = graph_db.create(*websites)
     # Create instance relations
     graph_db.create(
-        rel(types[0], HAS_INSTANCE_RELATION, channels[0]),
-        rel(types[0], HAS_INSTANCE_RELATION, channels[1]),
-        rel(types[0], HAS_INSTANCE_RELATION, channels[2])
+        rel(types[0], HAS_INSTANCE_RELATION, websites[0]),
+        rel(types[0], HAS_INSTANCE_RELATION, websites[1]),
+        rel(types[0], HAS_INSTANCE_RELATION, websites[2])
     )
 
     #map(lambda w: w.add_labels(NEWS_CHANNELS_LABEL),channels) # Add labels
     #print [x for x in  graph_db.find(NEWS_CHANNELS_LABEL)] # Sanity check
 
-    news = [
-        node(
-            label=NEWS_LABEL, link="http://konflikty.wp.pl/kat,106090,title,Nowe-smiglowce-USA-Wielki-projekt-"
-                                   "zbrojeniowy-w-cieniu-budzetowych-ciec,wid,16116470,wiadomosc.html?ticaid=111908",
-            title="Wypadek busa w Egipcie. Rannych zostalo dwoch Polakow",
-            description="Szesciu cudzoziemcow, w tym dwoch Polakow, zostalo rannych w wypadku drogowym w Egipcie. "
-                        "Do zdarzenia doszlo na drodze miedzy Kairem a Aleksandria - informuje serwis ruvr.ru.",
-            guid="http://wiadomosci.wp.pl/kat,1329,title,Wypadek-busa-w-Egipcie-Rannych-zostalo-dwoch-Polakow,wid,"
-                 "16151839,wiadomosc.html"
-        )
-        , node(
-            label=NEWS_LABEL, link="http://www.tvn24.pl/naukowcy-slady-polonu-w-ciele-arafata-sugeruja-udzial-osob-"
-                                   "trzecich,369594,s.html",
-            title="Naukowcy: slady polonu w ciele Arafata sugeruja udzial osob trzecich",
-            description="Palestynskiego lidera otruto w roku 2004.",
-            guid="http://www.tvn24.pl/naukowcy-slady-polonu-w-ciele-arafata-sugeruja-udzial-osob-trzecich,369594,s.html"
-        )
-    ]
 
-    news = graph_db.create(*news)  # Create nodes in graph database
-    #map(lambda w: w.add_labels(NEWS_LABEL),news) # Add labels
-
+    # Adding news is working, and therefore we do not need to populate graph artificially with news
     graph_db.create(
-        rel(users[0], SUBSCRIBES_TO_RELATION, channels[2]),
-        rel(users[0], SUBSCRIBES_TO_RELATION, channels[1]),
-        rel(users[1], SUBSCRIBES_TO_RELATION, channels[1]),
-        rel(channels[1], PRODUDES_RELATION, news[0]),
-        rel(channels[2], PRODUDES_RELATION, news[1])
+        rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),
+        rel(users[0], SUBSCRIBES_TO_RELATION, websites[1]),
+        rel(users[1], SUBSCRIBES_TO_RELATION, websites[1])
     )
 
-    graph_db.create(
-        rel(types[2], HAS_INSTANCE_RELATION, news[0]),
-        rel(types[2], HAS_INSTANCE_RELATION, news[1])
-    )
+
+    #news = [
+    #node(
+    #    label=NEWS_LABEL, link="http://konflikty.wp.pl/kat,106090,title,Nowe-smiglowce-USA-Wielki-projekt-"
+    #                           "zbrojeniowy-w-cieniu-budzetowych-ciec,wid,16116470,wiadomosc.html?ticaid=111908",
+    #    title="Wypadek busa w Egipcie. Rannych zostalo dwoch Polakow",
+    #    description="Szesciu cudzoziemcow, w tym dwoch Polakow, zostalo rannych w wypadku drogowym w Egipcie. "
+    #                "Do zdarzenia doszlo na drodze miedzy Kairem a Aleksandria - informuje serwis ruvr.ru.",
+    #    guid="http://wiadomosci.wp.pl/kat,1329,title,Wypadek-busa-w-Egipcie-Rannych-zostalo-dwoch-Polakow,wid,"
+    #         "16151839,wiadomosc.html"
+    #)
+    #, node(
+    #    label=NEWS_LABEL, link="http://www.tvn24.pl/naukowcy-slady-polonu-w-ciele-arafata-sugeruja-udzial-osob-"
+    #                           "trzecich,369594,s.html",
+    #    title="Naukowcy: slady polonu w ciele Arafata sugeruja udzial osob trzecich",
+    #    description="Palestynskiego lidera otruto w roku 2004.",
+    #    guid="http://www.tvn24.pl/naukowcy-slady-polonu-w-ciele-arafata-sugeruja-udzial-osob-trzecich,369594,s.html"
+    #)
+    #]
+    #
+    #news = graph_db.create(*news)  # Create nodes in graph database
+    ##map(lambda w: w.add_labels(NEWS_LABEL),news) # Add labels
+    #
+    #graph_db.create(
+    #rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),
+    #rel(users[0], SUBSCRIBES_TO_RELATION, websites[1]),
+    #rel(users[1], SUBSCRIBES_TO_RELATION, websites[1]),
+    #rel(websites[1], PRODUDES_RELATION, news[0]),
+    #rel(websites[2], PRODUDES_RELATION, news[1])
+    #)
+    #
+    #graph_db.create(
+    #rel(types[2], HAS_INSTANCE_RELATION, news[0]),
+    #rel(types[2], HAS_INSTANCE_RELATION, news[1])
+    #)
 
     print "Graph populated successfully"
+
