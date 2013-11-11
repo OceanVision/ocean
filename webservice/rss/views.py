@@ -16,7 +16,7 @@ def get_rss_content(request):
     if request.user.is_authenticated():
         rss_items_array = []  # building news to be rendered (isn't very efficient..)
         #user = NeoUser.objects.filter(username__exact=NeoUser.username)[0]
-        u = NeoUser.objects.filter(username__exact="kudkudak")[0]
+        u = NeoUser.objects.filter(username__exact="kudkudak")[0] # Czemu zawsze kudkudak?
         # Get news for authenticated users.
         for rss_channel in u.subscribes_to.all():
             for news in rss_channel.produces.all():
