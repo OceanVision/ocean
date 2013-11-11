@@ -8,7 +8,7 @@ from py2neo import node, rel
 from django.contrib.auth.decorators import login_required
 from django.views.generic.detail import DetailView
 from django.template import loader
-from ocean import views as ocean_views
+from ocean import utils, views as ocean_views
 
 
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
@@ -40,7 +40,7 @@ def get_rss_content(request):
 def index(request):
     data = get_rss_content(request)
     if len(data) > 0:
-        return render(request, 'rss/rss_index.html', data)
+        return utils.render(request, 'rss/index.html', data)
     else:
         return ocean_views.sign_in(request)
 

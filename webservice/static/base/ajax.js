@@ -7,16 +7,15 @@ function Ajax() {
 
     Ajax.prototype = {
         pathsMap : {
-            "ajax/sign_in" : "sign_in",
-            "ajax/edit_profile" : "edit_profile",
-            "ajax/rss" : "rss"
+            "" : "",
+            "sign_in" : "sign_in",
+            "edit_profile" : "edit_profile",
+            "rss" : "rss"
         }
     };
 
     Ajax.prototype.request = function(path, attType, attData, onSuccess, onError) {
-        var self = this;
         onError = typeof onError !== 'undefined' ? onError : null;
-
         if (attType === "POST") {
             var csrftoken = utils.getCookie('csrftoken');
             $.ajaxSetup({
@@ -32,7 +31,7 @@ function Ajax() {
         }
 
         $.ajax({
-            url : "http://" + location.host + "/" + path,
+            url : "http://" + location.host + "/" + path + "?ajax",
             global : false,
             type : attType,
             data : attData,
@@ -41,9 +40,9 @@ function Ajax() {
             success : function(response) {
                 onSuccess(response);
                 window.history.pushState(
-                    {page : "sign_in"},
-                    "Sign in",
-                    self.pathsMap[path]
+                    {page : path},
+                    "Title",
+                    ajax.pathsMap[path]
                 );
             },
             error : onError

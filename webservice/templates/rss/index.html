@@ -1,8 +1,11 @@
+{% extends 'base/base.html' %}
+{% block body %}
+
 {% block navigator %}
     {% include "base/navigator.html" %}
 {% endblock %}
 
-<div id="rssItems" class="container" data-transit="true">
+<div id="rssItems" class="container" data-center_h="true" data-transit="true">
     <p class="header">TOP STORIES</p>
     {% for item in rss_items %}
     <div class="item" title="{{ items.category }}">
@@ -14,3 +17,14 @@
     </div>
     {% endfor %}
 </div>
+
+<script type="text/javascript">
+    if (typeof contentToLoad === 'undefined') {
+        contentToLoad = [];
+    }
+    contentToLoad.push($("#navigatorSwitcher"));
+    contentToLoad.push($("#navigator"));
+    contentToLoad.push($("#rssItems"));
+</script>
+
+{% endblock %}

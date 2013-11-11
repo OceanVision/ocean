@@ -8,27 +8,17 @@ function Visualization() {
 
     Visualization.prototype = {
 		state : {
-			navigatorVisibility : false,
-			signInColor : null
-		},
-		
-		colors : ["00c6c5", "c500fe", "ff1701", "976834", "9c8c5b", 
-		         "00a001", "7b00fe", "bc002c", "bc002c", "896fa1", 
-		         "6fc41c", "005dfe", "fa0086", "ffbd0d", "74899d", 
-		         "bee301", "1fbbfe", "ff84f2", "ff7901", "7e9c75"]
+			navigatorVisibility : false
+		}
 	};
 
     Visualization.prototype.init = function() {
         //sign in color
-        var color = this.getRandomColor();
+        var color = utils.getRandomColor();
         this.addGlobalStyle(".menu .item.highlighted", "background-color", "#" + color);
         this.addGlobalStyle("#signInForm .submit", "background-color", "#" + color);
         this.addGlobalStyle("#editProfileForm .submit", "background-color", "#" + color);
 		this.updateEventHandlers();
-	};
-
-	Visualization.prototype.getRandomColor = function() {
-		return this.colors[Math.floor(Math.random() * 20)];
 	};
 
 	Visualization.prototype.addGlobalStyle = function(element, attribute, value) {
@@ -90,7 +80,7 @@ function Visualization() {
 
 	    delta = newElementLeft
 	        - this.getCentralPosition(newElement.filter("[data-transit='true']")).left;
-	    console.log(newElement.width());
+
         activeElementEffects = {
             "left" : "-=" + delta + "px",
             "opacity" : 0

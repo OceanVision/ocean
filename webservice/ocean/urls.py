@@ -16,7 +16,6 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     url(r'^$', views.index),
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^ajax/', include('ajax.urls', namespace="ajax")),
     url(r'^user_profile/', include('user_profile.urls', namespace="user_profile")),
     url(r'^rss/', include('rss.urls', namespace="rss")),
     url(r'^sign_in$', views.sign_in),

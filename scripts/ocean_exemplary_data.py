@@ -124,7 +124,7 @@ if __name__ == "__main__":
         rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),
         rel(users[0], SUBSCRIBES_TO_RELATION, websites[1]),
         rel(users[1], SUBSCRIBES_TO_RELATION, websites[1])
-    )
+   )
 
 
     #news = [
