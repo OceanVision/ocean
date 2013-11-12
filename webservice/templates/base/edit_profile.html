@@ -1,4 +1,4 @@
-{% extends 'base/base.html' %}
+{% extends 'base/index.html' %}
 {% block body %}
 
 <div id="editProfileForm" class="container form" data-center_h="true" data-center_v="true" data-transit="true">
@@ -11,12 +11,5 @@
         data-value="retype password" data-type="password">
     <a class="submit" href="javascript:main.editProfile()">submit</a>
 </div>
-
-<script type="text/javascript">
-    if (typeof contentToLoad === 'undefined') {
-        contentToLoad = [];
-    }
-    contentToLoad.push($("#editProfileForm"));
-</script>
 
 {% endblock %}

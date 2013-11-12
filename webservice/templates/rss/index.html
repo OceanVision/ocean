@@ -1,4 +1,4 @@
-{% extends 'base/base.html' %}
+{% extends 'base/index.html' %}
 {% block body %}
 
 {% block navigator %}
@@ -17,14 +17,5 @@
     </div>
     {% endfor %}
 </div>
-
-<script type="text/javascript">
-    if (typeof contentToLoad === 'undefined') {
-        contentToLoad = [];
-    }
-    contentToLoad.push($("#navigatorSwitcher"));
-    contentToLoad.push($("#navigator"));
-    contentToLoad.push($("#rssItems"));
-</script>
 
 {% endblock %}
