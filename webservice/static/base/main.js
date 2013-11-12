@@ -11,10 +11,9 @@ function Main() {
 	};
 
 	Main.prototype.loadInitialContent = function() {
-        for (var i = 0; i < contentToLoad.length; ++i) {
-            visualization.fadeIn(contentToLoad[i]);
-        }
-        contentToLoad = [];
+        $("body").children().each(function() {
+            visualization.fadeIn($(this));
+        });
     };
 
     Main.prototype.load = function(path) {

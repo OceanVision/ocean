@@ -1,4 +1,4 @@
-{% extends 'base/base.html' %}
+{% extends 'base/index.html' %}
 {% block body %}
 
 <div id="signInForm" class="container form" data-center_h="true" data-center_v="true" data-transit="true">
@@ -7,12 +7,5 @@
     <a class="submit" href="javascript:main.signIn()">sign in</a>
     <!--<a class="back" href="javascript:void(0)">back</a>-->
 </div>
-
-<script type="text/javascript">
-    if (typeof contentToLoad === 'undefined') {
-        contentToLoad = [];
-    }
-    contentToLoad.push($("#signInForm"));
-</script>
 
 {% endblock %}
