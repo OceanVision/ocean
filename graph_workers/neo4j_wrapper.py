@@ -18,7 +18,7 @@ from pytz import timezone
 from py2neo import neo4j
 from py2neo import node, rel
 import py2neo
-
+import time
 
 def get_type_metanode(graph_db, model_name):
     """
@@ -52,8 +52,7 @@ def pubdate_to_datetime(pubdate):
     try:
         d = datetime.strptime(pubdate, "%a, %d %b %Y %H:%M:%S %Z") if \
             len(tok[3]) > 2 else time.strptime(pubdate, "%a, %d %b %y %H:%M:%S %Z")
-        d = d.replace(tzinfo=timezone("GMT"))
-        return d
+        return d.replace(tzinfo=timezone("GMT")) # make timezone aware for robustness
     except:
         # PYTHON 2.7 DOESNT SUPPORT %z DIRECTIVE !!!.. omg, official documentation..
         try:
@@ -62,8 +61,7 @@ def pubdate_to_datetime(pubdate):
             d = datetime.strptime(pubdate[:-6], "%a, %d %b %Y %H:%M:%S") if \
                 len(tok[3]) > 2 else datetime.strptime(pubdate[:-6], "%a, %d %b %y %H:%M:%S")
             d -= delta
-            d = d.replace(tzinfo=timezone("GMT"))
-            return d
+            return d.replace(tzinfo=timezone("GMT")) # make timezone aware for robustness
         except Exception, e:
             print e
             print pubdate

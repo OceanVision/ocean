@@ -16,6 +16,13 @@ Coding prototype in python will be useful for testing the architecture
 
 
 class GraphWorker(object):
+
+    def terminate(self):
+        """
+            terminates self thread and returns. Every GraphWorker has to implement this function
+        """
+        raise NotImplementedError()
+
     def get_required_privileges(self):
         """
             @returns List of required privileges
