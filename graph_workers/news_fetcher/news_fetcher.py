@@ -41,25 +41,6 @@ NewsFetcherJob = namedtuple("NewsFetcherJob", 'neo4j_node work_time')
     work_time - when to pull news (as datetime)
 """
 
-
-class GraphWorkersManager(object):
-    """ Stub for manager of workers. On singal terminates all workers """
-    def __init__(self):
-        self.graph_workers = []
-
-    def run(self):
-        # Now it will only create NewsFetcher, stub :)
-        nf_master = NewsFetcher.create_master(privileges=construct_full_privilege())
-        #nf_worker = NewsFetcher.create_worker(nf_master, privileges=construct_full_privilege()) - not working
-        threading.Thread(target=nf_master.run).start()
-        self.graph_workers.append(nf_master)
-
-    def terminate(self):
-        for gw in self.graph_workers:
-            gw.terminate()
-        logger.info("Terminated all graph workers")
-
-
 import threading
 class NewsFetcher(GraphWorker):
     required_privileges = construct_full_privilege()
@@ -146,7 +127,7 @@ class NewsFetcher(GraphWorker):
                 current_job = self.global_job_list.pop(0) #TODO: Not very thread safe :<
                 self.process(current_job)
 
-            time.sleep(0.01) #TODO: as variable
+            time.sleep(1.0) #TODO: as variable
 
         for worker in self.workers:
             if worker is not NewsFetcher:
@@ -332,11 +313,7 @@ def test_1():
     logger.info("Terminated master")
     #nf_worker.run()
 
-def test_2():
-    gwm = GraphWorkersManager()
-    gwm.run()
-    time.sleep(1)
-    gwm.terminate()
+
 
 import time
 
