@@ -31,7 +31,6 @@ from utils import logger
 import urllib2
 import xml.dom.minidom
 from datetime import timedelta, datetime
-import pytz
 from dateutil import parser
 from pytz import timezone
 
