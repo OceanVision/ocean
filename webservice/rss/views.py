@@ -9,6 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic.detail import DetailView
 from django.template import loader
 from ocean import utils, views as ocean_views
+import urllib2
+import xml.dom.minidom
 
 
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
@@ -45,7 +47,6 @@ def index(request):
         return ocean_views.sign_in(request)
 
 
-
 #TODO: Refactor NewsWebsite ----> Content Source
 #TODO: Refactor News --> Content
 
@@ -53,9 +54,25 @@ def index(request):
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 def add_channel(request):
     if request.user.is_authenticated():
+
+        response = urllib2.urlopen(request.link)
+        html = response.read()
+        doc = xml.dom.minidom.parseString(html)
+        channel = doc.childNodes[0].getElementsByTagName("channel")[0]
+
+        title = channel.getElementsByTagName("title")[0].nodeValue
+        description = channel.getElementsByTagName("description")[0].nodeValue
+        image_width = channel.getElementsByTagName("image")[0].getElementsByTagName("width")[0].nodeValue
+        image_height = channel.getElementsByTagName("image")[0].getElementsByTagName("height")[0].nodeValue
+        image_link = channel.getElementsByTagName("image")[0].getElementsByTagName("link")[0].nodeValue
+        image_url = channel.getElementsByTagName("image")[0].getElementsByTagName("url")[0].nodeValue
+        language = channel.getElementsByTagName("language")[0].nodeValue
+
         graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
         channels = [
-            node(label=models.NEWS_CHANNEL_LABEL, link=request.link),
+            node(label=models.NEWS_CHANNEL_LABEL, link=request.link, title=title, description=description,
+                 image_width=image_width, image_height=image_height, image_link=image_link, image_url=image_url,
+                 language=language),
         ]
         channels = graph_db.create(*channels)
         # Create instance relations
@@ -74,7 +91,7 @@ def delete_channel(request):
     if request.user.is_authenticated():
         graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
         user = NeoUser.objects.filter(username__exact=User.username)[0]
-        website = user.subscribes_to.all().filter(link__exact=request.link)[0]
+        channel = user.subscribes_to.all().filter(link__exact=request.link)[0]
         graph_db.delete(channel)
 
         return HttpResponse(content="Ok")
