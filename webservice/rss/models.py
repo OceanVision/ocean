@@ -6,6 +6,7 @@ from py2neo import node
 
 HAS_INSTANCE_RELATION = "<<INSTANCE>>"
 NEWS_CHANNEL_LABEL = "__news_channel__"
+SUBSCRIBES_TO_RELATION = "__subscribes_to__"
 
 types = [
     node(
