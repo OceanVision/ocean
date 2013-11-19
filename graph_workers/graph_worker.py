@@ -33,6 +33,7 @@ class GraphWorker(object):
         """
             @param python logger object (supports log, info, warning)
         """
+        raise NotImplementedError()
 
     @staticmethod
     def create_master(self, **params):
