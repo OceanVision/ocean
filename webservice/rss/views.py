@@ -18,9 +18,9 @@ def get_rss_content(request):
     if request.user.is_authenticated():
         rss_items_array = []  # building news to be rendered (isn't very efficient..)
         #user = NeoUser.objects.filter(username__exact=NeoUser.username)[0]
-        u = NeoUser.objects.filter(username__exact="kudkudak")[0] # Czemu zawsze kudkudak?
+        user = NeoUser.objects.filter(username__exact=User.username)[0]
         # Get news for authenticated users.
-        for rss_channel in u.subscribes_to.all():
+        for rss_channel in user.subscribes_to.all():
             for news in rss_channel.produces.all():
                 rss_items_array += [{'title': news.title, 'description': news.description,
                                      'link': news.link, 'pubDate': news.pubDate,
@@ -33,7 +33,7 @@ def get_rss_content(request):
                           {'name': 'cooking', 'color': '976833'}]
 
         return {'signed_in': True,
-                'rss_items': rss_items_array,
+                'rss_items': rss_items_array[(request.page - 1) * request.page_size : request.page * request.page_size],
                 'categories': category_array}
     else:
         return {}
@@ -78,6 +78,10 @@ def add_channel(request):
         # Create instance relations
         graph_db.create(
             rel(models.types[0], models.HAS_INSTANCE_RELATION, channels[0]),
+        )
+        user = NeoUser.objects.filter(username__exact=User.username)[0]
+        graph_db.create(
+            rel(user, models.SUBSCRIBES_TO_RELATION, channels[0]),
         )
 
         return HttpResponse(content="Ok")
