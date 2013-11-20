@@ -279,7 +279,10 @@ class WebCrawler(GraphWorker):
 
             # No job = sleep ^__^
             if self.master.jobs() == 0:
+                logger.info ("No jobs... Waiting...")
                 time.sleep(4)
+                while self.master.jobs() == 0:
+                    time.sleep(5)
                 continue
 
             # Take job
@@ -296,10 +299,11 @@ class WebCrawler(GraphWorker):
             )
 
             # While exploring the website we have a "local" jobs to do
-            website_jobs = WebCrawlerJobList( [] )
             # We start from a page given by master job
-            website_jobs.enqueue (
-                WebCrawlerJob ( my_job.url, None, my_job.distance )
+            website_jobs = WebCrawlerJobList (
+                [ 
+                    WebCrawlerJob ( my_job.url, None, my_job.distance )
+                ]
             )
             # This list exist to prevent redundancy in internal hrefs
             considered_hrefs = [ my_job.url ]
@@ -340,7 +344,7 @@ class WebCrawler(GraphWorker):
                     continue
 
                 internal_visits += 1
-                #self.visited.append(current_url) #TODO: Database solution
+                self.visited.append(current_url) #TODO: Database solution
 
                 # 1.2. Parse the content to get a new urls list.
 

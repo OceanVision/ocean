@@ -28,6 +28,6 @@ WebCrawler.create_worker (
 
 master_crawler.run()
 
-time.sleep(20)
+time.sleep(120)
 master_crawler.terminate()
 

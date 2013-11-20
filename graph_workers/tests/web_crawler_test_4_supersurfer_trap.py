@@ -1,7 +1,9 @@
 """
-web_crawler_test_2_supersurfer
-The name of this test means that crawler will jump often to the distant
-locations, increasing his depth quickly.
+web_crawler_test_4_supersurfer.py
+This supersurfer is in a trap.
+Expanding only 2 first exteral urls from each website (not random choice)
+will lead to trap, becouse of repetition of most popular websites urls
+like google.com, twitter.com, facebook.com etc.
 """
 
 import sys
@@ -24,7 +26,7 @@ WebCrawler.create_worker (
     privileges = construct_full_privilege(),
     master = master_crawler,
     max_internal_expansion = 5,
-    max_external_expansion = 3,
+    max_external_expansion = 2,
     max_crawling_depth = 100,
 )
 
