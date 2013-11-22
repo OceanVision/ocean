@@ -8,18 +8,6 @@ HAS_INSTANCE_RELATION = "<<INSTANCE>>"
 NEWS_CHANNEL_LABEL = "__news_channel__"
 SUBSCRIBES_TO_RELATION = "__subscribes_to__"
 
-types = [
-    node(
-        app_label="rss", name="rss:NewsChannel", model_name="NewsChannel"
-    ),
-    node(
-        app_label="rss", name="rss:NeoUser", model_name="NeoUser"
-    ),
-    node(
-        app_label="rss", name="rss:News", model_name="News"
-    )
-]
-
 
 def get_image_path(instance, filename):
     return os.path.join('photos', str(instance.id), filename)

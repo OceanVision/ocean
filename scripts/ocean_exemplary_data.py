@@ -71,13 +71,17 @@ if __name__ == "__main__":
     # Create nodes
     users = [
         node(label=USER_LABEL, username="kudkudak"),
-        node(label=USER_LABEL, username="konrad")
+        node(label=USER_LABEL, username="konrad"),
+        node(label=USER_LABEL, username="brunokam"),
+        node(label=USER_LABEL, username="szymon")
     ]
     users = graph_db.create(*users)
     # Create instance relations
     graph_db.create(
         rel(types[1], HAS_INSTANCE_RELATION, users[0]),
-        rel(types[1], HAS_INSTANCE_RELATION, users[1])
+        rel(types[1], HAS_INSTANCE_RELATION, users[1]),
+        rel(types[1], HAS_INSTANCE_RELATION, users[2]),
+        rel(types[1], HAS_INSTANCE_RELATION, users[3])
     )
 
     # 1.9 doesnt support labels!
