@@ -1,10 +1,10 @@
 {% block navigator %}
 
-<a id="navigatorSwitcher" data-transit="false"></a>
+<a id="navigatorSwitcher" href="javascript:visualization.toggleNavigator()" data-transit="false"></a>
 <nav id="navigator" class="container" data-center_h="false" data-center_v="false">
     <p class="header">NAVIGATOR</p>
     {% for item in categories %}
-        <a class="item category" href="#" data-color="#{{ item.color }}">{{ item.name }}</a>
+        <a class="item category" href="javascript:void(0)" data-color="#{{ item.color }}">{{ item.name }}</a>
     {% endfor %}
 </nav>
 

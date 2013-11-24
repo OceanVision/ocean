@@ -23,7 +23,7 @@ def get_rss_content(request):
             for news in rss_channel.produces.all():
                 rss_items_array += [{'title': news.title, 'description': news.description,
                                      'link': news.link, 'pubDate': news.pubDate,
-                                     'category': 2, 'color': 'e5e5e5'}]
+                                     'category': 2, 'color': '999999'}]
 
         #TODO: make color dependent of various features
         category_array = [{'name': 'Barack Obama', 'color': 'ffbd0c'},
@@ -31,8 +31,12 @@ def get_rss_content(request):
                           {'name': 'iPhone', 'color': '74899c'},
                           {'name': 'cooking', 'color': '976833'}]
 
-        page = int(request.GET["page"])
-        page_size = int(request.GET["page_size"])
+        page = 0
+        page_size = 10
+        if 'page' in request.GET:
+            page = int(request.GET['page'])
+            page_size = int(request.GET['page_size'])
+
         return {'signed_in': True,
                 'rss_items': rss_items_array[page * page_size: (page + 1) * page_size],
                 'categories': category_array}

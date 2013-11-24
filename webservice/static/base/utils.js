@@ -6,15 +6,28 @@ function Utils() {
     'use strict';
 
     Utils.prototype = {
-        colors : ["00c6c5", "c500fe", "ff1701", "976834", "9c8c5b", 
-		         "00a001", "7b00fe", "bc002c", "bc002c", "896fa1", 
+        colors : ["00c6c5", "4e219c", "e61400", "ad902f", "9c8c5b",
+		         "00a001", "7b00fe", "b8002b", "ffe801", "896fa1",
 		         "6fc41c", "005dfe", "fa0086", "ffbd0d", "74899d", 
-		         "bee301", "1fbbfe", "ff84f2", "ff7901", "7e9c75"]
+		         "bee301", "1fbbfe", "f000dc", "ff7901", "7e9c75"],
+
     };
-    
+
     Utils.prototype.getRandomColor = function() {
 		return this.colors[Math.floor(Math.random() * 20)];
 	};
+
+    Utils.prototype.getDecimalColor = function(hex) {
+        var result = [];
+        if (hex[0] == '#') {
+            hex = hex.substr(1);
+        }
+        for (var i = 0; i < hex.length; i += 2) {
+            result[i / 2] = parseInt("0x" + hex.substr(i, 2));
+        }
+
+        return result;
+    };
 
     /* ========== A J A X ========== */
     Utils.prototype.getCookie = function(name) {

@@ -2,13 +2,13 @@
 {% block body %}
 
 <div id="editProfileForm" class="container form" data-center_h="true" data-center_v="true" data-transit="true">
-    <p class="header">CHANGE PASSWORD</p>
+    <div class="leaflet"><p class="header">CHANGE PASSWORD</p></div>
     <input id="currentPassword" type="text" value="current password" 
-        data-value="current password" data-type="password">
-    <input id="newPassword" type="text" value="new password" 
-        data-value="new password" data-type="password">
+        data-value="current password" data-type="password"><br>
+    <input id="newPassword" type="text" value="new password"
+        data-value="new password" data-type="password"><br>
     <input id="retypedPassword" type="text" value="retype password" 
-        data-value="retype password" data-type="password">
+        data-value="retype password" data-type="password"><br>
     <a class="submit" href="javascript:main.editProfile()">submit</a>
 </div>
 

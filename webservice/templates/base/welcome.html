@@ -1,18 +1,12 @@
 {% extends 'base/index.html' %}
 {% block body %}
 
-<p id="banner">Ocean</p>
-
-{% if not user.is_authenticated %}
+<p id="banner" data-center_h="true" data-center_v="true" data-transit="true">Ocean</p>
+<!--
 <nav id="welcomeMenu" class="menu container">
     <a id="signUp" class="item" href="javascript:void(0)">register</a>
     <a id="signIn" class="item highlighted" href="javascript:main.load('sign_in')">sign in</a>
 </nav>
-{% else %}
-<nav id="welcomeMenu" class="menu container">
-    <a id="myProfile" class="item" href="javascript:main.load('edit_profile')">account</a>
-    <a id="myOcean" class="item highlighted" href="javascript:main.load('rss')">my ocean</a>
-</nav>
-{% endif %}
+-->
 
 {% endblock %}

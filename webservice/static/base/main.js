@@ -25,7 +25,7 @@ function Main() {
 	    });
 
 	    //TODO: not a good choice for every next case
-	    visualization.transit($("body").children(), $(response));
+	    visualization.transit($("body").children().not("#regularMenu"), $(response));
 	};
 
     Main.prototype.editProfile = function() {
@@ -68,5 +68,3 @@ $(document).on("ready", function() {
     main = new Main();
     ajax = new Ajax();
 });
-
-var contentToLoad = [];

@@ -7,10 +7,10 @@ function Ajax() {
 
     Ajax.prototype = {
         pathsMap : {
-            "" : "",
-            "sign_in" : "sign_in",
-            "edit_profile" : "edit_profile",
-            "rss" : "rss"
+            "" : "/",
+            "sign_in" : "/sign_in",
+            "edit_profile" : "/edit_profile",
+            "rss" : "/rss"
         }
     };
 
@@ -39,7 +39,7 @@ function Ajax() {
             async : false,
             success : function(response) {
                 onSuccess(response);
-                window.history.pushState(
+                window.history.replaceState(
                     {page : path},
                     "Title",
                     ajax.pathsMap[path]

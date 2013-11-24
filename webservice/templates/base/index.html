@@ -6,8 +6,7 @@
 <meta charset="UTF-8">
 <title>Ocean</title>
 <link type="text/css" rel="stylesheet" href="{% static 'base/general.css' %}" />
-<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
-<script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+<script src="{% static 'base/jquery-1.10.2.min.js' %}"></script>
 <script src="{% static 'base/crypto-min.js' %}"></script>
 <script src="{% static 'base/crypto-sha256.js' %}"></script>
 <script src="{% static 'base/main.js' %}"></script>
@@ -16,6 +15,18 @@
 <script src="{% static 'base/ajax.js' %}"></script>
 </head>
 <body>
+    {% if not user.is_authenticated %}
+    <nav id="regularMenu" class="menu container">
+        <a id="signUp" class="item" href="javascript:void(0)">register</a>
+        <a id="signIn" class="item highlighted" href="javascript:main.load('sign_in')">sign in</a>
+    </nav>
+    {% else %}
+    <nav id="regularMenu" class="menu container">
+        <a id="myProfile" class="item" href="javascript:main.load('edit_profile')">profile</a>
+        <a id="myOcean" class="item highlighted" href="javascript:main.load('rss')">my ocean</a>
+    </nav>
+    {% endif %}
+
     {% block body %} {% endblock %}
 </body>
 </html>
