@@ -7,6 +7,8 @@ import re
 import random
 import socket
 import httplib
+import xml.parsers.expat
+import xml.dom.minidom
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -62,49 +64,81 @@ def find_urls(string):
     return urls
 
 
+def open_url(site_url):
+    """
+        @returns socket._fileobject contents of site (file)
+            placed under site_url.
+    """
+    try:
+        request = urllib2.Request(site_url)
+        request.add_header("User-Agent", "My Python Crawler")
+        opener = urllib2.build_opener()
+        response = opener.open(request, timeout=5)
+    except urllib2.HTTPError as error:
+        logger.info ( unicode (site_url) + " - " + unicode(error) )
+        return None
+    except urllib2.URLError as error:
+        logger.info ( unicode (site_url) + " - " + unicode(error) )
+        return None
+    except socket.timeout as error:
+        logger.info ( unicode (site_url) + " - " + unicode(error) )
+        return None
+    except httplib.BadStatusLine as error:
+        logger.info ( unicode (site_url) + " - " + unicode(error) )
+        return None
+    except UnicodeEncodeError as error:
+        logger.info ( unicode (site_url) + " - " + unicode(error) )
+        return None
+    return response
+
+
+def get_contents(site_url):
+    """
+        @returns string contents of site (file) placed under site_url.
+    """
+    response = open_url(site_url)
+
+    if not response:
+        return None
+
+    try:
+        contents = response.read()
+    except LookupError as error:
+        logger.info ( unicode (site_url) + " - " + unicode(error) )
+        return None
+    return contents
+
+
 def get_html(site_url):
-            try:
-                request = urllib2.Request(site_url)
-                request.add_header("User-Agent", "My Python Crawler")
-                opener = urllib2.build_opener()
-                response = opener.open(request, timeout=5)
-                #response = urllib2.urlopen ( site_url, timeout=5 )
-            except urllib2.HTTPError as error:
-                logger.info ( unicode (site_url) + " - " + unicode(error) )
-                return None
-            except urllib2.URLError as error:
-                logger.info ( unicode (site_url) + " - " + unicode(error) )
-                return None
-            except socket.timeout as error:
-                logger.info ( unicode (site_url) + " - " + unicode(error) )
-                return None
-            except httplib.BadStatusLine as error:
-                logger.info ( unicode (site_url) + " - " + unicode(error) )
-                return None
-            except UnicodeEncodeError as error:
-                logger.info ( unicode (site_url) + " - " + unicode(error) )
-                return None
+    """
+        @returns string of site (file) placed under site_url
+            (if it has HTML formatted data).
+    """
+    response = open_url(site_url)
 
-            # Chceck if site_url contains HTML
-            try:
-                if not response.info()['content-type'].startswith('text/html'):
-                    return None
-            except KeyError:
-                    return None
+    if not response:
+        return None
 
-            encoding = response.headers.getparam('charset')
-            if not encoding:
-                encoding = 'utf-8'
+    # Check if site_url contains HTML
+    try:
+        if not response.info()['content-type'].startswith('text/html'):
+            return None
+    except KeyError:
+            return None
 
-            try:
-                html = response.read().decode(encoding)
-            except UnicodeDecodeError as error:
-                html = response.read().decode('ascii')
-                return html
-            except LookupError as error:
-                logger.info ( unicode (site_url) + " - " + unicode(error) )
-                return None
-            return html
+    encoding = response.headers.getparam('charset')
+    if not encoding:
+        encoding = 'utf-8'
+
+    try:
+        html = response.read().decode(encoding)
+    except UnicodeDecodeError as error:
+        html = response.read().decode('ascii')
+        return html
+    except LookupError as error:
+        logger.info ( unicode (site_url) + " - " + unicode(error) )
+        return None
+    return html
 
 
 def valid_url(url_string):
@@ -128,6 +162,66 @@ def has_html(url_string):
         return True
     else:
         return False
+
+
+def contains_xml(string):
+    """
+        @returns True if string contains XML formatted data.
+    """
+    parser = xml.parsers.expat.ParserCreate()
+    try:
+        parser.Parse(string)
+        return True
+    except Exception as error:
+        logger.info ( unicode(error) )
+        return False
+
+
+def has_xml(url_string):
+    """
+        @returns True if url_string is a valid url which leads to XML page.
+    """
+    contents = get_contents(url_string)
+    if valid_url(url_string) and contains_xml(contents):
+        return True
+    else:
+        return False
+
+
+def get_rss_properties(url_string):
+    """
+        @returns a dict with rss properties (used in graph database).
+    """
+    #TODO: Encoding
+    contents = get_contents(url_string)
+    doc = xml.dom.minidom.parseString(contents)
+    result = {
+        "title" : "None",
+        "description" : "None",
+        "language" : "None"
+    }
+    try:
+        child_nodes = doc.childNodes
+        if len(child_nodes) == 0:
+            return result
+        elements = child_nodes[0].getElementsByTagName("channel")
+        if len(elements) == 0:
+            return result
+        channel = elements[0]
+
+        for tag in ["title", "description", "language"]:
+            elements = channel.getElementsByTagName(tag)
+            if len(elements) == 0:
+                return result
+            child_nodes = elements[0].childNodes
+            if len(child_nodes) == 0:
+                return result
+            result[tag] = child_nodes[0].nodeValue
+    #TODO: Many XML formatting issues is a big problem
+    # Instead of catching exceptions change XML parsing method
+    except Exception as error:
+        logger.info( unicode(error) )
+    return result
 
 
 def randpop(list_object):

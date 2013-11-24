@@ -50,7 +50,7 @@ class LoggerReplacement():
 
 
     def info(self, string):
-        print "[I]", self.date(), '\t', string
+        print u"[I]", unicode(self.date()), u'\t', unicode(string)
 
 
 logger = LoggerReplacement()
@@ -412,8 +412,14 @@ class WebCrawler(GraphWorker):
             for feed in rss_feeds:
                 if self.db_updates_counter < self.max_database_updates:
                     if not self._visited(feed):
-                        if self._update_feed(feed):
-                            self.db_updates_counter += 1
+                        if has_xml(feed):
+                            if self._update_feed(feed):
+                                self.db_updates_counter += 1
+                        else:
+                            logger.info(
+                                str(feed)
+                                + " doesn't have XML data."
+                            )
                 else:
                     self.terminate_event.set()
                     break
@@ -475,7 +481,6 @@ class WebCrawler(GraphWorker):
 
         feed_url = feed_url.encode("utf8")
         root = self.graph_db.node(0)
-        #rels = list(self.graph_db.match(start_node=root, rel_type=HAS_TYPE_RELATION))
         #print self.graph_db.relationship(rels[0]._id)
         if not self._get_url_db_node(feed_url):
             read_batch = neo4j.ReadBatch(self.graph_db)
@@ -492,15 +497,19 @@ class WebCrawler(GraphWorker):
             result = read_batch.submit()
             news_websites_root = result[0]
             write_batch = neo4j.WriteBatch(self.graph_db)
+            # Get properties
+            properties = get_rss_properties(feed_url)
+            # Prepare metadata
+            #metadata = { "last_updated" : int(time.time()) }
             # Create new node
             node_properties = node (
-                title = "New RSS Feed",
-                description = "None",
+                title = unicode(properties["title"]),
+                description = unicode(properties["description"]),
                 link = feed_url,
                 source_type = "rss",
                 label = NEWS_WEBSITE_LABEL,
-                last_updated = int(time.time()),
-                language = "Unknown"
+                language = unicode(properties["language"]),
+                #web_crawler_metadata = metadata
             )
             rss_node, = self.graph_db.create(node_properties)
             logger.info( rss_node )
