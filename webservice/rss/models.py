@@ -5,7 +5,7 @@ from neo4django.db import models as neo4j_models
 from py2neo import node
 
 HAS_INSTANCE_RELATION = "<<INSTANCE>>"
-NEWS_CHANNEL_LABEL = "__news_channel__"
+NEWS_WEBSITE_LABEL = "__news_website__"
 SUBSCRIBES_TO_RELATION = "__subscribes_to__"
 
 
@@ -34,7 +34,7 @@ class News(neo4j_models.NodeModel):
 
 
 class NewsWebsite(neo4j_models.NodeModel):
-    label = neo4j_models.StringProperty(default="__news_channel__")
+    label = neo4j_models.StringProperty(default="__news_website__")
     produces = neo4j_models.Relationship('News', rel_type='__produces__', related_name="produced")
 
     link = neo4j_models.URLProperty()

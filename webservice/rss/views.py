@@ -32,13 +32,23 @@ def get_rss_content(request):
                           {'name': 'cooking', 'color': '976833'}]
 
         page = 0
-        page_size = 10
+        page_size = 20
         if 'page' in request.GET:
             page = int(request.GET['page'])
             page_size = int(request.GET['page_size'])
 
+        a = page * page_size
+        if a < len(rss_items_array):
+            b = (page + 1) * page_size
+            if b <= len(rss_items_array):
+                rss_items_array = rss_items_array[a:b]
+            else:
+                rss_items_array = rss_items_array[a:]
+        else:
+            rss_items_array = None
+
         return {'signed_in': True,
-                'rss_items': rss_items_array[page * page_size: (page + 1) * page_size],
+                'rss_items': rss_items_array,
                 'categories': category_array}
     else:
         return {}
@@ -82,7 +92,7 @@ def add_channel(request):
                     image_url = image_tag[0].getElementsByTagName("url")[0].nodeValue
                 language = channel.getElementsByTagName("language")[0].nodeValue
 
-                channel_node = NewsWebsite.objects.create(label=models.NEWS_CHANNEL_LABEL, link=request.GET["link"],
+                channel_node = NewsWebsite.objects.create(label=models.NEWS_WEBSITE_LABEL, link=request.GET["link"],
                                                           title=title, description=description,
                                                           image_width=image_width, image_height=image_height,
                                                           image_link=image_link, image_url=image_url,
