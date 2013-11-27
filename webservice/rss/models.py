@@ -5,9 +5,12 @@ from neo4django.db import models as neo4j_models
 from py2neo import node
 
 HAS_INSTANCE_RELATION = "<<INSTANCE>>"
-NEWS_WEBSITE_LABEL = "__news_website__"
+
 SUBSCRIBES_TO_RELATION = "__subscribes_to__"
 
+NEWS_WEBSITE_LABEL = "__news_website__"
+
+NEWS_WEBSITE_TYPE_MODEL_NAME = "NewsWebsite"
 
 def get_image_path(instance, filename):
     return os.path.join('photos', str(instance.id), filename)

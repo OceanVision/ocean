@@ -11,6 +11,8 @@ from django.template import loader
 from ocean import utils, views as ocean_views
 import urllib2
 import xml.dom.minidom
+import py2neo
+import json
 
 
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
@@ -62,6 +64,15 @@ def index(request):
         return ocean_views.sign_in(request)
 
 
+def get_news(request):
+    data = get_rss_content(request)
+    if len(data) > 0:
+        return HttpResponse(json.dumps(data))
+        # utils.render(request, 'rss/index.html', data)
+    else:
+        return ocean_views.sign_in(request)
+
+
 #TODO: Refactor NewsWebsite ----> Content Source
 #TODO: Refactor News --> Content
 
@@ -102,6 +113,12 @@ def add_channel(request):
 
             # Add subscription
             user.subscribes_to.add(channel_node)
+            user.save()
+
+            # Another way
+            #graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
+            #subscribe_relation = py2neo.rel(user, models.SUBSCRIBES_TO_RELATION, channel_node)
+            #graph_db.create(subscribe_relation)
 
             return HttpResponse(content="Ok")
         else:
@@ -110,6 +127,7 @@ def add_channel(request):
     else:
         # Redirect anonymous users to login page.
         return render(request, 'rss/message.html', {'message': 'You are not logged in'})
+
 
 # TODO: refactor (it is not news channel..)
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
@@ -128,7 +146,8 @@ def delete_channel(request):
 
             # Doesn't work because of "lazy nodes"
             # channel = user.subscribes_to.filter(link__exact=request.GET["link"])[0]
-            # user.subscribes_to.remove(channel)
+            # channel.subscribed.remove(user)
+            # user.save()
             return HttpResponse(content="Ok")
         else:
             return HttpResponse(content="It's not users subscription.")
