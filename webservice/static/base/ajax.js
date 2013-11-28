@@ -31,7 +31,7 @@ function Ajax() {
         }
 
         $.ajax({
-            url : "http://" + location.host + "/" + path + "?ajax",
+            url : "http://" + location.host + "/" + path + "?ajax=ok",
             global : false,
             type : attType,
             data : attData,
