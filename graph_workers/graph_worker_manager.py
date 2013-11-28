@@ -8,6 +8,9 @@ from utils import logger
 from news_fetcher import NewsFetcher
 import threading
 from privileges import construct_full_privilege, privileges_bigger_or_equal
+import time
+import inspect
+from signal import *
 
 class GraphWorkersManager(object):
     """
@@ -20,7 +23,7 @@ class GraphWorkersManager(object):
     def run(self):
         # Now it will only create NewsFetcher, stub :)
         nf_master = NewsFetcher.create_master(privileges=construct_full_privilege())
-        #nf_worker = NewsFetcher.create_worker(nf_master, privileges=construct_full_privilege()) - not working
+
         threading.Thread(target=nf_master.run).start()
         self.graph_workers.append(nf_master)
 
@@ -30,14 +33,22 @@ class GraphWorkersManager(object):
         logger.info("Terminated all graph workers")
 
 
-import time
-def test_2():
+gwm = None
+
+def clean(*args):
+    global gwm
+    logger.info("Terminating GWM")
+    gwm.terminate()
+    exit(0)
+
+if __name__ == "__main__":
+    logger.info("Starting GraphWorkersManager. To be started from OceanMaster")
     gwm = GraphWorkersManager()
     gwm.run()
-    time.sleep(5)
-    gwm.terminate()
 
+    for sig in (SIGINT,):
+        signal(sig, clean)
 
+    while True:
+        time.sleep(1.0)
 
-if __name__=="__main__":
-    test_2()

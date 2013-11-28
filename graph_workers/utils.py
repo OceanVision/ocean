@@ -1,5 +1,6 @@
 """ Simple utility functions and objects """
-
+import time
+from pytz import timezone
 import logging
 import urlparse
 import urllib2
@@ -9,6 +10,8 @@ import socket
 import httplib
 import xml.parsers.expat
 import xml.dom.minidom
+from datetime import timedelta, datetime
+from dateutil import parser
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +28,24 @@ HTTP_S_VALIDATION_REGEX = "^http[s]*\://[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(/\S*)?$"
 # This regex is used to search urls inside a webpage source code
 HTTP_S_LINK_REGEX = "\"(http[s]*\://[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(/\S*)?)\""
 
+
+def database_timestamp_to_datetime(timestamp):
+	"""
+		@param timestamp from database
+		@returns datetime in GMT timezone
+	"""
+
+	dt = datetime.fromtimestamp(timestamp)
+	dt = dt.replace(tzinfo=timezone("GMT")) # Otherwise it would do a conversion -1h  (if given timezone as parameter)
+	return dt
+
+def GMTdatetime_to_database_timestamp(dt):
+	"""
+		@param datetime in GMT timezone
+		@returns timestamp in GMT timezone
+	"""
+	#TODO: add checking for GMT timezone.
+	return int(time.mktime(dt.timetuple()))
 
 def get_domain(url_string):
     """

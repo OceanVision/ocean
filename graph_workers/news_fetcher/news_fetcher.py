@@ -9,29 +9,34 @@ Currently it measns working on all NewsWebsites
 Quick note (TODO: move it) about datetime in database:
 d = datetime.fromtimestamp(news_website[NEWS_WEBSITE_LAST_UPDATE]
 d = d.replace(tzinfo = timezone("GMT")) - otherwise the system won't work properly
-
 """
 
+#TODO: Add careful tests (added news difference etc.)
 #TODO: In the future communicate through postgresql/reimplement in Scala
+#TODO: Add levels to logger (in std it is present)
 #TODO: Handle carefully time (UTC not GMT)
 
 import sys
 import copy
 from collections import namedtuple
 sys.path.append("..")
+import inspect
+
 from graph_worker import GraphWorker
 import logging
-from neo4j_wrapper import datetime_to_pubdate, pubdate_to_datetime, get_type_metanode
+from neo4j_wrapper import datetime_to_pubdate, pubdate_to_datetime, get_type_metanode, count_same_news, get_records_from_cypher
 from privileges import construct_full_privilege, privileges_bigger_or_equal
 from py2neo import neo4j
 from py2neo import node, rel
 import py2neo
 from graph_defines import * # import defines for fields
-from utils import logger
+from utils import *
+
 import urllib2
 import xml.dom.minidom
 from datetime import timedelta, datetime
 from dateutil import parser
+import time
 from pytz import timezone
 
 NewsFetcherJob = namedtuple("NewsFetcherJob", 'neo4j_node work_time')
@@ -39,6 +44,10 @@ NewsFetcherJob = namedtuple("NewsFetcherJob", 'neo4j_node work_time')
     neo4j_node - neo4j_node where attach news
     work_time - when to pull news (as datetime)
 """
+
+#TODO: implement logger with logging level.
+
+
 
 import threading
 class NewsFetcher(GraphWorker):
@@ -55,7 +64,9 @@ class NewsFetcher(GraphWorker):
             # used for interprocess communication, simillar do CV :)
             # master sends terminate to workers and termiantes gracefully itself
         self.terminate_event = threading.Event()
-        self.update_frequency_seconds = 60
+        self.update_frequency_seconds = 10
+        self.update_frequency_news_channels = 10
+
 
         if master_descriptor is None:
             self.workers = []
@@ -67,28 +78,6 @@ class NewsFetcher(GraphWorker):
             self.master_descriptor = master_descriptor
         pass
 
-    def terminate(self):
-        self.terminate_event.set()
-
-    def get_required_privileges(self):
-        return NewsFetcher.required_privileges
-
-    @staticmethod
-    def create_master(**params):
-        if len(params) != 1:
-            raise Exception("Wrong param list")
-
-        return NewsFetcher(**params)
-
-    @staticmethod
-    def create_worker(master_descriptor, **params):
-        #TODO: Implement multithreaded news_fetcher
-        raise NotImplementedError() # Single threaded for now
-
-        if len(params) != 1:
-            raise Exception("Wrong param list")
-        params["master_descriptor"] = master_descriptor
-        return NewsFetcher(**params)
 
 
     def process(self, job):
@@ -97,9 +86,9 @@ class NewsFetcher(GraphWorker):
         n = self._add_news_to_graph(job.neo4j_node, news_nodes)
 
         logger.info("Added {0} news to graph".format(n))
-        # Enqueue next job
-        self.global_job_list.append(NewsFetcherJob(job.neo4j_node,
-            (datetime.now() + timedelta(seconds=self.update_frequency_seconds)))) #TODO: pick delta?
+#         # Enqueue next job
+#         self.global_job_list.append(NewsFetcherJob(job.neo4j_node,
+#             (datetime.now() + timedelta(seconds=self.update_frequency_seconds))))
 
 
     def run(self):
@@ -108,25 +97,31 @@ class NewsFetcher(GraphWorker):
         for n in nf:
             self.global_job_list.append(NewsFetcherJob(n,
                 datetime.now()- timedelta(minutes=1)))
-            #logger.info("Taking care of "+str(n))
-            #list_news = fetch_news(n)
-            #add_news_to_graph(n, graph_db, list_news)
-            #Initialize
 
-        logger.info(datetime.now())
+        logger.info("Scanning " +str(len(nf))+ " news_website")
+
 
         # Main loop
+        time_elapsed = 0
         while not self.terminate_event.is_set():
-            if len(self.global_job_list) == 0:
-                time.sleep(1) #TODO : as variable
-                continue
+            if len(self.global_job_list) == 0: #Not that frequent
+                nf = self._get_all_newsfeeds()
+                for n in nf:
+                    self.global_job_list.append(NewsFetcherJob(n, datetime.now()- timedelta(minutes=1)))
+                logger.info("Updated global_job_list to "+str(len(self.global_job_list)))
+                time.sleep(1)
+
 
             current_job = self.global_job_list[0]
             if current_job.work_time < datetime.now():
                 current_job = self.global_job_list.pop(0) #TODO: Not very thread safe :<
                 self.process(current_job)
+            
+            time.sleep(0.1) #TODO: as variable
+            time_elapsed += 1
 
-            time.sleep(1.0) #TODO: as variable
+#             cont = raw_input("continue?")
+
 
         for worker in self.workers:
             if worker is not NewsFetcher:
@@ -139,26 +134,34 @@ class NewsFetcher(GraphWorker):
         raise NotImplementedError()
 
 
+    #TODO: move to neo4j_wrapper to get_all_instances()
     def _get_all_newsfeeds(self):
         """
             @returns lists of all news feeds in the system (as py2neo.node,
                 note: you can refer to properties by node["property"] and
                 to id by node._id :)
+
+                if there were no needed fields, they are added :)
+        """
+        query = \
+        """
+        start n=node(*)
+        where id(n)<>0 and HAS(n.label) and n.label = "__news_website__"
+        return n, count(n);
         """
 
-        my_batch = neo4j.ReadBatch(self.graph_db)
-        my_batch.append_cypher( # will return list of records :)
-            """
-            start n=node(*)
-            where id(n)<>0 and HAS(n.label) and n.label = "__news_website__"
-            return n;
-            """
-        ) #TODO: inefficient.
         news_websites = []
-        logger.info("Submiting query!")
-        result = my_batch.submit()
-        for record in result[0]:
+        records = get_records_from_cypher(self.graph_db, query)
+        if records is None:
+            logger.error("Error while communicating with neo4j database. No news websites fetched")
+            exit(1)
+
+        for record in get_records_from_cypher(self.graph_db, query):
             news_websites.append(record.n)
+            if NEWS_WEBSITE_LAST_UPDATE not in news_websites[-1]:
+                logger.info("Adding last_updated field to "+unicode(news_websites[-1]))
+                news_websites[-1][NEWS_WEBSITE_LAST_UPDATE] = 0
+
         return news_websites
 
     def _add_news_to_graph(self, news_website, list_of_news):
@@ -175,45 +178,41 @@ class NewsFetcher(GraphWorker):
             @returns number of nodes added
         """
 
-        #TODO: "<" in queries is not accepted by Cypher
-        #logger.info(datetime.fromtimestamp(news_website[NEWS_WEBSITE_LAST_UPDATE]))
-        #logger.info(datetime.fromtimestamp(time.time()))
-        #last_updated = datetime.fromtimestamp(news_website[NEWS_WEBSITE_LAST_UPDATE])
-        ##logger.info(last_updated)
-        ##logger.info(time.gmtime())
-        #logger.info(datetime.fromtimestamp(time.time())) #super dziala
-        #d = datetime.fromtimestamp(time.time())
-        #d.replace(tzinfo=timezone("GMT"))
-        #logger.info(d)
-        #logger.info("test")
-        #logger.info(datetime.fromtimestamp(time.mktime(time.gmtime())))
-        #logger.info(datetime.fromtimestamp(int(time.gmtime()), timezone("GMT")))
-        last_updated = datetime.fromtimestamp(news_website[NEWS_WEBSITE_LAST_UPDATE])
-        last_updated = last_updated.replace(tzinfo=timezone("GMT")) # Otherwise it would do a conversion -1h  (if given timezone as parameter)
+
+        last_updated = database_timestamp_to_datetime(news_website[NEWS_WEBSITE_LAST_UPDATE])
+
+        logger.info("Last updated news_website is "+str(last_updated))
+
         news_type_node = get_type_metanode(self.graph_db, NEWS_TYPE_MODEL_NAME) #TODO: it should be cached somewhere
 
         # We need this node to add HAS_INSTANCE_RELATION
         nodes_to_add = []
         for news in list_of_news:
-            # !! I am assuming here GMT time !!
-            # TODO: Convert everything to UTC?
             d_news = pubdate_to_datetime(news["pubdate"])
-            d_news = d_news.replace(tzinfo=timezone("GMT"))
-
-
-            if not (d_news > last_updated) > 0:
-                break
-            news["label"] = NEWS_LABEL # add metadata
-            nodes_to_add.append(py2neo.node(**news)) # assume is dictionary
+            logger.info(d_news)
+            logger.info(last_updated)
+            if (d_news > last_updated): #not always sorted!
+                news["label"] = NEWS_LABEL # add metadata
+                nodes_to_add.append(py2neo.node(**news)) # assume is dictionary
 
         if len(nodes_to_add) == 0:
             logger.warning("No nodes added")
             return 0
 
         last_updated_current = pubdate_to_datetime(nodes_to_add[0]["pubdate"])
-        last_updated_current = last_updated_current.replace(tzinfo=timezone("GMT"))
 
+        #Check here for news[0] if it is in the database
 
+        existing_nodes = count_same_news(self.graph_db, news_website, nodes_to_add[0]["title"])
+
+        if existing_nodes > 0:
+            logger.warning("")
+            logger.warning(nodes_to_add[0])
+            logger.warning(existing_nodes)
+            logger.warning("Existing nodes ! Probably something wrong with "+unicode(news_website))
+            return 0
+
+        logger.info("Updating news_website last_updated to "+str(last_updated_current))
 
         nodes_added = self.graph_db.create(*nodes_to_add)
 
@@ -227,11 +226,11 @@ class NewsFetcher(GraphWorker):
         logger.info("Created instance metadata relations")
         self.graph_db.create(*produces_relations)
 
-        logger.info("Updating NewsWebsite "+str(news_website))
+        logger.info("Updating NewsWebsite "+unicode(news_website))
         news_website.update_properties(
             {
                 NEWS_WEBSITE_LAST_UPDATE:
-                    int(time.mktime(last_updated_current.timetuple()))
+                    GMTdatetime_to_database_timestamp(last_updated_current)
             }
         ) # using graph_db used to fetch this node!!
 
@@ -239,7 +238,7 @@ class NewsFetcher(GraphWorker):
         #logger.info(news_type_node)
         return len(nodes_added)
 
-    #TODO: note, that this is quite slow : this is why scala is needed
+
     def _fetch_news(self, news_website, newer_than=None):
         """
             @param newer_than date after which stop fetching.
@@ -258,11 +257,12 @@ class NewsFetcher(GraphWorker):
         feed = doc.childNodes[0].getElementsByTagName("channel")[0].getElementsByTagName("item")  # <root>-><rss>-><channel>
 
 
-
         # Default iteration stop
         if newer_than is None:
-            newer_than = datetime.fromtimestamp(news_website[NEWS_WEBSITE_LAST_UPDATE], timezone("GMT"))
-            #newer_than.tzinfo = timezone("GMT")
+            newer_than = database_timestamp_to_datetime(news_website[NEWS_WEBSITE_LAST_UPDATE])
+
+        logger.info("Fetching news from "+str(rss_link)+" newer_than "+str(newer_than))
+
 
         def try_get_node_value(node, value, default = u""):
             """ Note we return everything as unicode !! """
@@ -279,63 +279,79 @@ class NewsFetcher(GraphWorker):
                 return default
 
         news_nodes = []
+
         for id,item in enumerate(feed):
             news_node = {}
-            news_node["title"] = try_get_node_value(item, "title")
-            news_node["guid"] = try_get_node_value(item, "guid")
-            news_node["description"] = try_get_node_value(item, "description")
-            news_node["link"] = try_get_node_value(item, "link")
+            news_node["title"] = unicode(try_get_node_value(item, "title")) #unicode() because it is already encoded!
+            news_node["guid"] = unicode(try_get_node_value(item, "guid"))
+            news_node["description"] = unicode(try_get_node_value(item, "description"))
+            news_node["link"] = unicode(try_get_node_value(item, "link"))
 
 
             d = pubdate_to_datetime(try_get_node_value(item, "pubDate"))
-            d = d.replace(tzinfo=timezone("GMT"))
-
-            if newer_than is not None:
-                if d < newer_than: # check for sign
-                    break
-            news_node["pubdate"] = datetime_to_pubdate(d)
-            news_nodes.append(news_node)
+            if newer_than is None or d > newer_than: # Not sorted :(
+                    news_node["pubdate"] = datetime_to_pubdate(d)
+                    news_nodes.append(news_node)
 
         return news_nodes
 
+    def terminate(self):
+        self.terminate_event.set()
 
+    def get_required_privileges(self):
+        return NewsFetcher.required_privileges
 
+    @staticmethod
+    def create_master(**params):
+        logger.info("Created news_fetcher master")
+        logger.info((inspect.stack()[1],inspect.getmodule(inspect.stack()[1][0])))
+        if len(params) != 1:
+            raise Exception("Wrong param list")
 
+        return NewsFetcher(**params)
 
-def test_1():
-    """ Basic test for news_fetcher """
-    nf_master = NewsFetcher.create_master(privileges=construct_full_privilege())
-    #nf_worker = NewsFetcher.create_worker(nf_master, privileges=construct_full_privilege())
-    threading.Thread(target=nf_master.run).start()
-    time.sleep(10)
-    nf_master.terminate_event.set()
-    logger.info("Terminated master")
-    #nf_worker.run()
+    @staticmethod
+    def create_worker(master_descriptor, **params):
+        #TODO: Implement multithreaded news_fetcher
+        raise NotImplementedError() # Single threaded for now
 
-
-
-import time
-
-def test_list():
-    print time.time()
-
-
-import math
-def check_if_update(news_website):
-    """
-        @param news_website is a dictionary (with uri)
-    """
-    if math.fabs(float(news_website[NEWS_WEBSITE_LAST_UPDATE]) - time.time()) > NewsFetcher.minimum_time_delta_to_update:
-        return True
-    else:
-        return False
+        if len(params) != 1:
+            raise Exception("Wrong param list")
+        params["master_descriptor"] = master_descriptor
+        return NewsFetcher(**params)
 
 
 
 
 
+#def test_1():
+#    """ Basic test for news_fetcher """
+#    nf_master = NewsFetcher.create_master(privileges=construct_full_privilege())
+#    #nf_worker = NewsFetcher.create_worker(nf_master, privileges=construct_full_privilege())
+#    threading.Thread(target=nf_master.run).start()
+#    time.sleep(10)
+#    nf_master.terminate_event.set()
+#    logger.info("Terminated master")
+#    #nf_worker.run()
+#
+#
+#
+#import time
+#
+#def test_list():
+#    print time.time()
+#
+#
+#import math
+#def check_if_update(news_website):
+#    """
+#        @param news_website is a dictionary (with uri)
+#    """
+#    if math.fabs(float(news_website[NEWS_WEBSITE_LAST_UPDATE]) - time.time()) > NewsFetcher.minimum_time_delta_to_update:
+#        return True
+#    else:
+#        return False
+#
+#
 
 
-
-if __name__ == "__main__":
-    test_1()

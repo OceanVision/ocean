@@ -503,12 +503,12 @@ class WebCrawler(GraphWorker):
             #metadata = { "last_updated" : int(time.time()) }
             # Create new node
             node_properties = node (
-                title = unicode(properties["title"]),
-                description = unicode(properties["description"]),
+                title = properties["title"].encode("utf8"),
+                description = properties["description"].encode("utf8"),
                 link = feed_url,
-                source_type = "rss",
+                source_type = "rss".encode("utf8"),
                 label = NEWS_WEBSITE_LABEL,
-                language = unicode(properties["language"]),
+                language = properties["language"].encode("utf8"),
                 #web_crawler_metadata = metadata
             )
             rss_node, = self.graph_db.create(node_properties)

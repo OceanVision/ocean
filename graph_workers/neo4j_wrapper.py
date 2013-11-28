@@ -1,13 +1,10 @@
-# TODO: implement wrapper (in 3rd iteration), which will check privileges of GraphWorker
-# when writing to database and also wrap basic access patterns
-
-
 """ Quick note about neo4j wrapper :
 every node creation copies graph_db to inside of the class
 when called update_properties it will use graph_db.
 So if graph_db is closed - it fails.
 """
-
+# TODO: implement wrapper (in 3rd iteration), which will check privileges of GraphWorker
+# when writing to database and also wrap basic access patterns
 
 
 import datetime
@@ -17,8 +14,41 @@ from dateutil import parser
 from pytz import timezone
 from py2neo import neo4j
 from py2neo import node, rel
+
 import py2neo
 import time
+
+
+def get_records_from_cypher(graph_db, cypher_query, params = None):
+    """
+    Submit cypher cypher_query
+    @returns list of Records (py2neo class)
+
+    @warning: This function doesn;t work for all cases . I do not understand py2neo here
+
+    TODO: Why is py2neo returning different things ?????
+    """
+    my_batch = neo4j.ReadBatch(graph_db)
+    my_batch.append_cypher(cypher_query, params)
+    result = my_batch.submit()
+
+    if len(result) == 0: return result
+    if len(result[0]) > 1: return result[0]
+    else: return result
+
+
+def count_same_news(graph_db, news_website, news_title):
+    my_batch = neo4j.ReadBatch(graph_db)
+    cypher_query = "START root=node(0) \n MATCH root-[r:`<<TYPE>>`]->"+\
+        "n-[r2:`<<INSTANCE>>`]->w" + "\n WHERE n.name = "+\
+        "\"rss:News\" \n"+\
+        "and w.title = {news_title} \n" + "RETURN count(w)"
+
+    print cypher_query
+    my_batch.append_cypher(cypher_query, {"news_title" : news_title.encode("utf8")})
+    results = my_batch.submit()
+    return results[0]
+
 
 def get_type_metanode(graph_db, model_name):
     """
@@ -41,6 +71,7 @@ def get_type_metanode(graph_db, model_name):
             break
     return metanode
 
+
 def pubdate_to_datetime(pubdate):
     """ Wrapper for annoying conversion"""
     # Different time formats. Propses .. omg
@@ -57,7 +88,7 @@ def pubdate_to_datetime(pubdate):
         # PYTHON 2.7 DOESNT SUPPORT %z DIRECTIVE !!!.. omg, official documentation..
         try:
             offset = int(pubdate[-5:])
-            delta = timedelta(hours=offset/100)
+            delta = timedelta(hours=offset / 100)
             d = datetime.strptime(pubdate[:-6], "%a, %d %b %Y %H:%M:%S") if \
                 len(tok[3]) > 2 else datetime.strptime(pubdate[:-6], "%a, %d %b %y %H:%M:%S")
             d -= delta
@@ -68,10 +99,8 @@ def pubdate_to_datetime(pubdate):
             raise Exception("Wrong date format")
 
 
-
 def datetime_to_pubdate(d):
     """
     @returns "%a, %d %b %Y %H:%M:%S %Z"
     """
-
     return d.strftime("%a, %d %b %Y %H:%M:%S %Z") #unify strftime
