@@ -12,11 +12,13 @@
 </div>
 
 <script type="text/javascript">
-    $("#signInForm input").off("keypress").on("keypress", function (e) {
-        if (e.which == 13) {
-            main.signIn();
-        }
-    });
+    $("#signInForm input")
+        .off("keypress")
+        .on("keypress", function (e) {
+            if (e.which == 13) {
+                main.signIn();
+            }
+        });
 </script>
 
 {% endblock %}

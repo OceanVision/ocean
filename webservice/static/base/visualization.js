@@ -148,9 +148,15 @@ function Visualization() {
                 return utils.getRGBA($(this).data("color"), .05);
             })
             .hover(function() {
-                $(this).css("background-color", "#" + $(this).data("color"));
+                $(this)
+                    .css("background-color", "#" + $(this).data("color"))
+                    .addClass("hover");
             }, function() {
-                $(this).css("background-color", utils.getRGBA($(this).data("color"), .05));
+                if($(this).parent().find(".description:hidden").length == 1) {
+                    $(this)
+                        .css("background-color", utils.getRGBA($(this).data("color"), .05))
+                        .removeClass("hover");
+                }
             })
             .off("click").on("click", function(e) {
                 e.stopImmediatePropagation();

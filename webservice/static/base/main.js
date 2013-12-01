@@ -63,6 +63,18 @@ function Main() {
             console.log(JSON.stringify(xhr));
         });
 	};
+
+    Main.prototype.searchInTitles = function(pattern) {
+        var titles = $("#rssItems div.item p.title");
+        titles.each(function() {
+            var text = $(this).text().toLowerCase();
+            if (text.indexOf(pattern.toLowerCase()) >= 0) {
+                $(this).parent().show();
+            } else {
+                $(this).parent().hide();
+            }
+        });
+    };
 }());
 
 $(document).on("ready", function() {
