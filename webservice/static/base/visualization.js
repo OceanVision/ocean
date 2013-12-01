@@ -144,66 +144,61 @@ function Visualization() {
     Visualization.prototype.updateEventHandlers = function() {
 		// rss items colors and opening item
 		$("#rssItems .item .title")
-		.hover(function() {
-		    $(this).css("background-color", "#" + $(this).data("color"));
-			if ($(this).parent().find(".description:hidden").length == 1) {
-				var color = utils.getDecimalColor($(this).data("color"));
-				$(this).parent().css("border-bottom", "1px solid rgba(" + color[0] + ", "
-                    + color[1] + ", " + color[2] + ", .2)");
-			}
-		}, function() {
-		    $(this).css("background-color", "transparent");
-			if ($(this).parent().find(".description:hidden").length == 1) {
-                var color = utils.getDecimalColor($(this).data("color"));
-				$(this).parent().css("border-bottom", "1px solid rgba(" + color[0] + ", "
-                    + color[1] + ", " + color[2] + ", .2)");
-			}
-		})
-		.off("click").on("click", function(e) {
-		    e.stopImmediatePropagation();
-			if($(this).parent().find(".description:hidden").length == 1) {
-				$(this).parent().find(".description").show(200);
-				$(this).css("font-weight", "bold");
-			} else {
-				$(this).parent().find(".description").hide(100);
-				$(this).css("font-weight", "normal");
-			}
-		});
+            .css("background-color", function() {
+                return utils.getRGBA($(this).data("color"), .05);
+            })
+            .hover(function() {
+                $(this).css("background-color", "#" + $(this).data("color"));
+            }, function() {
+                $(this).css("background-color", utils.getRGBA($(this).data("color"), .05));
+            })
+            .off("click").on("click", function(e) {
+                e.stopImmediatePropagation();
+                if($(this).parent().find(".description:hidden").length == 1) {
+                    $(this).parent().find(".description")
+                        .show(200)
+                        .css("border-bottom", "5px solid " + utils.getRGBA($(this).data("color"), .05));
+                    $(this).css("font-weight", "bold");
+                } else {
+                    $(this).parent().find(".description").hide(100);
+                    $(this).css("font-weight", "normal");
+                }
+            });
 
 		// navigator categories colors
 		$("#navigator .item.category")
-		.each(function() {
-			var color = $(this).data("color");
-			$(this).css("border-left", "6px solid " + color);
-			
-			$(this).hover(function() {
-				$(this).css("background-color", color);
-			}, function() {
-				$(this).css("background-color", "transparent");
-			});
-		});
+            .each(function() {
+                var color = $(this).data("color");
+                $(this).css("border-left", "6px solid " + color);
+
+                $(this).hover(function() {
+                    $(this).css("background-color", color);
+                }, function() {
+                    $(this).css("background-color", "transparent");
+                });
+            });
 
 		// input focus/blur
 		$("input")
-		.off("focus").on("focus", function() {
-            var el = $(this);
-	        if (!el.hasClass("focus") && el.val() == el.data("value")) {
-	            el.val("").addClass("focus");
+            .off("focus").on("focus", function() {
+                var el = $(this);
+                if (!el.hasClass("focus") && el.val() == el.data("value")) {
+                    el.val("").addClass("focus");
 
-	            if(el.data("type") == "password") {
-	                el.attr("type", "password");
-	            }
-	        }
-        })
-        .off("blur").on("blur", function() {
-            var el = $(this);
-            if (el.hasClass("focus") && el.val() == "") {
-                el.val(el.data("value")).removeClass("focus");
-
-                if(el.data("type") == "password") {
-                    el.attr("type", "text");
+                    if(el.data("type") == "password") {
+                        el.attr("type", "password");
+                    }
                 }
-            }
-        });
+            })
+            .off("blur").on("blur", function() {
+                var el = $(this);
+                if (el.hasClass("focus") && el.val() == "") {
+                    el.val(el.data("value")).removeClass("focus");
+
+                    if(el.data("type") == "password") {
+                        el.attr("type", "text");
+                    }
+                }
+            });
 	};
 }());

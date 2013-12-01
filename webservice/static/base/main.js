@@ -52,8 +52,11 @@ function Main() {
 	    };
 
 	    ajax.request("user_profile/sign_in", "POST", data, function(response) {
-	        console.log(response);
-	        main.load("rss");
+            if (response != "fail") {
+	            main.load("rss");
+            } else {
+                main.load("sign_in");
+            }
         }, function(xhr, status, error) {
             console.log(JSON.stringify(error));
             console.log(JSON.stringify(status));

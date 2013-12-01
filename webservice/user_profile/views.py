@@ -15,14 +15,13 @@ def sign_in(request):
         # TODO: is_active flag checking
         if user.is_active:
             django.contrib.auth.login(request, user)
-            return HttpResponse(content="Ok")
+            return HttpResponse(content="ok", content_type="text/plain")
         else:
-            # User in inactive
-            return render(request, 'rss/message.html', {'message': 'User is inactive'})
+            # User is inactive
+            return HttpResponse(content="inactive_user", content_type="text/plain")
     else:
         # Wrong user's data
-        return render(request, 'rss/message.html',
-                      {'message': 'Your username and password didn\'t match. Please try again.'})
+        return HttpResponse(content="fail", content_type="text/plain")
 
 
 def sign_out(request):

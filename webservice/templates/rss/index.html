@@ -12,7 +12,7 @@
         <span class="no"></span>
         <p class="title" data-color="{{ item.color }}">{{ item.title }}</p>
         <p class="description">
-            {{ item.description }}
+            {{ item.description|safe }}
         </p>
     </div>
     {% endfor %}

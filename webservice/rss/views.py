@@ -8,11 +8,12 @@ from py2neo import node, rel
 from django.contrib.auth.decorators import login_required
 from django.views.generic.detail import DetailView
 from django.template import loader
-from ocean import utils, views as ocean_views
+from ocean import utils
 import urllib2
 import xml.dom.minidom
 import py2neo
 import json
+import random
 
 
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
@@ -20,12 +21,14 @@ def get_rss_content(request):
     if request.user.is_authenticated():
         rss_items_array = []  # building news to be rendered (isn't very efficient..)
         user = NeoUser.objects.filter(username__exact=request.user.username)[0]
+
+        colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
         # Get news for authenticated users.
         for rss_channel in user.subscribes_to.all():
             for news in rss_channel.produces.all():
                 rss_items_array += [{'title': news.title, 'description': news.description,
                                      'link': news.link, 'pubDate': news.pubDate,
-                                     'category': 2, 'color': '999999'}]
+                                     'category': 2, 'color': colors[random.randint(0, 4)]}]
 
         #TODO: make color dependent of various features
         category_array = [{'name': 'Barack Obama', 'color': 'ffbd0c'},
@@ -52,6 +55,7 @@ def get_rss_content(request):
         return {'signed_in': True,
                 'rss_items': rss_items_array,
                 'categories': category_array}
+
     else:
         return {}
 
@@ -61,16 +65,15 @@ def index(request):
     if len(data) > 0:
         return utils.render(request, 'rss/index.html', data)
     else:
-        return ocean_views.sign_in(request)
+        return HttpResponse(content="fail", content_type="text/plain")
 
 
 def get_news(request):
     data = get_rss_content(request)
     if len(data) > 0:
         return HttpResponse(json.dumps(data))
-        # utils.render(request, 'rss/index.html', data)
     else:
-        return ocean_views.sign_in(request)
+        return HttpResponse(content="fail", content_type="text/plain")
 
 
 #TODO: Refactor NewsWebsite ----> Content Source

@@ -19,7 +19,8 @@ function Utils() {
 
     Utils.prototype.getDecimalColor = function(hex) {
         var result = [];
-        if (hex[0] == '#') {
+        hex = hex.toString();
+        if (hex.substr(0, 1) == '#') {
             hex = hex.substr(1);
         }
         for (var i = 0; i < hex.length; i += 2) {
@@ -27,6 +28,11 @@ function Utils() {
         }
 
         return result;
+    };
+
+    Utils.prototype.getRGBA = function(hex, alpha) {
+        var decimalColor = this.getDecimalColor(hex);
+        return "rgba(" + decimalColor[0] + ", " + decimalColor[1] + ", " + decimalColor[2] + ", " + alpha + ")";
     };
 
     /* ========== A J A X ========== */

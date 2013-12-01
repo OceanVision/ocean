@@ -184,8 +184,8 @@ nav#navigator p.category {
 }
 
 .container div.item {
-    border-bottom: 1px solid rgba(153, 153, 153, .2);
     display: block;
+    margin-bottom: 10px;
     position: relative;
 }
 
@@ -198,31 +198,39 @@ nav#navigator p.category {
 }
 
 .container div.item p.title {
-    -font-family: "Lucida Sans Unicode";
+    background-color: rgba(187, 187, 187, .05);
+    font-family: "Lucida Sans Unicode";
     padding: 7px 0px 6px 60px;
     font-size: 21px;
-    color: #aaa;
+    color: #a3a3a3;
+    text-shadow: 2px 2px 1px #e9e9e9;
     cursor: pointer;
 }
 
 .container div.item p.title:hover {
     color: #fff;
+    text-shadow: none;
 }
 
 .container div.item p.description {
     display: none;
-    padding: 3px 0px 6px 60px;
-    font-family: Georgia;
+    padding: 9px 0px 9px 60px;
+    font-family: "Lucida Sans Unicode";
     font-size: 18px;
-    color: #ccc;
+    color: #b0b0b0;
     overflow: auto;
 }
 
 .container div.item p.description img {
     max-width: 50%;
     max-height: 200px;
-    margin: 0px 10px 10px 0px;
+    margin: 0px 10px 0px 0px;
     float: left;
+}
+
+.container div.item p.description a {
+    font-family: Georgia;
+    color: #d4d4d4;
 }
 
 div#rssItems {

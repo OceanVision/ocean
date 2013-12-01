@@ -39,11 +39,13 @@ function Ajax() {
             async : false,
             success : function(response) {
                 onSuccess(response);
-                window.history.replaceState(
-                    {page : path},
-                    "Title",
-                    ajax.pathsMap[path]
-                );
+                if (response != "fail" && ajax.pathsMap[path] != undefined) {
+                    window.history.replaceState(
+                        {page : path},
+                        "Title",
+                        ajax.pathsMap[path]
+                    );
+                }
             },
             error : onError
         });
