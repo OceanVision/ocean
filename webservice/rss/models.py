@@ -26,6 +26,11 @@ class UserProfile(models.Model):
 
 
 class News(neo4j_models.NodeModel):
+
+    def refresh(self):
+        """ Reload an object from the database """
+        return self.__class__._default_manager.get(pk=self.pk)
+
     label = neo4j_models.StringProperty(default="__news__")
 
     title = neo4j_models.StringProperty()
@@ -37,6 +42,12 @@ class News(neo4j_models.NodeModel):
 
 
 class NewsWebsite(neo4j_models.NodeModel):
+
+    def refresh(self):
+        """ Reload an object from the database """
+        return self.__class__._default_manager.get(pk=self.pk)
+
+
     label = neo4j_models.StringProperty(default="__news_website__")
     produces = neo4j_models.Relationship('News', rel_type='__produces__', related_name="produced")
 
@@ -55,6 +66,11 @@ class NeoUser(neo4j_models.NodeModel):
     """
         Auxiliary node in graph database, to query easy for subscribed websites
     """
+
+    def refresh(self):
+        """ Reload an object from the database """
+        return self.__class__._default_manager.get(pk=self.pk)
+
     label = neo4j_models.StringProperty(default="__user__")
     subscribes_to = neo4j_models.Relationship('NewsWebsite', rel_type='__subscribes_to__', related_name="subscribed")
 
