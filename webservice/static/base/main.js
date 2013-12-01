@@ -102,8 +102,8 @@ $(document).on("ready", function() {
     }
 
     $(window).scroll(function() {
-        buffer = 40 // # of pixels from bottom of scroll to fire your function. Minimum 40 (should work for 0)
-        if ($("#rssItems").prop('scrollHeight') - $("#rssItems").scrollTop() <= $("#rssItems").height() + buffer) {
+        buffer = 40 // # of pixels from bottom of scroll to fire your function. Minimum 40 (should work for 0
+        if ($("#rssItems").prop('scrollHeight') - $(window).scrollTop() <= $(window).height() + buffer) {
             page += 1
             var data = {
                 'page' : page.toString(),
