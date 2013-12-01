@@ -84,30 +84,34 @@ def add_channel(request):
         my_batch = neo4j.WriteBatch(graph_db)
         check_data_cypher = "START n=node(*) " + \
                             "MATCH n-[rel:__subscribes_to__]-c " + \
-                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link=\"" + request.GET["link"] + "\" " + \
+                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \
                             "RETURN c; "
-        my_batch.append_cypher(check_data_cypher)
+        my_batch.append_cypher(check_data_cypher, {"link": request.GET["link"].encode("utf8")})
         list = my_batch.submit()
 
         if list[0] is None:
             if not NewsWebsite.objects.filter(link=request.GET["link"]):
+
+                def get_node_value(node, value):
+                    return node.getElementsByTagName(value)[0].childNodes[0].nodeValue.strip()
+
                 response = urllib2.urlopen(request.GET["link"])
                 html = response.read()
                 doc = xml.dom.minidom.parseString(html)
                 channel = doc.childNodes[0].getElementsByTagName("channel")[0]
-                title = channel.getElementsByTagName("title")[0].nodeValue
-                description = channel.getElementsByTagName("description")[0].nodeValue
+                title = get_node_value(channel, "title")
+                description = get_node_value(channel, "description")
+                language = get_node_value(channel, "language")
                 image_tag = channel.getElementsByTagName("image")
                 image_width = ""
                 image_height = ""
                 image_link = ""
                 image_url = ""
                 if image_tag:
-                    image_width = image_tag[0].getElementsByTagName("width")[0].nodeValue
-                    image_height = image_tag[0].getElementsByTagName("height")[0].nodeValue
-                    image_link = image_tag[0].getElementsByTagName("link")[0].nodeValue
-                    image_url = image_tag[0].getElementsByTagName("url")[0].nodeValue
-                language = channel.getElementsByTagName("language")[0].nodeValue
+                    image_width = int(get_node_value(channel, "width"))
+                    image_height = int(get_node_value(channel, "height"))
+                    image_link = get_node_value(channel, "link")
+                    image_url = get_node_value(channel, "url")
 
                 channel_node = NewsWebsite.objects.create(label=models.NEWS_WEBSITE_LABEL, link=request.GET["link"],
                                                           title=title, description=description,
@@ -129,7 +133,7 @@ def add_channel(request):
             #subscribe_relation = py2neo.rel(user, models.SUBSCRIBES_TO_RELATION, channel_node)
             #graph_db.create(subscribe_relation)
 
-            return HttpResponse(content="Ok " + html)
+            return HttpResponse(content="Ok")
         else:
             return HttpResponse(content="Channel already exists in users subscriptions")
     else:
@@ -144,9 +148,9 @@ def delete_channel(request):
         my_batch = neo4j.WriteBatch(graph_db)
         check_data_cypher = "START n=node(*) " + \
                             "MATCH n-[rel:__subscribes_to__]-c " + \
-                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link=\"" + request.GET["link"] + "\" " + \
+                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \
                             "RETURN c; "
-        my_batch.append_cypher(check_data_cypher)
+        my_batch.append_cypher(check_data_cypher, {"link": request.GET["link"].encode("utf8")})
         list = my_batch.submit()
 
         if list[0] is not None:
@@ -154,9 +158,9 @@ def delete_channel(request):
             my_batch = neo4j.WriteBatch(graph_db)
             delete_cypher = "START n=node(*) " + \
                             "MATCH n-[rel:__subscribes_to__]-c " + \
-                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link=\"" + request.GET["link"] + "\" " + \
+                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \
                             "DELETE rel; "
-            my_batch.append_cypher(delete_cypher)
+            my_batch.append_cypher(delete_cypher, {"link": request.GET["link"].encode("utf8")})
             my_batch.submit()
 
             # Doesn't work because of "lazy nodes"
