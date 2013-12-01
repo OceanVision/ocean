@@ -79,16 +79,22 @@ def get_news(request):
 # TODO: refactor (it is not news channel..)
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 def add_channel(request):
-    #graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
     if request.user.is_authenticated():
-        user = NeoUser.objects.filter(username__exact=request.user.username)[0]
-        if not user.subscribes_to.filter(link__exact=request.GET["link"]):
-            if not NewsWebsite.objects.filter(link__exact=request.GET["link"]):
+        graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
+        my_batch = neo4j.WriteBatch(graph_db)
+        check_data_cypher = "START n=node(*) " + \
+                            "MATCH n-[rel:__subscribes_to__]-c " + \
+                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link=\"" + request.GET["link"] + "\" " + \
+                            "RETURN c; "
+        my_batch.append_cypher(check_data_cypher)
+        list = my_batch.submit()
+
+        if list[0] is None:
+            if not NewsWebsite.objects.filter(link=request.GET["link"]):
                 response = urllib2.urlopen(request.GET["link"])
                 html = response.read()
                 doc = xml.dom.minidom.parseString(html)
                 channel = doc.childNodes[0].getElementsByTagName("channel")[0]
-
                 title = channel.getElementsByTagName("title")[0].nodeValue
                 description = channel.getElementsByTagName("description")[0].nodeValue
                 image_tag = channel.getElementsByTagName("image")
@@ -107,11 +113,14 @@ def add_channel(request):
                                                           title=title, description=description,
                                                           image_width=image_width, image_height=image_height,
                                                           image_link=image_link, image_url=image_url,
-                                                          language=language)
+                                                          language=language, source_type="rss")
+                channel_node.save()
+
             else:
                 channel_node = NewsWebsite.objects.filter(link__exact=request.GET["link"])[0]
 
             # Add subscription
+            user = NeoUser.objects.filter(username__exact=request.user.username)[0]
             user.subscribes_to.add(channel_node)
             user.save()
 
@@ -120,27 +129,33 @@ def add_channel(request):
             #subscribe_relation = py2neo.rel(user, models.SUBSCRIBES_TO_RELATION, channel_node)
             #graph_db.create(subscribe_relation)
 
-            return HttpResponse(content="Ok")
+            return HttpResponse(content="Ok " + html)
         else:
             return HttpResponse(content="Channel already exists in users subscriptions")
-
     else:
         # Redirect anonymous users to login page.
         return render(request, 'rss/message.html', {'message': 'You are not logged in'})
-
 
 # TODO: refactor (it is not news channel..)
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 def delete_channel(request):
     if request.user.is_authenticated():
-        user = NeoUser.objects.filter(username__exact=request.user.username)[0]
-        if user.subscribes_to.filter(link__exact=request.GET["link"]):
+        graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
+        my_batch = neo4j.WriteBatch(graph_db)
+        check_data_cypher = "START n=node(*) " + \
+                            "MATCH n-[rel:__subscribes_to__]-c " + \
+                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link=\"" + request.GET["link"] + "\" " + \
+                            "RETURN c; "
+        my_batch.append_cypher(check_data_cypher)
+        list = my_batch.submit()
+
+        if list[0] is not None:
             graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
             my_batch = neo4j.WriteBatch(graph_db)
             delete_cypher = "START n=node(*) " + \
-                            "MATCH n-[rel:subscribes_t]-c " + \
-                            "WHERE HAS(n.username) AND n.username='" + request.user.username + "' AND c.link='" + request.GET["link"] + "' " + \
-                            "DELETE rel;"
+                            "MATCH n-[rel:__subscribes_to__]-c " + \
+                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link=\"" + request.GET["link"] + "\" " + \
+                            "DELETE rel; "
             my_batch.append_cypher(delete_cypher)
             my_batch.submit()
 

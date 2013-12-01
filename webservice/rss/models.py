@@ -48,6 +48,7 @@ class NewsWebsite(neo4j_models.NodeModel):
     image_link = neo4j_models.URLProperty()
     image_url = neo4j_models.URLProperty()
     language = neo4j_models.StringProperty()
+    source_type = neo4j_models.StringProperty()
 
 
 class NeoUser(neo4j_models.NodeModel):
