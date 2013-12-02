@@ -6,17 +6,24 @@
     <form action="">
         <input id="username" type="text" value="username" data-value="username"> <br>
         <input id="password" type="text" value="password" data-value="password" data-type="password">
-        <a class="submit" href="javascript:main.signIn()">sign in</a>
+        <a class="submit" href="javascript:signIn()">sign in</a>
         <!--<a class="back" href="javascript:void(0)">back</a>-->
     </form>
 </div>
 
 <script type="text/javascript">
+    //TODO: make synchronous
+    var signIn = function() {
+        $("#signInForm a.submit").addClass("disabled");
+        main.signIn($("#username").val(), $("#password").val());
+        $("#signInForm a.submit").removeClass("disabled");
+    };
+
     $("#signInForm input")
         .off("keypress")
         .on("keypress", function (e) {
             if (e.which == 13) {
-                main.signIn();
+                signIn();
             }
         });
 </script>

@@ -9,7 +9,24 @@
         data-value="new password" data-type="password"><br>
     <input id="retypedPassword" type="text" value="retype password" 
         data-value="retype password" data-type="password"><br>
-    <a class="submit" href="javascript:main.editProfile()">submit</a>
+    <a class="submit" href="javascript:changePassword()">submit</a>
 </div>
+
+<script type="text/javascript">
+    //TODO: make synchronous
+    var changePassword = function() {
+        $("#editProfileForm a.submit").addClass("disabled");
+        main.changePassword($("#currentPassword").val(), $("#newPassword").val(), $("#retypedPassword").val());
+        $("#editProfileForm a.submit").removeClass("disabled");
+    };
+
+    $("#editProfileForm input")
+        .off("keypress")
+        .on("keypress", function (e) {
+            if (e.which == 13) {
+                changePassword();
+            }
+        });
+</script>
 
 {% endblock %}

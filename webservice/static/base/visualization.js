@@ -164,10 +164,10 @@ function Visualization() {
                     $(this).parent().find(".description")
                         .show(200)
                         .css("border-bottom", "5px solid " + utils.getRGBA($(this).data("color"), .05));
-                    $(this).css("font-weight", "bold");
+                    $(this).addClass("selected");
                 } else {
                     $(this).parent().find(".description").hide(100);
-                    $(this).css("font-weight", "normal");
+                    $(this).removeClass("selected");
                 }
             });
 

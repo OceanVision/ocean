@@ -27,23 +27,18 @@ def sign_in(request):
 def sign_out(request):
     logout(request)
     # User is logged out
-    return HttpResponseRedirect(reverse('rss:index'))
+    return HttpResponse(content="ok", content_type="text/plain")
 
 
-def edit_profile(request):
+def change_password(request):
     # Logged in
     if request.user.is_authenticated():
         # Current password do not match
         if not request.user.check_password(request.POST['current_password']):
-            return render(request, 'base/welcome.html', {'message': 'New password and retyped password do not match!'})
+            return HttpResponse(content="fail", content_type="text/plain")
         new_password = request.POST['new_password']
-        retyped_password = request.POST['retyped_password']
-        # Two password entries match
-        if new_password == retyped_password:
-            User.set_password(request.user, new_password)
-            request.user.save()
-            return HttpResponse(content="Ok")
-        else:
-            return render(request, 'rss/message.html', {'message': 'New password and retyped password do not match!'})
+        User.set_password(request.user, new_password)
+        request.user.save()
+        return HttpResponse(content="ok", content_type="text/plain")
     else:
-        return render(request, 'rss/message.html', {'message': 'You are not allowed to this page!'})
+        return HttpResponse(content="fail", content_type="text/plain")

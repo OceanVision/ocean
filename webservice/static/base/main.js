@@ -28,40 +28,69 @@ function Main() {
 	    visualization.transit($("body").children().not("#regularMenu"), $(response));
 	};
 
-    Main.prototype.editProfile = function() {
-        var data = {
-            'current_password' : $("#currentPassword").val(),
-            'new_password' : $("#newPassword").val(),
-            'retyped_password' : $("#retypedPassword").val()
+    Main.prototype.changePassword = function(currentPassword, newPassword, retypedPassword) {
+        if (newPassword != retypedPassword) {
+            return;
+        }
+
+        var returnValue, data = {
+            'current_password' : currentPassword,
+            'new_password' : newPassword
         };
 
-        ajax.request("user_profile/edit_profile", "POST", data, function(response) {
-	        console.log(response);
-	        //main.load("");
-        }, function(xhr, status, error) {
-            console.log(JSON.stringify(error));
-            console.log(JSON.stringify(status));
-            console.log(JSON.stringify(xhr));
-        });
-    };
-
-	Main.prototype.signIn = function() {
-	    var data = {
-	        'username' : $("#username").val(),
-	        'password' : $("#password").val() //$("Crypto.SHA256($("#password").val())
-	    };
-
-	    ajax.request("user_profile/sign_in", "POST", data, function(response) {
-            if (response != "fail") {
+        ajax.request("user_profile/change_password", "POST", data, function(response) {
+	        if (response != "fail") {
 	            main.load("rss");
+                returnValue = true;
             } else {
-                main.load("sign_in");
+                returnValue = false;
             }
         }, function(xhr, status, error) {
             console.log(JSON.stringify(error));
             console.log(JSON.stringify(status));
             console.log(JSON.stringify(xhr));
+            returnValue = false;
         });
+
+        return returnValue;
+    };
+
+	Main.prototype.signIn = function(username, password) {
+	    var returnValue, data = {
+	        'username' : username,
+	        'password' : password //$("Crypto.SHA256($("#password").val())
+	    };
+
+	    ajax.request("user_profile/sign_in", "POST", data, function(response) {
+            if (response != "fail") {
+	            main.load("rss");
+                returnValue = true;
+            } else {
+                returnValue = false;
+            }
+        }, function(xhr, status, error) {
+            console.log(JSON.stringify(error));
+            console.log(JSON.stringify(status));
+            console.log(JSON.stringify(xhr));
+            returnValue = false;
+        });
+
+        return returnValue;
+	};
+
+    Main.prototype.signOut = function() {
+        var returnValue;
+	    ajax.request("user_profile/sign_out", "GET", "", function(response) {
+            main.load("");
+            returnValue = true;
+        }, function(xhr, status, error) {
+            console.log(JSON.stringify(error));
+            console.log(JSON.stringify(status));
+            console.log(JSON.stringify(xhr));
+            returnValue = false;
+        });
+
+        return returnValue;
 	};
 
     Main.prototype.searchInTitles = function(pattern) {
