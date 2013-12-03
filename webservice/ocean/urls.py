@@ -20,5 +20,6 @@ urlpatterns = patterns('',
     url(r'^rss/', include('rss.urls', namespace="rss")),
     url(r'^sign_in$', views.sign_in),
     url(r'^edit_profile', views.edit_profile),
+    url(r'^mission$', views.mission),
     url(r'^show_my_ocean_view$', "rss:index"),
 )

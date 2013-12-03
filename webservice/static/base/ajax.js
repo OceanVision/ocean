@@ -10,7 +10,8 @@ function Ajax() {
             "" : "/",
             "sign_in" : "/sign_in",
             "edit_profile" : "/edit_profile",
-            "rss" : "/rss"
+            "rss" : "/rss",
+            "mission" : "/mission"
         }
     };
 

@@ -11,3 +11,7 @@ def sign_in(request):
 
 def edit_profile(request):
     return utils.render(request, 'base/edit_profile.html')
+
+
+def mission(request):
+    return utils.render(request, 'base/mission.html')

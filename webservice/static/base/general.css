@@ -374,3 +374,36 @@ div#editProfileForm input {
 div#editProfileForm input#avatar {
     font-size: 15px;
 }
+
+/* ========== M I S S I O N   P A G E ========== */
+
+div#mission {
+    width: 65%;
+    padding-top: 63px;
+    position: absolute;
+    z-index: 0;
+}
+
+div#mission img {
+    width: 100%;
+}
+
+/* ========== F O O T E R ========== */
+
+footer {
+    position: fixed;
+    right: 40px;
+    bottom: 30px;
+}
+
+footer a {
+    background-color: #ddd;
+    display: inline-block;
+    margin-right: 3px;
+    padding: 2px 4px;
+    font-family: "Roboto Slab";
+    font-size: 13px;
+    font-weight: 300;
+    color: #fff;
+    border-radius: 3px;
+}
