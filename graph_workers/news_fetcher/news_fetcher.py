@@ -200,6 +200,13 @@ class NewsFetcher(GraphWorker):
             return 0
 
         last_updated_current = pubdate_to_datetime(nodes_to_add[0]["pubdate"])
+        news_website.update_properties(
+            {
+                NEWS_WEBSITE_LAST_UPDATE:
+                    GMTdatetime_to_database_timestamp(last_updated_current)
+            }
+        ) # using graph_db used to fetch this node!!
+
 
         #Check here for news[0] if it is in the database
 
@@ -227,13 +234,6 @@ class NewsFetcher(GraphWorker):
         self.graph_db.create(*produces_relations)
 
         logger.info("Updating NewsWebsite "+unicode(news_website))
-        news_website.update_properties(
-            {
-                NEWS_WEBSITE_LAST_UPDATE:
-                    GMTdatetime_to_database_timestamp(last_updated_current)
-            }
-        ) # using graph_db used to fetch this node!!
-
         logger.info("Added for instance "+unicode(nodes_added[0]["title"]))
         #logger.info(news_type_node)
         return len(nodes_added)
