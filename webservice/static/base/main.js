@@ -104,6 +104,35 @@ function Main() {
             }
         });
     };
+
+    Main.prototype.sort = function(container, elements, order) {
+        var array = [];
+        elements.each(function() {
+            array.push({
+                title : $(this).find("p.title").text(),
+                element : $(this)
+            });
+        });
+
+        array.sort(function(a, b) {
+            if (a.title < b.title) {
+                return (order == "ascending" ? -1 : 1);
+            }
+            else if (a.title > b.title) {
+                return (order == "ascending" ? 1 : -1);
+            }
+            return 0;
+        });
+
+        var sortedElements = $("<div></div>");
+        for (var i = 0; i < array.length; ++i) {
+            sortedElements.append(array[i].element);
+        }
+
+        container
+            .remove("div.item")
+            .append(sortedElements.find("div.item"));
+    };
 }());
 
 $(document).on("ready", function() {
