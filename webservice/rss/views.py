@@ -16,6 +16,18 @@ import json
 import random
 
 
+def get_category_array(request):
+    if request.user.is_authenticated():
+        #TODO: make color dependent of various features
+        category_array = [{'name': 'Barack Obama', 'color': 'ffbd0c'},
+                          {'name': 'tennis', 'color': '00c6c4'},
+                          {'name': 'iPhone', 'color': '74899c'},
+                          {'name': 'cooking', 'color': '976833'}]
+        return category_array
+    else:
+        return []
+
+
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 def get_rss_content(request):
     if request.user.is_authenticated():
@@ -30,11 +42,7 @@ def get_rss_content(request):
                                      'link': news.link, 'pubDate': news.pubDate,
                                      'category': 2, 'color': colors[random.randint(0, 4)]}]
 
-        #TODO: make color dependent of various features
-        category_array = [{'name': 'Barack Obama', 'color': 'ffbd0c'},
-                          {'name': 'tennis', 'color': '00c6c4'},
-                          {'name': 'iPhone', 'color': '74899c'},
-                          {'name': 'cooking', 'color': '976833'}]
+        category_array = get_category_array(request)
 
         page = 0
         page_size = 20
@@ -68,6 +76,62 @@ def index(request):
         return HttpResponse(content="fail", content_type="text/plain")
 
 
+def get_rss_channels(request):
+    """Get subscribed RSS channels list from databasa."""
+    if request.user.is_authenticated():
+        rss_items_array = []  # building news to be rendered (isn't very efficient..)
+        user = NeoUser.objects.filter(username__exact=request.user.username)[0]
+
+        colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
+        # Get news for authenticated users.
+        for channel in user.subscribes_to.all():
+            rss_items_array += [
+                {
+                    'title': channel.title,
+                    'description': channel.description,
+                    'link': channel.link,
+                    'category': 2,
+                    'color': colors[random.randint(0, 4)]
+                }
+            ]
+
+        category_array = get_category_array(request)
+
+        page = 0
+        page_size = 20
+        if 'page' in request.GET:
+            page = int(request.GET['page'])
+            page_size = int(request.GET['page_size'])
+
+        a = page * page_size
+        if a < len(rss_items_array):
+            b = (page + 1) * page_size
+            if b <= len(rss_items_array):
+                rss_items_array = rss_items_array[a:b]
+            else:
+                rss_items_array = rss_items_array[a:]
+        else:
+            rss_items_array = None
+
+        return {'signed_in': True,
+                'rss_channels': rss_items_array,
+                'categories': category_array,
+                'message': ''}
+
+    else:
+        return {}
+
+
+def manage(request, message=''):
+    """ @arg message - additional web message f.e. error."""
+    data = get_rss_channels(request)
+    data['message'] = message
+    if len(data) > 0:
+        return utils.render(request, 'rss/channels.html', data)
+    else:
+        return HttpResponse(content='fail', content_type='text/plain')
+
+
 def get_news(request):
     data = get_rss_content(request)
     if len(data) > 0:
@@ -89,16 +153,18 @@ def add_channel(request):
                             "MATCH n-[rel:__subscribes_to__]-c " + \
                             "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \
                             "RETURN c; "
-        my_batch.append_cypher(check_data_cypher, {"link": request.GET["link"].encode("utf8")})
+        #TODO: Try to solve "?ajax=ok" problem another way.
+        my_batch.append_cypher(check_data_cypher, {"link": request.GET["link"].encode("utf8").split("?ajax=ok")[0]})
         list = my_batch.submit()
 
         if list[0] is None:
-            if not NewsWebsite.objects.filter(link=request.GET["link"]):
+            if not NewsWebsite.objects.filter(link=request.GET["link"].split("?ajax=ok")[0]):
 
                 def get_node_value(node, value):
                     return node.getElementsByTagName(value)[0].childNodes[0].nodeValue.strip()
 
-                response = urllib2.urlopen(request.GET["link"])
+                #TODO: Try to solve "?ajax=ok" problem another way.
+                response = urllib2.urlopen(request.GET["link"].split("?ajax=ok")[0])
                 html = response.read()
                 doc = xml.dom.minidom.parseString(html)
                 channel = doc.childNodes[0].getElementsByTagName("channel")[0]
@@ -116,7 +182,7 @@ def add_channel(request):
                     image_link = get_node_value(channel, "link")
                     image_url = get_node_value(channel, "url")
 
-                channel_node = NewsWebsite.objects.create(label=models.NEWS_WEBSITE_LABEL, link=request.GET["link"],
+                channel_node = NewsWebsite.objects.create(label=models.NEWS_WEBSITE_LABEL, link=request.GET["link"].split("?ajax=ok")[0],
                                                           title=title, description=description,
                                                           image_width=image_width, image_height=image_height,
                                                           image_link=image_link, image_url=image_url,
@@ -124,7 +190,8 @@ def add_channel(request):
                 channel_node.save()
 
             else:
-                channel_node = NewsWebsite.objects.filter(link__exact=request.GET["link"])[0]
+                #TODO: Try to solve "?ajax=ok" problem another way.
+                channel_node = NewsWebsite.objects.filter(link__exact=request.GET["link"])[0].split("?ajax=ok")[0]
 
             # Add subscription
             user = NeoUser.objects.filter(username__exact=request.user.username)[0]
@@ -136,9 +203,9 @@ def add_channel(request):
             #subscribe_relation = py2neo.rel(user, models.SUBSCRIBES_TO_RELATION, channel_node)
             #graph_db.create(subscribe_relation)
 
-            return HttpResponse(content="Ok")
+            return manage(request)
         else:
-            return HttpResponse(content="Channel already exists in users subscriptions")
+            return render(request, 'rss/message.html', {'message': 'Channel already exists in users subscriptions'})
     else:
         # Redirect anonymous users to login page.
         return render(request, 'rss/message.html', {'message': 'You are not logged in'})
@@ -153,7 +220,8 @@ def delete_channel(request):
                             "MATCH n-[rel:__subscribes_to__]-c " + \
                             "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \
                             "RETURN c; "
-        my_batch.append_cypher(check_data_cypher, {"link": request.GET["link"].encode("utf8")})
+        #TODO: Try to solve "?ajax=ok" problem another way.
+        my_batch.append_cypher(check_data_cypher, {"link": request.GET["link"].encode("utf8").split("?ajax=ok")[0]})
         list = my_batch.submit()
 
         if list[0] is not None:
@@ -163,16 +231,18 @@ def delete_channel(request):
                             "MATCH n-[rel:__subscribes_to__]-c " + \
                             "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \
                             "DELETE rel; "
-            my_batch.append_cypher(delete_cypher, {"link": request.GET["link"].encode("utf8")})
+            my_batch.append_cypher(delete_cypher, {"link": request.GET["link"].encode("utf8").split("?ajax=ok")[0]})
             my_batch.submit()
 
             # Doesn't work because of "lazy nodes"
             # channel = user.subscribes_to.filter(link__exact=request.GET["link"])[0]
             # channel.subscribed.remove(user)
             # user.save()
-            return HttpResponse(content="Ok")
+
+            #return HttpResponse(content="Ok")
+            return manage(request)
         else:
-            return HttpResponse(content="It's not users subscription.")
+            return render(request, 'rss/message.html', {'message': "It's not users subscription."} )
     else:
         # Redirect anonymous users to login page.
         return render(request, 'rss/message.html', {'message': 'You are not logged in'})
