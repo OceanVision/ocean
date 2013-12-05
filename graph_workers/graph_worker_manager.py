@@ -11,6 +11,7 @@ from privileges import construct_full_privilege, privileges_bigger_or_equal
 import time
 import inspect
 from signal import *
+from utils import *
 
 class GraphWorkersManager(object):
     """
@@ -30,19 +31,19 @@ class GraphWorkersManager(object):
     def terminate(self):
         for gw in self.graph_workers:
             gw.terminate()
-        logger.info("Terminated all graph workers")
+        logger.log(MY_INFO_IMPORTANT_LEVEL, "Terminated all graph workers")
 
 
 gwm = None
 
 def clean(*args):
     global gwm
-    logger.info("Terminating GWM")
+    logger.log(MY_INFO_IMPORTANT_LEVEL, "Terminating GWM")
     gwm.terminate()
     exit(0)
 
 if __name__ == "__main__":
-    logger.info("Starting GraphWorkersManager. To be started from OceanMaster")
+    logger.log(MY_INFO_IMPORTANT_LEVEL, "Starting GraphWorkersManager. To be started from OceanMaster")
     gwm = GraphWorkersManager()
     gwm.run()
 

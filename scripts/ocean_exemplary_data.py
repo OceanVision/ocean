@@ -115,7 +115,7 @@ if __name__ == "__main__":
     # Create instance relations
     graph_db.create(
          rel(types[0], HAS_INSTANCE_RELATION, websites[0])
-#         rel(types[0], HAS_INSTANCE_RELATION, websites[1]),
+#          rel(types[0], HAS_INSTANCE_RELATION, websites[1])
 #         rel(types[0], HAS_INSTANCE_RELATION, websites[2])
     )
 

@@ -13,7 +13,13 @@ import xml.dom.minidom
 from datetime import timedelta, datetime
 from dateutil import parser
 
-logging.basicConfig(level=logging.INFO)
+MY_DEBUG_LEVEL = 25
+MY_INFO_LEVEL = 35
+MY_INFO_IMPORTANT_LEVEL = 32
+MY_IMPORTANT_LEVEL = 40
+MY_CRITICAL_LEVEL = 50
+
+logging.basicConfig(level=MY_DEBUG_LEVEL)
 logger = logging.getLogger(__name__)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(levelname)s - %(message)s')
@@ -21,12 +27,20 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
 
+
+
+
+
+
 # This regex tries to predict if there is a web page (refuses non-webpage links)
 #TODO: Improve to reject images, download files etc.
 HTTP_S_VALIDATION_REGEX = "^http[s]*\://[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(/\S*)?$"
 
 # This regex is used to search urls inside a webpage source code
 HTTP_S_LINK_REGEX = "\"(http[s]*\://[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(/\S*)?)\""
+
+
+
 
 
 def database_timestamp_to_datetime(timestamp):

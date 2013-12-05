@@ -19,21 +19,48 @@ import py2neo
 import time
 
 
+
+
+#TODO: move to neo4j_wrapper to get_all_instances()
+def get_all_instances(self, class_name):
+    """
+        @returns lists of all news feeds in the system (as py2neo.node,
+            note: you can refer to properties by node["property"] and
+            to id by node._id :)
+
+            if there were no needed fields, they are added :)
+    """
+    query = \
+    """
+    START root=node(0)
+    MATCH root-[r:`<<TYPE>>`]->typenode-[q:`<<INSTANCE>>`]->n
+    WHERE typenode.name = { class_name }
+    RETURN n
+    """
+    records = get_records_from_cypher(self.graph_db, query, params={"class_name": class_name})
+    if type(records[0]) is py2neo.util.Record: return [r.n for r in records]
+    elif type(records[0]) is py2neo.neo4j.Node: return records
+    else: return None
+
+
 def get_records_from_cypher(graph_db, cypher_query, params = None):
     """
     Submit cypher cypher_query
-    @returns list of Records (py2neo class)
+    @returns list of Records (py2neo class) or list of Nodes
 
     @warning: This function doesn;t work for all cases . I do not understand py2neo here
+
+
 
     TODO: Why is py2neo returning different things ?????
     """
     my_batch = neo4j.ReadBatch(graph_db)
     my_batch.append_cypher(cypher_query, params)
     result = my_batch.submit()
-
-    if len(result) == 0: return result
-    if len(result[0]) > 1: return result[0]
+    print type(result[0][0])
+    if type(result) is py2neo.neo4j.Node: return [result]
+    if type(result[0]) is py2neo.neo4j.Node: return result
+    if type(result[0]) is list: return result[0]
     else: return result
 
 
@@ -43,8 +70,6 @@ def count_same_news(graph_db, news_website, news_title):
         "n-[r2:`<<INSTANCE>>`]->w" + "\n WHERE n.name = "+\
         "\"rss:News\" \n"+\
         "and w.title = {news_title} \n" + "RETURN count(w)"
-
-    print cypher_query
     my_batch.append_cypher(cypher_query, {"news_title" : news_title.encode("utf8")})
     results = my_batch.submit()
     return results[0]

@@ -24,7 +24,8 @@ import inspect
 
 from graph_worker import GraphWorker
 import logging
-from neo4j_wrapper import datetime_to_pubdate, pubdate_to_datetime, get_type_metanode, count_same_news, get_records_from_cypher
+from neo4j_wrapper import datetime_to_pubdate, pubdate_to_datetime, \
+    get_all_instances, get_type_metanode, count_same_news, get_records_from_cypher
 from privileges import construct_full_privilege, privileges_bigger_or_equal
 from py2neo import neo4j
 from py2neo import node, rel
@@ -45,8 +46,17 @@ NewsFetcherJob = namedtuple("NewsFetcherJob", 'neo4j_node work_time')
     work_time - when to pull news (as datetime)
 """
 
-#TODO: implement logger with logging level.
 
+logging.basicConfig(level=MY_DEBUG_LEVEL)
+logger = logging.getLogger(__name__)
+ch = logging.StreamHandler()
+formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+logger.propagate = False
+ch_file = logging.FileHandler("news_fetcher.log")
+ch_file.setLevel(MY_IMPORTANT_LEVEL)
+logger.addHandler(ch_file)
 
 
 import threading
@@ -82,46 +92,30 @@ class NewsFetcher(GraphWorker):
 
     def process(self, job):
         news_nodes = self._fetch_news(job.neo4j_node)
-        logger.info("Fetched "+str(len(news_nodes))+" from "+job.neo4j_node["link"])
+        logger.log(MY_DEBUG_LEVEL, "Fetched "+str(len(news_nodes))+" from "+job.neo4j_node["link"])
         n = self._add_news_to_graph(job.neo4j_node, news_nodes)
+        if n > 0: logger.log(MY_INFO_IMPORTANT_LEVEL, "Added {0} news to graph".format(n))
 
-        logger.info("Added {0} news to graph".format(n))
-#         # Enqueue next job
-#         self.global_job_list.append(NewsFetcherJob(job.neo4j_node,
-#             (datetime.now() + timedelta(seconds=self.update_frequency_seconds))))
 
 
     def run(self):
-        # Master job add jobs
-        nf = self._get_all_newsfeeds()
-        for n in nf:
-            self.global_job_list.append(NewsFetcherJob(n,
-                datetime.now()- timedelta(minutes=1)))
-
-        logger.info("Scanning " +str(len(nf))+ " news_website")
-
-
         # Main loop
         time_elapsed = 0
         while not self.terminate_event.is_set():
             if len(self.global_job_list) == 0: #Not that frequent
                 nf = self._get_all_newsfeeds()
                 for n in nf:
-                    self.global_job_list.append(NewsFetcherJob(n, datetime.now()- timedelta(minutes=1)))
-                logger.info("Updated global_job_list to "+str(len(self.global_job_list)))
+                    self.global_job_list.append(NewsFetcherJob(n, datetime.now() - timedelta(minutes=1)))
+                logger.log(MY_INFO_LEVEL, "Updated global_job_list to "+str(len(self.global_job_list)))
                 time.sleep(1)
-
 
             current_job = self.global_job_list[0]
             if current_job.work_time < datetime.now():
                 current_job = self.global_job_list.pop(0) #TODO: Not very thread safe :<
                 self.process(current_job)
-            
+
             time.sleep(0.1) #TODO: as variable
             time_elapsed += 1
-
-#             cont = raw_input("continue?")
-
 
         for worker in self.workers:
             if worker is not NewsFetcher:
@@ -133,33 +127,19 @@ class NewsFetcher(GraphWorker):
     def _register_worker(self):
         raise NotImplementedError()
 
-
     #TODO: move to neo4j_wrapper to get_all_instances()
     def _get_all_newsfeeds(self):
         """
             @returns lists of all news feeds in the system (as py2neo.node,
                 note: you can refer to properties by node["property"] and
                 to id by node._id :)
-
                 if there were no needed fields, they are added :)
         """
-        query = \
-        """
-        start n=node(*)
-        where id(n)<>0 and HAS(n.label) and n.label = "__news_website__"
-        return n, count(n);
-        """
-
         news_websites = []
-        records = get_records_from_cypher(self.graph_db, query)
-        if records is None:
-            logger.error("Error while communicating with neo4j database. No news websites fetched")
-            exit(1)
-
-        for record in get_records_from_cypher(self.graph_db, query):
-            news_websites.append(record.n)
+        for n in get_all_instances(self.graph_db, "rss:NewsWebsite"):
+            news_websites.append(n)
             if NEWS_WEBSITE_LAST_UPDATE not in news_websites[-1]:
-                logger.info("Adding last_updated field to "+unicode(news_websites[-1]))
+                logger.log(MY_DEBUG_LEVEL, "Adding last_updated field to "+unicode(news_websites[-1]))
                 news_websites[-1][NEWS_WEBSITE_LAST_UPDATE] = 0
 
         return news_websites
@@ -177,49 +157,43 @@ class NewsFetcher(GraphWorker):
 
             @returns number of nodes added
         """
-
-
         last_updated = database_timestamp_to_datetime(news_website[NEWS_WEBSITE_LAST_UPDATE])
-
-        logger.info("Last updated news_website is "+str(last_updated))
-
-        news_type_node = get_type_metanode(self.graph_db, NEWS_TYPE_MODEL_NAME) #TODO: it should be cached somewhere
+        logger.log(MY_INFO_LEVEL, "Last updated news_website is "+str(last_updated))
+        news_type_node = get_type_metanode(self.graph_db, NEWS_TYPE_MODEL_NAME)
 
         # We need this node to add HAS_INSTANCE_RELATION
         nodes_to_add = []
-        for news in list_of_news:
+        newest, newest_id = database_timestamp_to_datetime(0), 0 # Find newest news in the set
+        for id, news in enumerate(list_of_news):
             d_news = pubdate_to_datetime(news["pubdate"])
-            logger.info(d_news)
-            logger.info(last_updated)
-            if (d_news > last_updated): #not always sorted!
-                news["label"] = NEWS_LABEL # add metadata
-                nodes_to_add.append(py2neo.node(**news)) # assume is dictionary
+            if d_news > last_updated:
+                news["label"] = NEWS_LABEL  # add metadata
+                nodes_to_add.append(py2neo.node(**news))  # assume is dictionary
+                if d_news > newest:
+                    newest = d_news
+                    newest_id = id
 
         if len(nodes_to_add) == 0:
-            logger.warning("No nodes added")
+            logger.log(MY_INFO_LEVEL, "Warning: No nodes added for "+str(news_website[NEWS_WEBSITE_LINK]))
             return 0
 
-        last_updated_current = pubdate_to_datetime(nodes_to_add[0]["pubdate"])
+        logger.log(MY_INFO_IMPORTANT_LEVEL, "Updating last_updated to "+str(newest))
+
         news_website.update_properties(
             {
                 NEWS_WEBSITE_LAST_UPDATE:
-                    GMTdatetime_to_database_timestamp(last_updated_current)
+                GMTdatetime_to_database_timestamp(newest)
             }
-        ) # using graph_db used to fetch this node!!
+        )  # using graph_db used to fetch this node!!
 
-
-        #Check here for news[0] if it is in the database
-
-        existing_nodes = count_same_news(self.graph_db, news_website, nodes_to_add[0]["title"])
+        existing_nodes = count_same_news(self.graph_db, news_website, nodes_to_add[newest_id]["title"])
 
         if existing_nodes > 0:
-            logger.warning("")
-            logger.warning(nodes_to_add[0])
-            logger.warning(existing_nodes)
-            logger.warning("Existing nodes ! Probably something wrong with "+unicode(news_website))
+            logger.log(MY_CRITICAL_LEVEL, "")
+            logger.log(MY_CRITICAL_LEVEL, nodes_to_add[0])
+            logger.log(MY_CRITICAL_LEVEL, existing_nodes)
+            logger.log(MY_CRITICAL_LEVEL, "ERROR: Existing nodes ! Probably something wrong with "+unicode(news_website))
             return 0
-
-        logger.info("Updating news_website last_updated to "+str(last_updated_current))
 
         nodes_added = self.graph_db.create(*nodes_to_add)
 
@@ -228,14 +202,11 @@ class NewsFetcher(GraphWorker):
         produces_relations = [py2neo.rel(news_website, PRODUDES_RELATION, content)
                               for content in nodes_added]
 
-        logger.info("Creating necessary metadata")
         self.graph_db.create(*instance_relations)
-        logger.info("Created instance metadata relations")
         self.graph_db.create(*produces_relations)
 
-        logger.info("Updating NewsWebsite "+unicode(news_website))
-        logger.info("Added for instance "+unicode(nodes_added[0]["title"]))
-        #logger.info(news_type_node)
+        logger.log(MY_INFO_LEVEL, "Updating NewsWebsite "+unicode(news_website))
+        logger.log(MY_INFO_LEVEL, "Added for instance "+unicode(nodes_added[0]["title"]))
         return len(nodes_added)
 
 
@@ -250,39 +221,45 @@ class NewsFetcher(GraphWorker):
             raise NotImplementedError()
 
         rss_link = news_website[NEWS_WEBSITE_LINK]
-        response = urllib2.urlopen(rss_link)
 
-        html = response.read()
-        doc = xml.dom.minidom.parseString(html)
-        feed = doc.childNodes[0].getElementsByTagName("channel")[0].getElementsByTagName("item")  # <root>-><rss>-><channel>
-
+        try:
+            response = urllib2.urlopen(rss_link)
+            html = response.read()
+            doc = xml.dom.minidom.parseString(html)
+            feed = doc.childNodes[0].getElementsByTagName("channel")[0].getElementsByTagName("item")
+            #<root>-><rss>-><channel>
+        except Exception, e:
+            logger.log(MY_CRITICAL_LEVEL, "Warning: Incorrect RSS format ")
+            logger.log(MY_CRITICAL_LEVEL, "Warning: " + str(e))
+            return []
 
         # Default iteration stop
         if newer_than is None:
+            logger.log(MY_INFO_LEVEL, ("News website "+news_website[NEWS_WEBSITE_LINK],
+                "last_updated ", database_timestamp_to_datetime(news_website[NEWS_WEBSITE_LAST_UPDATE]))
+            )
             newer_than = database_timestamp_to_datetime(news_website[NEWS_WEBSITE_LAST_UPDATE])
 
-        logger.info("Fetching news from "+str(rss_link)+" newer_than "+str(newer_than))
+        logger.log(MY_INFO_LEVEL, "Fetching news from "+str(rss_link)+" newer_than "+str(newer_than))
 
 
         def try_get_node_value(node, value, default = u""):
             """ Note we return everything as unicode !! """
             try:
-                text = ""
                 childNodes = node.getElementsByTagName(value)[0].childNodes
                 for child in childNodes:
                     text = child.nodeValue
                     text = text.strip()
                     if text != "": return text
-
-                return text
-            except Exception, e:
+                return ""
+            except:
                 return default
 
         news_nodes = []
 
         for id,item in enumerate(feed):
             news_node = {}
-            news_node["title"] = unicode(try_get_node_value(item, "title")) #unicode() because it is already encoded!
+            news_node["title"] = unicode(try_get_node_value(item, "title"))
             news_node["guid"] = unicode(try_get_node_value(item, "guid"))
             news_node["description"] = unicode(try_get_node_value(item, "description"))
             news_node["link"] = unicode(try_get_node_value(item, "link"))
@@ -322,36 +299,5 @@ class NewsFetcher(GraphWorker):
 
 
 
-
-
-#def test_1():
-#    """ Basic test for news_fetcher """
-#    nf_master = NewsFetcher.create_master(privileges=construct_full_privilege())
-#    #nf_worker = NewsFetcher.create_worker(nf_master, privileges=construct_full_privilege())
-#    threading.Thread(target=nf_master.run).start()
-#    time.sleep(10)
-#    nf_master.terminate_event.set()
-#    logger.info("Terminated master")
-#    #nf_worker.run()
-#
-#
-#
-#import time
-#
-#def test_list():
-#    print time.time()
-#
-#
-#import math
-#def check_if_update(news_website):
-#    """
-#        @param news_website is a dictionary (with uri)
-#    """
-#    if math.fabs(float(news_website[NEWS_WEBSITE_LAST_UPDATE]) - time.time()) > NewsFetcher.minimum_time_delta_to_update:
-#        return True
-#    else:
-#        return False
-#
-#
 
 
