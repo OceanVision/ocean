@@ -143,6 +143,9 @@ function Visualization() {
 
     Visualization.prototype.updateEventHandlers = function() {
 		// rss items colors and opening item
+
+		$("#rssItems .love_it_button").css({opacity:0.5});
+
 		$("#rssItems .item .title")
             .css("background-color", function() {
                 return utils.getRGBA($(this).data("color"), .05);

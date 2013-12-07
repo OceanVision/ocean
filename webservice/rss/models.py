@@ -73,6 +73,7 @@ class NeoUser(neo4j_models.NodeModel):
 
     label = neo4j_models.StringProperty(default="__user__")
     subscribes_to = neo4j_models.Relationship('NewsWebsite', rel_type='__subscribes_to__', related_name="subscribed")
+    loves_it = neo4j_models.Relationship("News", rel_type="__loves_it__", related_name="loved")
 
     # There has to be related user in django.contrib.auth.User !! TODO: relation?
     username = neo4j_models.StringProperty()

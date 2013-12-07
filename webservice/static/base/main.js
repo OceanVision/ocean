@@ -21,7 +21,9 @@ function Main() {
 	    ajax.request(path, "GET", "", function(r) {
 	        response = r;
 	    }, function(xhr, status, error) {
-	        console.log(status);
+               console.log(JSON.stringify(error));
+                console.log(JSON.stringify(status));
+                console.log(JSON.stringify(xhr));
 	    });
 
 	    //TODO: not a good choice for every next case
@@ -105,6 +107,8 @@ function Main() {
         });
     };
 
+    //Niewydajny ten sort troche, po co usuwać divy i tworzyc na nowo?
+    //Chyba, ze i tak to bedzie przepisywane na sortowanie po stronie serwera?
     Main.prototype.sort = function(container, elements, order) {
         var array = [];
         elements.each(function() {
@@ -171,6 +175,7 @@ $(document).on("ready", function() {
         $(id).text(news["description"]);
     }
 
+    //TODO: Czemu to jest tutaj? Przeciez nie kazda strona jest scrollowalna w ten sposob jak ListDisplay ;p
     $(window).scroll(function() {
         buffer = 40 // # of pixels from bottom of scroll to fire your function. Minimum 40 (should work for 0
         if ($("#rssItems").prop('scrollHeight') - $(window).scrollTop() <= $(window).height() + buffer) {

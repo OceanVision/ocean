@@ -1,4 +1,6 @@
 {% extends 'base/index.html' %}
+{% load static %}
+{% get_static_prefix as STATIC_URL %}
 {% block body %}
 
 {% block navigator %}
@@ -15,7 +17,11 @@
         <p class="title" data-color="{{ item.color }}">{{ item.title }}</p>
         <p class="description">
             {{ item.description|safe }}
+            <a href="rss"  >
+                <img class="love_it_button" src="{% static 'base/img/heart.png' %}" >
+            </a>
         </p>
+
     </div>
     {% endfor %}
 </div>

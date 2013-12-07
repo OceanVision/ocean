@@ -28,37 +28,47 @@ def get_category_array(request):
         return []
 
 
+import sys
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 def get_rss_content(request):
     if request.user.is_authenticated():
-        rss_items_array = []  # building news to be rendered (isn't very efficient..)
-        user = NeoUser.objects.filter(username__exact=request.user.username)[0]
+        print "call to get_rss_content"
+        #TODO: dziala dosyc niestabilnie i w ogole nie ma lapania wyjatkow...
+        try:
 
-        colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
-        # Get news for authenticated users.
-        for rss_channel in user.subscribes_to.all():
-            for news in rss_channel.produces.all():
-                rss_items_array += [{'title': news.title, 'description': news.description,
-                                     'link': news.link, 'pubDate': news.pubDate,
-                                     'category': 2, 'color': colors[random.randint(0, 4)]}]
+            rss_items_array = []  # building news to be rendered (isn't very efficient..)
+            user = NeoUser.objects.filter(username__exact=request.user.username)[0]
 
-        category_array = get_category_array(request)
+            colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
+            # Get news for authenticated users.
+            for rss_channel in user.subscribes_to.all():
+                for news in rss_channel.produces.all():
+                    rss_items_array += [{'pk' : news.pk, 'title': news.title, 'description': news.description,
+                                         'link': news.link, 'pubDate': news.pubDate,
+                                         'category': 2, 'color': colors[random.randint(0, 4)]}]
 
-        page = 0
-        page_size = 20
-        if 'page' in request.GET:
-            page = int(request.GET['page'])
-            page_size = int(request.GET['page_size'])
+            category_array = get_category_array(request)
 
-        a = page * page_size
-        if a < len(rss_items_array):
-            b = (page + 1) * page_size
-            if b <= len(rss_items_array):
-                rss_items_array = rss_items_array[a:b]
+
+            page = 0
+            page_size = 20
+            if 'page' in request.GET:
+                page = int(request.GET['page'])
+                page_size = int(request.GET['page_size'])
+
+            a = page * page_size
+            if a < len(rss_items_array):
+                b = (page + 1) * page_size
+                if b <= len(rss_items_array):
+                    rss_items_array = rss_items_array[a:b]
+                else:
+                    rss_items_array = rss_items_array[a:]
             else:
-                rss_items_array = rss_items_array[a:]
-        else:
-            rss_items_array = None
+                rss_items_array = None
+
+        except Exception, e:
+            print "Exception in get_rss_content : ",e
+            return {}
 
         return {'signed_in': True,
                 'rss_items': rss_items_array,
@@ -87,6 +97,7 @@ def get_rss_channels(request):
         for channel in user.subscribes_to.all():
             rss_items_array += [
                 {
+                    'pk' : channel.pk,
                     'title': channel.title,
                     'description': channel.description,
                     'link': channel.link,
@@ -94,6 +105,7 @@ def get_rss_channels(request):
                     'color': colors[random.randint(0, 4)]
                 }
             ]
+
 
         category_array = get_category_array(request)
 
@@ -122,6 +134,7 @@ def get_rss_channels(request):
         return {}
 
 
+#TODO: chyba nie o to chodzi w tej funkcji manage, ona powinna obslugiwac bledy czy cos?
 def manage(request, message=''):
     """ @arg message - additional web message f.e. error."""
     data = get_rss_channels(request)
@@ -147,63 +160,69 @@ def get_news(request):
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 def add_channel(request):
     if request.user.is_authenticated():
-        graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
-        my_batch = neo4j.WriteBatch(graph_db)
-        check_data_cypher = "START n=node(*) " + \
-                            "MATCH n-[rel:__subscribes_to__]-c " + \
-                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \
-                            "RETURN c; "
-        #TODO: Try to solve "?ajax=ok" problem another way.
-        my_batch.append_cypher(check_data_cypher, {"link": request.GET["link"].encode("utf8").split("?ajax=ok")[0]})
-        list = my_batch.submit()
+        try:
+            graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
+            my_batch = neo4j.WriteBatch(graph_db)
+            check_data_cypher = "START n=node(*) " + \
+                                "MATCH n-[rel:__subscribes_to__]-c " + \
+                                "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \
+                                "RETURN c; "
+            #TODO: Try to solve "?ajax=ok" problem another way.
+            my_batch.append_cypher(check_data_cypher, {"link": request.GET["link"].encode("utf8").split("?ajax=ok")[0]})
+            list = my_batch.submit()
 
-        if list[0] is None:
-            if not NewsWebsite.objects.filter(link=request.GET["link"].split("?ajax=ok")[0]):
+            if list[0] is None:
+                if not NewsWebsite.objects.filter(link=request.GET["link"].split("?ajax=ok")[0]):
 
-                def get_node_value(node, value):
-                    return node.getElementsByTagName(value)[0].childNodes[0].nodeValue.strip()
+                    def get_node_value(node, value):
+                        return node.getElementsByTagName(value)[0].childNodes[0].nodeValue.strip()
 
-                #TODO: Try to solve "?ajax=ok" problem another way.
-                response = urllib2.urlopen(request.GET["link"].split("?ajax=ok")[0])
-                html = response.read()
-                doc = xml.dom.minidom.parseString(html)
-                channel = doc.childNodes[0].getElementsByTagName("channel")[0]
-                title = get_node_value(channel, "title")
-                description = get_node_value(channel, "description")
-                language = get_node_value(channel, "language")
-                image_tag = channel.getElementsByTagName("image")
-                image_width = ""
-                image_height = ""
-                image_link = ""
-                image_url = ""
-                if image_tag:
-                    image_width = int(get_node_value(channel, "width"))
-                    image_height = int(get_node_value(channel, "height"))
-                    image_link = get_node_value(channel, "link")
-                    image_url = get_node_value(channel, "url")
+                    #TODO: Try to solve "?ajax=ok" problem another way.
+                    response = urllib2.urlopen(request.GET["link"].split("?ajax=ok")[0])
+                    html = response.read()
+                    doc = xml.dom.minidom.parseString(html)
+                    channel = doc.childNodes[0].getElementsByTagName("channel")[0]
+                    title = get_node_value(channel, "title")
+                    description = get_node_value(channel, "description")
+                    language = get_node_value(channel, "language")
+                    image_tag = channel.getElementsByTagName("image")
+                    image_width = ""
+                    image_height = ""
+                    image_link = ""
+                    image_url = ""
+                    if image_tag:
+                        image_width = int(get_node_value(channel, "width"))
+                        image_height = int(get_node_value(channel, "height"))
+                        image_link = get_node_value(channel, "link")
+                        image_url = get_node_value(channel, "url")
 
-                channel_node = NewsWebsite.objects.create(label=models.NEWS_WEBSITE_LABEL, link=request.GET["link"].split("?ajax=ok")[0],
-                                                          title=title, description=description,
-                                                          image_width=image_width, image_height=image_height,
-                                                          image_link=image_link, image_url=image_url,
-                                                          language=language, source_type="rss")
-                channel_node.save()
+                    channel_node = NewsWebsite.objects.create(label=models.NEWS_WEBSITE_LABEL, link=request.GET["link"].split("?ajax=ok")[0],
+                                                              title=title, description=description,
+                                                              image_width=image_width, image_height=image_height,
+                                                              image_link=image_link, image_url=image_url,
+                                                              language=language, source_type="rss")
+                    channel_node.save()
 
-            else:
-                #TODO: Try to solve "?ajax=ok" problem another way.
-                channel_node = NewsWebsite.objects.filter(link__exact=request.GET["link"])[0].split("?ajax=ok")[0]
+                else:
+                    #TODO: Try to solve "?ajax=ok" problem another way.
+                    channel_node = NewsWebsite.objects.filter(link__exact=request.GET["link"])[0].split("?ajax=ok")[0]
 
-            # Add subscription
-            user = NeoUser.objects.filter(username__exact=request.user.username)[0]
-            user.subscribes_to.add(channel_node)
-            user.save()
+                # Add subscription
+                user = NeoUser.objects.filter(username__exact=request.user.username)[0]
+                user.subscribes_to.add(channel_node)
+                user.save()
 
-            # Another way
-            #graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
-            #subscribe_relation = py2neo.rel(user, models.SUBSCRIBES_TO_RELATION, channel_node)
-            #graph_db.create(subscribe_relation)
+                # Another way
+                #graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
+                #subscribe_relation = py2neo.rel(user, models.SUBSCRIBES_TO_RELATION, channel_node)
+                #graph_db.create(subscribe_relation)
 
-            return manage(request)
+                return manage(request)
+        except Exception, e:
+            print "Exception in add_channel ",e
+            #TODO: dodac jakies generyczne zachowanie, w kazdej funkcji!! Nie tylko tutaj
+            return render(request, 'rss/message.html', {'message': 'Failed add_channel..'})
+
         else:
             return render(request, 'rss/message.html', {'message': 'Channel already exists in users subscriptions'})
     else:
