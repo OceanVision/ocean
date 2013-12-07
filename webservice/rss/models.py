@@ -3,14 +3,10 @@ from django.db import models
 from django.contrib.auth.models import User
 from neo4django.db import models as neo4j_models
 from py2neo import node
+import sys
+from graph_defines import *
 
-HAS_INSTANCE_RELATION = "<<INSTANCE>>"
 
-SUBSCRIBES_TO_RELATION = "__subscribes_to__"
-
-NEWS_WEBSITE_LABEL = "__news_website__"
-
-NEWS_WEBSITE_TYPE_MODEL_NAME = "NewsWebsite"
 
 def get_image_path(instance, filename):
     return os.path.join('photos', str(instance.id), filename)
@@ -31,8 +27,6 @@ class News(neo4j_models.NodeModel):
         """ Reload an object from the database """
         return self.__class__._default_manager.get(pk=self.pk)
 
-    label = neo4j_models.StringProperty(default="__news__")
-
     title = neo4j_models.StringProperty()
     slug = neo4j_models.StringProperty()  # slug-field is used to create nice-urls
     link = neo4j_models.URLProperty()
@@ -48,8 +42,7 @@ class NewsWebsite(neo4j_models.NodeModel):
         return self.__class__._default_manager.get(pk=self.pk)
 
 
-    label = neo4j_models.StringProperty(default="__news_website__")
-    produces = neo4j_models.Relationship('News', rel_type='__produces__', related_name="produced")
+    produces = neo4j_models.Relationship('News', rel_type=PRODUCES_RELATION, related_name="produced")
 
     link = neo4j_models.URLProperty()
     title = neo4j_models.StringProperty()
@@ -71,9 +64,10 @@ class NeoUser(neo4j_models.NodeModel):
         """ Reload an object from the database """
         return self.__class__._default_manager.get(pk=self.pk)
 
-    label = neo4j_models.StringProperty(default="__user__")
-    subscribes_to = neo4j_models.Relationship('NewsWebsite', rel_type='__subscribes_to__', related_name="subscribed")
-    loves_it = neo4j_models.Relationship("News", rel_type="__loves_it__", related_name="loved")
+    subscribes_to = neo4j_models.Relationship('NewsWebsite',
+                                              rel_type=SUBSCRIBES_TO_RELATION, related_name="subscribed")
+    loves_it = neo4j_models.Relationship("News",
+                                         rel_type=LOVES_IT_RELATION, related_name="loved")
 
     # There has to be related user in django.contrib.auth.User !! TODO: relation?
     username = neo4j_models.StringProperty()

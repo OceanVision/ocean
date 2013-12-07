@@ -7,8 +7,16 @@ DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 import os
+import sys
 
+
+
+
+print "Appending system paths.."
+sys.path.append(os.path.abspath("../"))
+sys.path.append(os.path.abspath("../graph_workers"))
 PROJECT_PATH = os.path.realpath(os.path.dirname(__file__)) + '/../'
+
 
 ADMINS = (
 # ('Your Name', 'your_email@example.com'),

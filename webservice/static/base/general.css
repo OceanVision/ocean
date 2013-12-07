@@ -428,3 +428,13 @@ footer a {
     color: #fff;
     border-radius: 3px;
 }
+
+
+/* =========== L I S T    D I S P L A Y =============== */
+
+#rssItems .love_it_button {
+    float:right;
+    position: relative;
+    right:-10px;
+
+}

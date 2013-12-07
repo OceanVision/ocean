@@ -167,7 +167,7 @@ class NewsFetcher(GraphWorker):
         for id, news in enumerate(list_of_news):
             d_news = pubdate_to_datetime(news["pubdate"])
             if d_news > last_updated:
-                news["label"] = NEWS_LABEL  # add metadata
+
                 nodes_to_add.append(py2neo.node(**news))  # assume is dictionary
                 if d_news > newest:
                     newest = d_news

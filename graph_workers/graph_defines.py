@@ -9,15 +9,11 @@ NEWS_WEBSITE_RSS_TYPE = "source_type"
 
 
 
-USER_LABEL = "__user__"
-NEWS_WEBSITE_LABEL = "__news_website__"
-NEWS_LABEL = "__news__"
-
 HAS_TYPE_RELATION = "<<TYPE>>"
 HAS_INSTANCE_RELATION = "<<INSTANCE>>"
 SUBSCRIBES_TO_RELATION = "__subscribes_to__"
-PRODUDES_RELATION = "__produces__"
-
+PRODUCES_RELATION = "__produces__"
+LOVES_IT_RELATION = "__loved__"
 
 #root = graph_db.node(0)
 
