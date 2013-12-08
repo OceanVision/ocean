@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.models import User
-from models import NeoUser, NewsWebsite
+from models import NeoUser, NewsWebsite, News
 from django.http import HttpResponse
 from rss import models
 from py2neo import neo4j
@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic.detail import DetailView
 from django.template import loader
 from ocean import utils
+from graph_defines import *
 import urllib2
 import xml.dom.minidom
 import py2neo
@@ -28,6 +29,75 @@ def get_category_array(request):
         return []
 
 
+
+@utils.error_writing
+@utils.timed
+def get_loved_it_list(request):
+    if 'pk' not in request.GET:
+        raise Exception("Not passed primary key to loved_it view")
+    news = News.objects.filter(pk=int(request.GET['pk']))[0] #TODO: add some kind of caching here
+    return HttpResponse(json.dumps([user.username for user in news.loved.all()]))
+
+@utils.error_writing
+@utils.timed
+def loved_it(request):
+    #TODO: how to handle errors in views like this?
+    if 'pk' not in request.GET:
+        raise Exception("Not passed primary key to loved_it view")
+    news = News.objects.filter(pk=int(request.GET['pk']))[0] #TODO: add some kind of caching here
+    user = NeoUser.objects.filter(username__exact=request.user.username)[0] #TODO: add some kind of caching here
+    user.loves_it.add(news)
+    news.loved_counter += 1
+
+    #TODO: Issue from github
+    user.save()
+    news.save()
+
+    return HttpResponse(json.dumps({}))
+
+@utils.error_writing
+@utils.timed
+def unloved_it(request):
+
+    graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/") # That's fine, connection pool
+
+    #TODO: how to handle errors in views like this?
+    if 'pk' not in request.GET:
+        raise Exception("Not passed primary key to loved_it view")
+    news = News.objects.filter(pk=int(request.GET['pk']))[0] #TODO: add some kind of caching here
+    user = NeoUser.objects.filter(username__exact=request.user.username)[0] #TODO: add some kind of caching here
+
+
+    print news.loved_counter
+
+    delete_cypher_params = {"user_pk":user.pk, "news_pk": news.pk, "rel_name": LOVES_IT_RELATION}
+    print delete_cypher_params
+    print user.loves_it.all()
+
+    delete_cypher = \
+        """
+        START n=node( { user_pk } ) , c=node( { news_pk } )
+        MATCH n-[rel:__loves_it__]->c
+        DELETE rel
+        RETURN count(rel);
+        """
+
+    my_batch = neo4j.WriteBatch(graph_db)
+    my_batch.append_cypher(delete_cypher, delete_cypher_params)
+    result = my_batch.submit()
+
+    print "Removed ",result[0], "relations"
+
+    # We can save here as unloving is not often called
+    news.loved_counter -= result[0]
+    news.save()
+
+    #Unfortunately Neo4Django relationship removal sucks
+    #user.loves_it.remove(news)
+    #Not saving on purpose here! it can be lazy because likes are not critical
+    return HttpResponse(json.dumps({}))
+
+
 import sys
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 @utils.timed
@@ -40,14 +110,25 @@ def get_rss_content(request):
             rss_items_array = []  # building news to be rendered (isn't very efficient..)
             print request.user.username
             user = NeoUser.objects.filter(username__exact=request.user.username)[0]
+            user.refresh()
+            loved = [news.link for news in user.loves_it.all()]
+            print loved
+
+
 
             colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
             # Get news for authenticated users.
+
+
+            #TODO: Skrajnie niewydajne..
             for rss_channel in user.subscribes_to.all():
                 for news in rss_channel.produces.all():
-                    rss_items_array += [{'pk' : news.pk, 'title': news.title, 'description': news.description,
-                                         'link': news.link, 'pubDate': news.pubDate,
-                                         'category': 2, 'color': colors[random.randint(0, 4)]}]
+                    news_dict = news.__dict__["_prop_values"]
+                    news_dict['pk'] = news.pk
+                    news_dict['loved'] = int(news.link in loved)
+                    news_dict['color'] = colors[random.randint(0, 4)]
+                    rss_items_array.append(news_dict)
+                    print "Processed ",news.link
 
             category_array = get_category_array(request)
 
@@ -246,6 +327,7 @@ def delete_channel(request):
         if list[0] is not None:
             graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
             my_batch = neo4j.WriteBatch(graph_db)
+            #TODO: it is like the worst query we can have here : look at every single relation user->newswebsite..
             delete_cypher = "START n=node(*) " + \
                             "MATCH n-[rel:__subscribes_to__]-c " + \
                             "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \

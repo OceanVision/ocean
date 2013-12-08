@@ -26,8 +26,8 @@ def render(request, path, context={}):
 def view_error_writing(func):
     """ This decorator will return response to message.html with error if catched error """
     def f(request, *args, **dict_args):
+        f.__name__ = func.__name__
         try:
-            print "Calling ",func.__name__
             return func(request, *args, **dict_args)
         except Exception, e:
             print "Failed"
@@ -37,12 +37,25 @@ def view_error_writing(func):
 
     return f
 
+def error_writing(func):
+    """ This decorator will return response to message.html with error if catched error """
+    def f(request, *args, **dict_args):
+        try:
+            return func(request, *args, **dict_args)
+        except Exception, e:
+            print 'Failed {0} with {1}..'.format(
+                func.__name__, e)
+
+
+    return f
+
 import time
 def timed(func):
     """ Decorator for easy time measurement """
-    def timed(*args, **dict_args):
+    def timed(request, *args, **dict_args):
+        timed.__name__ = func.__name__
         tstart = time.time()
-        result = func(*args, **dict_args)
+        result = func(request, *args, **dict_args)
         tend = time.time()
         print "{0} ({1}, {2}) took {3:2.4f} s to execute".format(func.__name__, len(args), len(dict_args), tend - tstart)
         return result

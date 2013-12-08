@@ -28,8 +28,10 @@ class News(neo4j_models.NodeModel):
         return self.__class__._default_manager.get(pk=self.pk)
 
     title = neo4j_models.StringProperty()
-    slug = neo4j_models.StringProperty()  # slug-field is used to create nice-urls
+
     link = neo4j_models.URLProperty()
+    #First analytic field!
+    loved_counter = neo4j_models.IntegerProperty(default=0)
     description = neo4j_models.StringProperty()
     guid = neo4j_models.URLProperty()
     pubDate = neo4j_models.DateTimeProperty()

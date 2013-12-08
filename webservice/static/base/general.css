@@ -432,7 +432,7 @@ footer a {
 
 /* =========== L I S T    D I S P L A Y =============== */
 
-#rssItems .love_it_button {
+#rssItems .love_it_button img {
     float:right;
     position: relative;
     right:-10px;

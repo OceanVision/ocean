@@ -9,11 +9,12 @@ NEWS_WEBSITE_RSS_TYPE = "source_type"
 
 
 
+
 HAS_TYPE_RELATION = "<<TYPE>>"
 HAS_INSTANCE_RELATION = "<<INSTANCE>>"
 SUBSCRIBES_TO_RELATION = "__subscribes_to__"
 PRODUCES_RELATION = "__produces__"
-LOVES_IT_RELATION = "__loved__"
+LOVES_IT_RELATION = "__loves_it__"
 
 #root = graph_db.node(0)
 

@@ -16,7 +16,14 @@ function Ajax() {
     };
 
     Ajax.prototype.request = function(path, attType, attData, onSuccess, onError) {
-        onError = typeof onError !== 'undefined' ? onError : null;
+        onError = typeof onError !== 'undefined' ? onError :
+                function(xhr, status, error) {
+                    console.log(JSON.stringify(error));
+                    console.log(JSON.stringify(status));
+                    console.log(JSON.stringify(xhr));
+                }
+        ;
+
         if (attType === "POST") {
             var csrftoken = utils.getCookie('csrftoken');
             $.ajaxSetup({

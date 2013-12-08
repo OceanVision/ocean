@@ -185,6 +185,7 @@ $(document).on("ready", function() {
                 'page_size' : pageSize.toString()
             };
             ajax.request("rss/get_news", "GET", data, function(response) {
+                console.log(JSON.stringify(response))
                 response = JSON.parse(response)["rss_items"]
                 if (response != null) {
                     for (var i = 0; i < response.length; i++) {
