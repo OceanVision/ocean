@@ -22,7 +22,7 @@ class UserProfile(models.Model):
 
 
 class News(neo4j_models.NodeModel):
-
+    #TODO: dodawac to dekoratorem, lub wlasny obiekt i dziedziczyc po nim
     def refresh(self):
         """ Reload an object from the database """
         return self.__class__._default_manager.get(pk=self.pk)

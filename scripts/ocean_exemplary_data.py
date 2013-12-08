@@ -35,9 +35,6 @@ if __name__ == "__main__":
         raise Exception("Not erased graph properly")
         exit(1)
 
-    USER_LABEL = "__user__"
-    NEWS_WEBSITE_LABEL = "__news_website__"
-    NEWS_LABEL = "__news__"
 
     HAS_TYPE_RELATION = "<<TYPE>>"
     HAS_INSTANCE_RELATION = "<<INSTANCE>>"
@@ -70,10 +67,10 @@ if __name__ == "__main__":
     ### Add users ###
     # Create nodes
     users = [
-        node(label=USER_LABEL, username="kudkudak"),
-        node(label=USER_LABEL, username="konrad"),
-        node(label=USER_LABEL, username="brunokam"),
-        node(label=USER_LABEL, username="szymon")
+        node(username="kudkudak"),
+        node(username="konrad"),
+        node(username="brunokam"),
+        node(username="szymon")
     ]
     users = graph_db.create(*users)
     # Create instance relations
@@ -91,13 +88,14 @@ if __name__ == "__main__":
     ### Add websites ###
     # Create nodes
     websites = [
-        node(label=NEWS_WEBSITE_LABEL, link="http://www.gry-online.pl/rss/news.xml",
+        node(link="http://www.gry-online.pl/rss/news.xml",
              title="GRY-OnLine Wiadomosci", description="Najnowsze Wiadomosci",
              image_width="144", image_height="18", image_link="http://www.gry-online.pl/S012.asp",
              image_url="http://www.gry-online.pl/rss/rss_logo.gif", language="pl",
              last_updated=int(time.time() - 100000), source_type="rss"
         ),
-        node(label=NEWS_WEBSITE_LABEL, link="http://wiadomosci.wp.pl/kat,1329,ver,rss,rss.xml",
+
+        node(link="http://wiadomosci.wp.pl/kat,1329,ver,rss,rss.xml",
              title="Wiadomosci WP - Wiadomosci - Wirtualna Polska",
              description="Wiadomosci.wp.pl to serwis, dzieki ktoremu mozna zapoznac sie z biezaca sytuacja w kraju i na"
                          " swiecie.",

@@ -507,7 +507,6 @@ class WebCrawler(GraphWorker):
                 description = properties["description"].encode("utf8"),
                 link = feed_url,
                 source_type = "rss".encode("utf8"),
-                label = NEWS_WEBSITE_LABEL,
                 language = properties["language"].encode("utf8"),
                 #web_crawler_metadata = metadata
             )

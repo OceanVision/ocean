@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.shortcuts import render as django_render
 import settings
 import re
-
+from django.http import HttpResponse
 
 def get_raw_template(path, context={}):
     lines = open(settings.PROJECT_PATH + 'templates/' + path, 'r').readlines()
@@ -18,3 +18,33 @@ def render(request, path, context={}):
         return HttpResponse(get_raw_template(path, context))
     else:
         return django_render(request, path, context)
+
+
+
+#TODO: add generic error handling and timing utility
+
+def view_error_writing(func):
+    """ This decorator will return response to message.html with error if catched error """
+    def f(request, *args, **dict_args):
+        try:
+            print "Calling ",func.__name__
+            return func(request, *args, **dict_args)
+        except Exception, e:
+            print "Failed"
+            return render(request, 'rss/message.html', {'message': 'Failed {0} with {1}..'.format(
+                func.__name__, e
+            )})
+
+    return f
+
+import time
+def timed(func):
+    """ Decorator for easy time measurement """
+    def timed(*args, **dict_args):
+        tstart = time.time()
+        result = func(*args, **dict_args)
+        tend = time.time()
+        print "{0} ({1}, {2}) took {3:2.4f} s to execute".format(func.__name__, len(args), len(dict_args), tend - tstart)
+        return result
+
+    return timed

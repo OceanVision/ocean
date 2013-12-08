@@ -199,7 +199,7 @@ class NewsFetcher(GraphWorker):
 
         instance_relations = [py2neo.rel(news_type_node, HAS_INSTANCE_RELATION, content)
                               for content in nodes_added]
-        produces_relations = [py2neo.rel(news_website, PRODUDES_RELATION, content)
+        produces_relations = [py2neo.rel(news_website, PRODUCES_RELATION, content)
                               for content in nodes_added]
 
         self.graph_db.create(*instance_relations)
