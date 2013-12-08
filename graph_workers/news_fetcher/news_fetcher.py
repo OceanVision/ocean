@@ -32,7 +32,7 @@ from py2neo import node, rel
 import py2neo
 from graph_defines import * # import defines for fields
 from utils import *
-
+import os
 import urllib2
 import xml.dom.minidom
 from datetime import timedelta, datetime
@@ -54,7 +54,7 @@ formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(levelname)s - %(me
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
-ch_file = logging.FileHandler("news_fetcher.log")
+ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),"../../logs/news_fetcher.log"), )
 ch_file.setLevel(MY_IMPORTANT_LEVEL)
 logger.addHandler(ch_file)
 

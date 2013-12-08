@@ -2,8 +2,11 @@
 Will be rewritten to database driven communication
 """
 import sys,os
+
 lib_path = os.path.abspath('./news_fetcher')
 sys.path.append(lib_path)
+print __file__
+
 from utils import logger
 from news_fetcher import NewsFetcher
 import threading
