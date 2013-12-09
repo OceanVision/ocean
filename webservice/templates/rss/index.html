@@ -44,22 +44,21 @@
 
 <script type="text/javascript">
 
-    alert("hello");
     //ListDisplay variables
     descriptor = {{ descriptor|safe }}
-    graph_view = {{ graph_view|safe }}
     options = {{ options|safe }} //array of arrays. For now only 2-optional are possible
     page_size = 20
 
 
 
-    state = {"descriptor": descriptor, "options": options, "page": 0, "page_size": 20}
-
+    state = {"descriptor": descriptor, "options": options, "page": 0, "page_size": 20, "graph_view": {{ graph_view|safe }}}
 
     //Sends current state to main view (TODO: replace this with calling OceanMaster..)
     var update_display = function(){
-
-        ajax.request("rss/get_news", "GET", state, function(response) {
+        data={
+        'state':JSON.stringify(state)
+        };
+        ajax.request("rss/get_news", "GET", data, function(response) {
             console.log(JSON.stringify(response))
             response = JSON.parse(response)["rss_items"]
             if (response != null) {

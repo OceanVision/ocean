@@ -20,7 +20,7 @@ import json
 import random
 
 
-def get_category_array(request):
+def get_category_array(graph_display):
     #TODO: make color dependent of various features
     category_array = [{'name': 'Barack Obama', 'color': 'ffbd0c'},
                       {'name': 'tennis', 'color': '00c6c4'},
@@ -103,7 +103,7 @@ import sys
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 @utils.timed
 def graph_view_all_subscribed(graph_display):
-    """ @param graph_display now represented as dictionary
+    """ @param graph_display now represented as dictionary. We have to design it more carefully
     """
     print "call to graph_view_all_subscribed"
     #TODO: dziala dosyc niestabilnie i w ogole nie ma lapania wyjatkow...
@@ -159,15 +159,21 @@ def graph_view_all_subscribed(graph_display):
 
 
 
-def get_graph(request, dict_update):
-    """ @param dict_update this dict will update request.GET
+def get_graph(request, dict_update = {}):
+    """ @param dict_update this dict will update request.GET and form graph_display
     """
-    #TODO: move authentication from here!
+
+    #TODO: move authentication from here! (to middleware , see stackoverflow)
     if request.user.is_authenticated():
-        temp_dict = dict(request.GET)
+        temp_dict = dict()
         temp_dict["username"] = request.user.username # each graph_display should have username..
         temp_dict.update(dict_update)
 
+        if "state" in request.GET:
+            temp_dict.update(json.loads(request.GET["state"]))
+        else:
+            print "WARNING: no state in request.GET"
+            temp_dict.update(dict(request.GET))
 
         # @note: this function will be moved to OceanMaster
         if "graph_view" in temp_dict:
@@ -176,9 +182,9 @@ def get_graph(request, dict_update):
             elif temp_dict["graph_view"] == "TrendingNews":
                 return {'signed_in': True,
                         'rss_items': [],
-                        'categories': get_category_array()}
+                        'categories': get_category_array(temp_dict)}
             else:
-                raise Exception("Not recognized descriptor")
+                raise Exception("Not recognized graph_view")
         else:
             raise Exception("No graph_view in request")
 
@@ -188,20 +194,23 @@ def get_graph(request, dict_update):
 
 @utils.view_error_writing
 def trending_news(request):
-    data = get_graph(request, {"graph_view": "TredningNews"})
+    data = get_graph(request, {"graph_view": "TrendingNews"})
     if len(data) > 0:
-        data["options"] = json.dumps([{"list": ["ala", "kota"], "state":0, "action":"test_action"}
-            , {"list":["murzyn", "murzyni"], "state":0, "action":"test_action"}])
+        data["options"] = json.dumps([{"list": ["Top week", "Top day"], "state":0, "action":"update_display"}
+            ,])
         data["descriptor"] = json.dumps("ListDisplay")
+        data["graph_view"] = json.dumps("TrendingNews")
         return utils.render(request, 'rss/index.html', data)
     else:
         return HttpResponse(content="fail", content_type="text/plain")
 
 @utils.view_error_writing
 def index(request):
+
     data = get_graph(request, {"graph_view": "Subscribed"})
     if len(data) > 0:
         data["descriptor"] = json.dumps("ListDisplay")
+        data["graph_view"] = json.dumps("Subscribed")
         return utils.render(request, 'rss/index.html', data)
     else:
         return HttpResponse(content="fail", content_type="text/plain")
@@ -268,7 +277,6 @@ def manage(request, message=''):
 
 @utils.view_error_writing
 def get_news(request):
-    print "Request from list_display=",request.GET["descriptor"]
     data = get_graph(request)
     if len(data) > 0:
         return HttpResponse(json.dumps(data))
