@@ -34,7 +34,7 @@ class News(neo4j_models.NodeModel):
     loved_counter = neo4j_models.IntegerProperty(default=0)
     description = neo4j_models.StringProperty()
     guid = neo4j_models.URLProperty()
-    pubDate = neo4j_models.DateTimeProperty()
+    pubdate = neo4j_models.StringProperty()
 
 
 class NewsWebsite(neo4j_models.NodeModel):

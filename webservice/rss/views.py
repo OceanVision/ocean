@@ -1,3 +1,6 @@
+from ocean_master import OC
+
+
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from models import NeoUser, NewsWebsite, News
@@ -17,16 +20,14 @@ import json
 import random
 
 
-def get_category_array(request):
-    if request.user.is_authenticated():
-        #TODO: make color dependent of various features
-        category_array = [{'name': 'Barack Obama', 'color': 'ffbd0c'},
-                          {'name': 'tennis', 'color': '00c6c4'},
-                          {'name': 'iPhone', 'color': '74899c'},
-                          {'name': 'cooking', 'color': '976833'}]
-        return category_array
-    else:
-        return []
+def get_category_array(graph_display):
+    #TODO: make color dependent of various features
+    category_array = [{'name': 'Barack Obama', 'color': 'ffbd0c'},
+                      {'name': 'tennis', 'color': '00c6c4'},
+                      {'name': 'iPhone', 'color': '74899c'},
+                      {'name': 'cooking', 'color': '976833'}]
+    return category_array
+
 
 
 
@@ -46,6 +47,11 @@ def loved_it(request):
         raise Exception("Not passed primary key to loved_it view")
     news = News.objects.filter(pk=int(request.GET['pk']))[0] #TODO: add some kind of caching here
     user = NeoUser.objects.filter(username__exact=request.user.username)[0] #TODO: add some kind of caching here
+
+    loved = [u.username for u in news.loved.all()]
+    if user.username in loved: return #returns error
+
+
     user.loves_it.add(news)
     news.loved_counter += 1
 
@@ -101,71 +107,133 @@ def unloved_it(request):
 import sys
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 @utils.timed
-def get_rss_content(request):
-    if request.user.is_authenticated():
-        print "call to get_rss_content"
-        #TODO: dziala dosyc niestabilnie i w ogole nie ma lapania wyjatkow...
-        try:
+def graph_view_all_subscribed(graph_display):
+    """ @param graph_display now represented as dictionary. We have to design it more carefully
+    """
+    print "call to graph_view_all_subscribed"
+    #TODO: dziala dosyc niestabilnie i w ogole nie ma lapania wyjatkow...
+    try:
 
-            rss_items_array = []  # building news to be rendered (isn't very efficient..)
-            print request.user.username
-            user = NeoUser.objects.filter(username__exact=request.user.username)[0]
-            user.refresh()
-            loved = [news.link for news in user.loves_it.all()]
-            print loved
+        rss_items_array = []  # building news to be rendered (isn't very efficient..)
+        user = NeoUser.objects.filter(username__exact=graph_display["username"])[0]
+        user.refresh()
+        loved = [news.link for news in user.loves_it.all()]
+        print loved
 
-
-
-            colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
-            # Get news for authenticated users.
+        colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
+        # Get news for authenticated users.
 
 
-            #TODO: Skrajnie niewydajne..
-            for rss_channel in user.subscribes_to.all():
-                for news in rss_channel.produces.all():
-                    news_dict = news.__dict__["_prop_values"]
-                    news_dict['pk'] = news.pk
-                    news_dict['loved'] = int(news.link in loved)
-                    news_dict['color'] = colors[random.randint(0, 4)]
-                    rss_items_array.append(news_dict)
-                    print "Processed ",news.link
+        #TODO: Skrajnie niewydajne..
+        for rss_channel in user.subscribes_to.all():
+            for news in rss_channel.produces.all():
+                news_dict = news.__dict__["_prop_values"]
+                news_dict['pk'] = news.pk
+                news_dict['loved'] = int(news.link in loved)
+                news_dict['color'] = colors[random.randint(0, 4)]
+                rss_items_array.append(news_dict)
 
-            category_array = get_category_array(request)
+        category_array = get_category_array(graph_display)
 
 
-            page = 0
-            page_size = 20
-            if 'page' in request.GET:
-                page = int(request.GET['page'])
-                page_size = int(request.GET['page_size'])
+        page = 0
+        page_size = 20
+        if 'page' in graph_display:
+            page = int(graph_display['page'])
+            page_size = int(graph_display['page_size'])
 
-            a = page * page_size
-            if a < len(rss_items_array):
-                b = (page + 1) * page_size
-                if b <= len(rss_items_array):
-                    rss_items_array = rss_items_array[a:b]
-                else:
-                    rss_items_array = rss_items_array[a:]
+        a = page * page_size
+        if a < len(rss_items_array):
+            b = (page + 1) * page_size
+            if b <= len(rss_items_array):
+                rss_items_array = rss_items_array[a:b]
             else:
-                rss_items_array = None
+                rss_items_array = rss_items_array[a:]
+        else:
+            rss_items_array = None
 
-        except Exception, e:
-            print "Exception in get_rss_content : ",e
-            return {}
+    except Exception, e:
+        print "Exception in graph_view_all_subscribed : ",e
+        return {}
 
-        return {'signed_in': True,
-                'rss_items': rss_items_array,
-                'categories': category_array}
+    return {'signed_in': True,
+            'rss_items': rss_items_array,
+            'categories': category_array}
+
+
+
+
+#TODO: move to ocean_master
+def get_graph(request, dict_update = {}):
+    """ @param dict_update this dict will update request.GET and form graph_display
+    """
+
+    #TODO: move authentication from here! (to middleware , see stackoverflow)
+    if request.user.is_authenticated():
+        temp_dict = dict()
+        temp_dict["username"] = request.user.username # each graph_display should have username..
+        temp_dict.update(dict_update)
+
+        if "state" in request.GET:
+            temp_dict.update(json.loads(request.GET["state"]))
+        else:
+            print "WARNING: no state in request.GET"
+            temp_dict.update(dict(request.GET))
+
+        # @note: this function will be moved to OceanMaster
+        if "graph_view" in temp_dict:
+            if temp_dict["graph_view"] == "Subscribed":
+                return graph_view_all_subscribed(temp_dict)
+            elif temp_dict["graph_view"] == "TrendingNews":
+                # Construct appriopriate GraphView (c urrently not generic :( )
+                option_dict = {}
+                for opt in temp_dict["options"]:
+                    option_dict[opt["name"]] = opt["state"]
+                gv = OC.construct_graph_view((temp_dict["graph_view"], option_dict))
+
+                return {'signed_in': True,
+                        'rss_items': gv.get_graph(temp_dict),
+                        'categories': get_category_array(temp_dict)}
+            else:
+                raise Exception("Not recognized graph_view")
+        else:
+            raise Exception("No graph_view in request")
 
     else:
         return {}
 
+
+@utils.view_error_writing
+def trending_news(request):
+    # Graph View options (that will be pased to ocean_master)
+    options = [
+                {"name": "period",
+                "list": ["Top week", "Top day", "Top hour!"],
+                "state":0,
+                "action":"rewrite_display"}
+            ]
+    data = get_graph(request, {"graph_view": "TrendingNews", "options": options, "page":0, "page_size":20})
+    if len(data) > 0:
+        data["options"] = json.dumps(options)
+        data["descriptor"] = json.dumps("ListDisplay")
+        data["graph_view"] = json.dumps("TrendingNews")
+        data["title"] = "TRENDING NEWS"
+        data["likeable"] = 0
+
+        return utils.render(request, 'rss/index.html', data)
+    else:
+        return HttpResponse(content="fail", content_type="text/plain")
+
 @utils.view_error_writing
 def index(request):
-    data = get_rss_content(request)
+
+    data = get_graph(request, {"graph_view": "Subscribed"})
     if len(data) > 0:
-        data["options"] = json.dumps([ ["ala", "kota"], ["murzyn", "murzyni"]])
-        data["list_display_descriptor"] = json.dumps("SubscribedListDisplay")
+        data["descriptor"] = json.dumps("ListDisplay")
+        data["graph_view"] = json.dumps("Subscribed")
+        data["title"] = "SUBSCRIBED NEWS"
+        data["sortable"] = 1
+        data["likeable"] = 1
         return utils.render(request, 'rss/index.html', data)
     else:
         return HttpResponse(content="fail", content_type="text/plain")
@@ -222,7 +290,7 @@ def get_rss_channels(request):
 #TODO: chyba nie o to chodzi w tej funkcji manage, ona powinna obslugiwac bledy czy cos?
 @utils.view_error_writing
 def manage(request, message=''):
-    """ @arg message - additional web message f.e. error."""
+    """ @param message - additional web message f.e. error."""
     data = get_rss_channels(request)
     data['message'] = message
     if len(data) > 0:
@@ -232,18 +300,14 @@ def manage(request, message=''):
 
 @utils.view_error_writing
 def get_news(request):
-    data = get_rss_content(request)
+    data = get_graph(request)
     if len(data) > 0:
         return HttpResponse(json.dumps(data))
     else:
         return HttpResponse(content="fail", content_type="text/plain")
 
 
-#TODO: Refactor NewsWebsite ----> Content Source
-#TODO: Refactor News --> Content
 
-# TODO: refactor (it is not news channel..)
-# TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 @utils.view_error_writing
 def add_channel(request):
     if request.user.is_authenticated():
@@ -321,8 +385,7 @@ def add_channel(request):
         # Redirect anonymous users to login page.
         return render(request, 'rss/message.html', {'message': 'You are not logged in'})
 
-# TODO: refactor (it is not news channel..)
-# TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
+
 @utils.view_error_writing
 def delete_channel(request):
     if request.user.is_authenticated():

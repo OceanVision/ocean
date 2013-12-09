@@ -10,8 +10,10 @@
 <div id="rssItems" class="container" data-center_h="true" data-transit="true">
 
     <div id="header">
-    <p class="header">TOP STORIES</p>
+    <p class="header">{{ title }}</p>
+    {% ifequal sortable 1 %}
     <a id="sort" href="javascript:toggleItemsOrder()">unsorted</a>
+    {% endifequal %}
      </div>
     <input id="search" type="text" value="search in titles" data-value="search in titles">
     {% for item in rss_items %}
@@ -22,9 +24,15 @@
             <span style="float:right">+</span>
         </p>
         <p class="description">
-            {{ item.description|safe }}
-            {{ item.loved }}
-            <a class ="love_it_button" href="lol" news_pk="{{ item.pk }}" >
+            {{ item.description|safe|removetags:"a div" }}
+
+            <br>
+
+            <span style="font-size:small;">{{ item.pubdate }}</span>
+
+
+            {% ifequal likeable 1 %}
+            <a class ="love_it_button" href="#" news_pk="{{ item.pk }}" >
                 {% ifequal item.loved 0 %}
                 <img class="love_it_image" news_pk="{{ item.pk }}" src="{% static 'base/img/heart.png' %}" title="You love it man" >
                 {% endifequal %}
@@ -32,6 +40,7 @@
                 <img class="love_it_image" news_pk="{{ item.pk }}" src="{% static 'base/img/grayheart.png' %}" title="You definitely don't" >
                 {% endifnotequal %}
             </a>
+            {% endifequal %}
         </p>
 
     </div>
@@ -46,38 +55,18 @@
 
 
     //ListDisplay variables
-    descriptor = {{ list_display_descriptor|safe }}
+    descriptor = {{ descriptor|safe }}
     options = {{ options|safe }} //array of arrays. For now only 2-optional are possible
-    current_options = []
-    list_display_state = [descriptor, options, current_options]
-
-
-
-    
-    var option_click = function(e){
-        var id = parseInt($(this).attr("id"))
-        current_options[id] = (current_options[id]+1)%options[id].length;
-        $(this).text(options[id][current_options[id]]);
-        e.preventDefault();
-    }
-    for (var i=0;i < options.length; i++){
-        //assume each has length 2
-        var option_div = $(
-        "<a id='"+i+"' class='toggled' href='#'>"+options[i][0]+"</a>"
-        );
-        option_div.appendTo("#rssItems #header").click(option_click);
-        current_options.push(0);
-    }
+    page_size = 20
+    state = {"descriptor": descriptor, "options": options, "page": 0, "page_size": 20, "graph_view": {{ graph_view|safe }}}
 
 
 
 
+  function createNews(news, i) {
+        var page = state["page"]
+        var pageSize = state["page_size"]
 
-    $(document).on("ready", function() {
-    page = 0
-    pageSize = 20
-
-    function createNews(news, i) {
         var item = $("<div></div>")
             .appendTo("#rssItems")
             .attr("class", "item")
@@ -108,85 +97,106 @@
         $(window).scroll(function() {
             buffer = 40 // # of pixels from bottom of scroll to fire your function. Minimum 40 (should work for 0
             if ($("#rssItems").prop('scrollHeight') - $(window).scrollTop() <= $(window).height() + buffer) {
-                page += 1
-                var data = {
-                    'page' : page.toString(),
-                    'page_size' : pageSize.toString()
-                };
-                ajax.request("rss/get_news", "GET", data, function(response) {
-                    console.log(JSON.stringify(response))
-                    response = JSON.parse(response)["rss_items"]
-                    if (response != null) {
-                        for (var i = 0; i < response.length; i++) {
-                            news = response[i]
-                            createNews(news, i)
-                        }
-                    }
-                }, function(xhr, status, error) {
-                    console.log(JSON.stringify(error));
-                    console.log(JSON.stringify(status));
-                    console.log(JSON.stringify(xhr));
-                });
+                state["page"] += 1;
+                update_display();
             }
         });
-    });
 
 
-    //Note: just prototyped..
-    $(".love_it_image").qtip(
-        {
-        show: {
-            delay: 1000
-        },
-        content: function(){
-            var data = {
-                'pk' : $(this).attr("news_pk")
-            };
-
-            list = []
-
-            ajax.request("rss/get_loved_it_list", "GET", data, function(response) {
-                list=JSON.parse(response);
-                console.log(list);
-             });
-
-            if(list.length==0) return "Love it button";
-             return list;
-        }}
-    );
-    $("#rssItems .love_it_button").click(function(e){
-            var data = {
-                'pk' : $(this).attr("news_pk")
-            };
-            news_item = $("#rssItems .item[news_pk="+data.pk+"]")
-            love_it_button = news_item.find(".love_it_button")
-
-            heart = "{% static 'base/img/heart.png' %}"
-            grayheart = "{% static 'base/img/grayheart.png' %}"
-
-            current_state = love_it_button.children("img").attr("src")
-            console.log(current_state)
-
-            if(current_state == heart){
-                ajax.request("rss/loved_it", "GET", data, function(response) {
-                    value = parseInt(news_item.find(".loved_counter").text())
-                    news_item.find(".loved_counter").text(value + 1)
-                    news_item.find(".love_it_image").attr("src", grayheart);
-                });
-
-            }else{
-
-                ajax.request("rss/unloved_it", "GET", data, function(response) {
-                    value = parseInt(news_item.find(".loved_counter").text())
-                    news_item.find(".loved_counter").text(value - 1)
-                    news_item.find(".love_it_image").attr("src", heart);
-                });
 
 
+
+
+
+
+
+    //Sends current state to main view (TODO: replace this with calling OceanMaster..)
+    var update_display = function(){
+        data={
+        'state':JSON.stringify(state)
+        };
+        ajax.request("rss/get_news", "GET", data, function(response) {
+            console.log(JSON.stringify(response))
+
+
+
+            response = JSON.parse(response)["rss_items"]
+            if (response != null) {
+                for (var i = 0; i < response.length; i++) {
+                    news = response[i]
+                    createNews(news, i)
+                }
             }
 
-            e.preventDefault();
-    });
+            //We need to update all the handlers, because divs are new
+            visualization.updateEventHandlers();
+        }, function(xhr, status, error) {
+            console.log(JSON.stringify(error));
+            console.log(JSON.stringify(status));
+            console.log(JSON.stringify(xhr));
+        });
+
+
+    }
+    var rewrite_display = function(){
+        data={
+        'state':JSON.stringify(state)
+        };
+        ajax.request("rss/get_news", "GET", data, function(response) {
+
+            state['page'] = 0; //reset state! (TODO: rewrite to reset_state() fn?)
+
+            console.log(JSON.stringify(response))
+            response = JSON.parse(response)["rss_items"]
+
+            $("#rssItems .item").remove();
+
+            if (response != null) {
+                for (var i = 0; i < response.length; i++) {
+                    news = response[i]
+                    createNews(news, i)
+                }
+            }
+
+
+            //We need to update all the handlers, because divs are new
+            visualization.updateEventHandlers()
+        }, function(xhr, status, error) {
+            console.log(JSON.stringify(error));
+            console.log(JSON.stringify(status));
+            console.log(JSON.stringify(xhr));
+        });
+
+
+    }
+
+    var test_action = function(){
+    }
+
+
+    var option_click = function(e){
+        var id = parseInt($(this).attr("id"))
+        options[id]["state"] = (options[id]["state"]+1)%options[id]["list"].length;
+        $(this).text(options[id]["list"][options[id]["state"]]);
+        window[options[id]["action"]]() //hack .. not sure if the best way
+        //$(this).css({"background-color":"#"+utils.getRandomColor()});
+        e.preventDefault();
+    }
+    for (var i=0;i < options.length; i++){
+        //assume each has length 2
+        var option_div = $(
+        "<a id='"+i+"' class='toggled' href='#'>"+options[i]["list"][0]+"</a>"
+        );
+
+        option_div.appendTo("#rssItems #header").click(option_click);
+        options[i]["state"]=0;
+    }
+
+
+
+
+
+
 
 
 
@@ -213,6 +223,72 @@
                 main.searchInTitles(pattern);
             }
         });
+
+
+
+
+
+
+
+    //TODO: Should go to vizaulization.updateEventHandlers, but fails : (
+
+            //Love button
+            $(".love_it_image").qtip(
+                {
+                show: {
+                    delay: 1000
+                },
+                content: function(){
+                    var data = {
+                        'pk' : $(this).attr("news_pk")
+                    };
+
+                    list = []
+
+                    ajax.request("rss/get_loved_it_list", "GET", data, function(response) {
+                        list=JSON.parse(response);
+                        console.log(list);
+                     });
+
+                    if(list.length==0) return "Love it button";
+                     return list.join("\n");
+                }}
+            );
+            $("#rssItems .love_it_button").click(function(e){
+                    var data = {
+                        'pk' : $(this).attr("news_pk")
+                    };
+                    news_item = $("#rssItems .item[news_pk="+data.pk+"]")
+                    love_it_button = news_item.find(".love_it_button")
+
+                    heart = "{% static 'base/img/heart.png' %}"
+                    grayheart = "{% static 'base/img/grayheart.png' %}"
+
+                    current_state = love_it_button.children("img").attr("src")
+                    console.log(current_state)
+
+                    if(current_state == heart){
+                        ajax.request("rss/loved_it", "GET", data, function(response) {
+                            value = parseInt(news_item.find(".loved_counter").text())
+                            news_item.find(".loved_counter").text(value + 1)
+                            news_item.find(".love_it_image").attr("src", grayheart);
+                        });
+
+                    }else{
+
+                        ajax.request("rss/unloved_it", "GET", data, function(response) {
+                            value = parseInt(news_item.find(".loved_counter").text())
+                            news_item.find(".loved_counter").text(value - 1)
+                            news_item.find(".love_it_image").attr("src", heart);
+                        });
+
+
+                    }
+
+                    e.preventDefault();
+             });
+
+
 
 </script>
 

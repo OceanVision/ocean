@@ -102,19 +102,19 @@ if __name__ == "__main__":
              image_width="70", image_height="28", image_link="http://wiadomosci.wp.pl",
              image_url="http://i.wp.pl/a/i/finanse/logozr/WP.gif", language="pl",
              last_updated=int(time.time() - 1000000), source_type="rss"
-        )
-#         node(label=NEWS_WEBSITE_LABEL, link="http://www.tvn24.pl/najwazniejsze.xml",
-#              title="TVN24.pl - Wiadomosci z kraju i ze swiata - najnowsze informacje w TVN24",
-#              description="Czytaj najnowsze informacje i ogladaj wideo w portalu informacyjnym TVN24! U nas zawsze "
-#                          "aktualne wiadomosci z kraju, ze swiata, relacje na zywo i wiele wiecej.", language="pl",
-#              last_updated=int(time.time() - 100000), source_type="rss")
+        ),
+        node(link="http://www.tvn24.pl/najwazniejsze.xml",
+              title="TVN24.pl - Wiadomosci z kraju i ze swiata - najnowsze informacje w TVN24",
+              description="Czytaj najnowsze informacje i ogladaj wideo w portalu informacyjnym TVN24! U nas zawsze "
+                          "aktualne wiadomosci z kraju, ze swiata, relacje na zywo i wiele wiecej.", language="pl",
+              last_updated=int(time.time() - 100000), source_type="rss")
      ]
     websites = graph_db.create(*websites)
     # Create instance relations
     graph_db.create(
-         rel(types[0], HAS_INSTANCE_RELATION, websites[0])
-#          rel(types[0], HAS_INSTANCE_RELATION, websites[1])
-#         rel(types[0], HAS_INSTANCE_RELATION, websites[2])
+         rel(types[0], HAS_INSTANCE_RELATION, websites[0]),
+         rel(types[0], HAS_INSTANCE_RELATION, websites[1]),
+         rel(types[0], HAS_INSTANCE_RELATION, websites[2])
     )
 
     #map(lambda w: w.add_labels(NEWS_CHANNELS_LABEL),channels) # Add labels
@@ -122,9 +122,10 @@ if __name__ == "__main__":
 
 
     # Adding news is working, and therefore we do not need to populate graph artificially with news
-#     graph_db.create(
-#         rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),
-#         rel(users[0], SUBSCRIBES_TO_RELATION, websites[1]),
+    graph_db.create(
+         rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),
+         rel(users[0], SUBSCRIBES_TO_RELATION, websites[1])
+    )
 #         rel(users[1], SUBSCRIBES_TO_RELATION, websites[1]),
 #         rel(users[2], SUBSCRIBES_TO_RELATION, websites[0]),
 #         rel(users[3], SUBSCRIBES_TO_RELATION, websites[0])

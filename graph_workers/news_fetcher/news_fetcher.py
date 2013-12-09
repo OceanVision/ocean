@@ -31,7 +31,7 @@ from py2neo import neo4j
 from py2neo import node, rel
 import py2neo
 from graph_defines import * # import defines for fields
-from utils import *
+from graph_utils import *
 import os
 import urllib2
 import xml.dom.minidom
@@ -166,6 +166,7 @@ class NewsFetcher(GraphWorker):
         newest, newest_id = database_timestamp_to_datetime(0), 0 # Find newest news in the set
         for id, news in enumerate(list_of_news):
             d_news = pubdate_to_datetime(news["pubdate"])
+
             if d_news > last_updated:
 
                 nodes_to_add.append(py2neo.node(**news))  # assume is dictionary
@@ -263,9 +264,12 @@ class NewsFetcher(GraphWorker):
             news_node["guid"] = unicode(try_get_node_value(item, "guid"))
             news_node["description"] = unicode(try_get_node_value(item, "description"))
             news_node["link"] = unicode(try_get_node_value(item, "link"))
-
+            news_node["loved_counter"] = 0
 
             d = pubdate_to_datetime(try_get_node_value(item, "pubDate"))
+
+            news_node[NEWS_PUBDATE_TIMESTAMP] = GMTdatetime_to_database_timestamp(d)
+
             if newer_than is None or d > newer_than: # Not sorted :(
                     news_node["pubdate"] = datetime_to_pubdate(d)
                     news_nodes.append(news_node)

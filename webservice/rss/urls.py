@@ -3,6 +3,7 @@ import views
 
 urlpatterns = patterns('',
     url(r'^$', views.index, name='index'),
+    url(r'^trending_news', views.trending_news, name="trending_news"),
     url(r'^manage$', views.manage, name='manage'),
     url(r'^add_channel$', views.add_channel, name='add_channel'),
     url(r'^delete_channel$', views.delete_channel, name='delete_channel'),

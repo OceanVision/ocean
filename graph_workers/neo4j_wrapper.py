@@ -57,7 +57,6 @@ def get_records_from_cypher(graph_db, cypher_query, params = None):
     my_batch = neo4j.ReadBatch(graph_db)
     my_batch.append_cypher(cypher_query, params)
     result = my_batch.submit()
-    print type(result[0][0])
     if type(result) is py2neo.neo4j.Node: return [result]
     if type(result[0]) is py2neo.neo4j.Node: return result
     if type(result[0]) is list: return result[0]
