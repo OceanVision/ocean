@@ -101,6 +101,8 @@ class OceanMaster(object):
 
             constructed_gv = graph_view_expression[0](*graph_view_expression[1], **graph_view_expression[2])
             self.graph_views_dict[deep_eq_wrapper(graph_view_expression)] = constructed_gv
+            constructed_gv.update()
+            self.graph_views.append((constructed_gv, datetime.now()))
             return constructed_gv
         pass
 
