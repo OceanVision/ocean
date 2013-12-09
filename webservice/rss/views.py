@@ -47,6 +47,11 @@ def loved_it(request):
         raise Exception("Not passed primary key to loved_it view")
     news = News.objects.filter(pk=int(request.GET['pk']))[0] #TODO: add some kind of caching here
     user = NeoUser.objects.filter(username__exact=request.user.username)[0] #TODO: add some kind of caching here
+
+    loved = [u.username for u in news.loved.all()]
+    if user.username in loved: return #returns error
+
+
     user.loves_it.add(news)
     news.loved_counter += 1
 
@@ -203,15 +208,18 @@ def trending_news(request):
     # Graph View options (that will be pased to ocean_master)
     options = [
                 {"name": "period",
-                "list": ["Top week", "Top day"],
+                "list": ["Top week", "Top day", "Top hour!"],
                 "state":0,
-                "action":"update_display"}
+                "action":"rewrite_display"}
             ]
     data = get_graph(request, {"graph_view": "TrendingNews", "options": options, "page":0, "page_size":20})
     if len(data) > 0:
         data["options"] = json.dumps(options)
         data["descriptor"] = json.dumps("ListDisplay")
         data["graph_view"] = json.dumps("TrendingNews")
+        data["title"] = "TRENDING NEWS"
+        data["likeable"] = 0
+
         return utils.render(request, 'rss/index.html', data)
     else:
         return HttpResponse(content="fail", content_type="text/plain")
@@ -223,6 +231,9 @@ def index(request):
     if len(data) > 0:
         data["descriptor"] = json.dumps("ListDisplay")
         data["graph_view"] = json.dumps("Subscribed")
+        data["title"] = "SUBSCRIBED NEWS"
+        data["sortable"] = 1
+        data["likeable"] = 1
         return utils.render(request, 'rss/index.html', data)
     else:
         return HttpResponse(content="fail", content_type="text/plain")

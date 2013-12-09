@@ -52,14 +52,18 @@ class TrendingNews(GraphView):
         First sorted by likes, then sorted by publication date
     """
 
-    period_options = ["Week", "Day"]
+    period_options = ["Week", "Day", "Hour"]
 
     def get_graph(self, graph_display):
+
+
         if "page_size" in graph_display:
 
             if 'page' in graph_display:
                 page = int(graph_display['page'])
                 page_size = int(graph_display['page_size'])
+
+            print "TrendingNews required to post ",page,"with page_size=",page_size
 
             a = page * page_size
             if a < len(self.prepared_view):
@@ -82,6 +86,10 @@ class TrendingNews(GraphView):
             dt_threshold = get_datetime_gmt_now() - datetime.timedelta(days=7)
         elif TrendingNews.period_options[self.period] == "Day":
             dt_threshold = get_datetime_gmt_now() - datetime.timedelta(days=1)
+        elif TrendingNews.period_options[self.period] == "Hour":
+            dt_threshold = get_datetime_gmt_now() - datetime.timedelta(seconds=60*60)
+
+        #TODO: add checking
 
         timestamp = GMTdatetime_to_database_timestamp(dt_threshold)
 
@@ -106,20 +114,28 @@ class TrendingNews(GraphView):
                         get_records_from_cypher(neo4j.GraphDatabaseService("http://localhost:7474/db/data/"),
                                       cypher_query, {"timestamp": timestamp})]
 
-        self.prepared_view = [] #TODO: use previous results
+        preparing_view = [] #TODO: use previous results
         colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
+
+
+        fetched_news.sort(key=lambda x:
+            int(x['pubdate_timestamp'])+
+            100000000*int(x['loved_counter']),reverse=True)
 
         for news in fetched_news:
             news_dict = {}
             news_dict['pk'] = news._id
             news_dict['loved'] = 0 #TODO: repair
             news_dict.update(
-                {'title': news["title"], 'description': news["description"], 'link': news["link"],
-                 'pubDate': news["pubdate"], 'category': 2})
+                {'title': news["title"], 'loved_counter': news['loved_counter'] if news['loved_counter'
+                ] is not None else 0 ,
+                 'description': news["description"], 'link': news["link"],
+                 'pubdate': news["pubdate"], 'category': 2})
             news_dict['color'] = colors[random.randint(0, 4)]
-            self.prepared_view.append(news_dict)
+            preparing_view.append(news_dict)
 
-        #sort them
+
+        self.prepared_view = preparing_view
 
         print "Update successful"
 

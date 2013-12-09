@@ -166,6 +166,7 @@ class NewsFetcher(GraphWorker):
         newest, newest_id = database_timestamp_to_datetime(0), 0 # Find newest news in the set
         for id, news in enumerate(list_of_news):
             d_news = pubdate_to_datetime(news["pubdate"])
+
             if d_news > last_updated:
 
                 nodes_to_add.append(py2neo.node(**news))  # assume is dictionary
@@ -263,7 +264,7 @@ class NewsFetcher(GraphWorker):
             news_node["guid"] = unicode(try_get_node_value(item, "guid"))
             news_node["description"] = unicode(try_get_node_value(item, "description"))
             news_node["link"] = unicode(try_get_node_value(item, "link"))
-
+            news_node["loved_counter"] = 0
 
             d = pubdate_to_datetime(try_get_node_value(item, "pubDate"))
 
