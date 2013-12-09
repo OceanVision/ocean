@@ -18,7 +18,7 @@ class UserProfile(models.Model):
     profile_image = models.ImageField(upload_to=get_image_path, blank=True, null=True)
 
     def __unicode__(self):  # Python 3: def __str__(self):
-        return User.get_full_name()
+        return self.user.get_full_name()
 
 
 class News(neo4j_models.NodeModel):
