@@ -5,7 +5,7 @@ from graph_utils import database_timestamp_to_datetime, GMTdatetime_to_database_
 import datetime
 from neo4j_wrapper import get_records_from_cypher
 import random
-from rss.models import *
+
 
 from py2neo import neo4j
 
