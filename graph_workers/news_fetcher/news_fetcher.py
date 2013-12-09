@@ -31,7 +31,7 @@ from py2neo import neo4j
 from py2neo import node, rel
 import py2neo
 from graph_defines import * # import defines for fields
-from utils import *
+from graph_utils import *
 import os
 import urllib2
 import xml.dom.minidom
@@ -266,6 +266,9 @@ class NewsFetcher(GraphWorker):
 
 
             d = pubdate_to_datetime(try_get_node_value(item, "pubDate"))
+
+            news_node[NEWS_PUBDATE_TIMESTAMP] = GMTdatetime_to_database_timestamp(d)
+
             if newer_than is None or d > newer_than: # Not sorted :(
                     news_node["pubdate"] = datetime_to_pubdate(d)
                     news_nodes.append(news_node)

@@ -30,7 +30,7 @@ from py2neo import node, rel
 
 sys.path.append("..")
 from graph_worker import GraphWorker
-from utils import *
+from graph_utils import *
 from privileges import construct_full_privilege, privileges_bigger_or_equal
 # import defines for fields
 from graph_defines import *

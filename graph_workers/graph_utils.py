@@ -10,8 +10,8 @@ import socket
 import httplib
 import xml.parsers.expat
 import xml.dom.minidom
-from datetime import timedelta, datetime
 from dateutil import parser
+import datetime
 
 MY_DEBUG_LEVEL = 25
 MY_INFO_LEVEL = 35
@@ -40,13 +40,18 @@ HTTP_S_VALIDATION_REGEX = "^http[s]*\://[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(/\S*)?$"
 HTTP_S_LINK_REGEX = "\"(http[s]*\://[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(/\S*)?)\""
 
 
+def get_datetime_gmt_now():
+    dt= datetime.datetime.utcnow()
+    dt = dt.replace(tzinfo=timezone("GMT")) #TODO: should be UTC
+    return dt
+
 def database_timestamp_to_datetime(timestamp):
     """
         @param timestamp from database
         @returns datetime in GMT timezone
     """
 
-    dt = datetime.fromtimestamp(timestamp)
+    dt = datetime.datetime.fromtimestamp(timestamp)
     dt = dt.replace(tzinfo=timezone("GMT")) # Otherwise it would do a conversion -1h  (if given timezone as parameter)
     return dt
 

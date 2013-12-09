@@ -7,14 +7,14 @@ lib_path = os.path.abspath('./news_fetcher')
 sys.path.append(lib_path)
 print __file__
 
-from utils import logger
+from graph_utils import logger
 from news_fetcher import NewsFetcher
 import threading
 from privileges import construct_full_privilege, privileges_bigger_or_equal
 import time
 import inspect
 from signal import *
-from utils import *
+from graph_utils import *
 
 class GraphWorkersManager(object):
     """

@@ -127,7 +127,6 @@ def graph_view_all_subscribed(graph_display):
                 news_dict['loved'] = int(news.link in loved)
                 news_dict['color'] = colors[random.randint(0, 4)]
                 rss_items_array.append(news_dict)
-                print "Processed ",news.link
 
         category_array = get_category_array(graph_display)
 
@@ -159,6 +158,7 @@ def graph_view_all_subscribed(graph_display):
 
 
 
+#TODO: move to ocean_master
 def get_graph(request, dict_update = {}):
     """ @param dict_update this dict will update request.GET and form graph_display
     """
@@ -180,8 +180,14 @@ def get_graph(request, dict_update = {}):
             if temp_dict["graph_view"] == "Subscribed":
                 return graph_view_all_subscribed(temp_dict)
             elif temp_dict["graph_view"] == "TrendingNews":
+                # Construct appriopriate GraphView (c urrently not generic :( )
+                option_dict = {}
+                for opt in temp_dict["options"]:
+                    option_dict[opt["name"]] = opt["state"]
+                gv = OC.construct_graph_view((temp_dict["graph_view"], option_dict))
+
                 return {'signed_in': True,
-                        'rss_items': [],
+                        'rss_items': gv.get_graph(temp_dict),
                         'categories': get_category_array(temp_dict)}
             else:
                 raise Exception("Not recognized graph_view")
@@ -194,10 +200,16 @@ def get_graph(request, dict_update = {}):
 
 @utils.view_error_writing
 def trending_news(request):
-    data = get_graph(request, {"graph_view": "TrendingNews"})
+    # Graph View options (that will be pased to ocean_master)
+    options = [
+                {"name": "period",
+                "list": ["Top week", "Top day"],
+                "state":0,
+                "action":"update_display"}
+            ]
+    data = get_graph(request, {"graph_view": "TrendingNews", "options": options, "page":0, "page_size":20})
     if len(data) > 0:
-        data["options"] = json.dumps([{"list": ["Top week", "Top day"], "state":0, "action":"update_display"}
-            ,])
+        data["options"] = json.dumps(options)
         data["descriptor"] = json.dumps("ListDisplay")
         data["graph_view"] = json.dumps("TrendingNews")
         return utils.render(request, 'rss/index.html', data)

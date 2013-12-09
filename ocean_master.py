@@ -8,15 +8,15 @@ import sys
 import os
 import logging
 
-
+sys.path.append(os.path.dirname(__file__))
 sys.path.append(os.path.join(os.path.dirname(__file__), "graph_views"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "graph_workers"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "graph_workers/news_fetcher"))
 
 import graph_view
 import graph_worker_manager
-from utils import deep_eq_wrapper, deep_eq
-from utils import *
+from graph_utils import deep_eq_wrapper, deep_eq
+from graph_utils import *
 
 import time
 import threading
@@ -64,10 +64,12 @@ class OceanMaster(object):
         """
         ologger.log(MY_IMPORTANT_LEVEL, "Running OceanMaster daemon")
         while not self.terminate_event.is_set():
-            for id, gv, last_updated in enumerate(self.graph_views):
-                if last_updated - datetime.now() > datetime.timedelta(seconds=gv.update_frequency):
-                    print "Updating ",gv, "last_updated=",last_updated,"now=",datetime.now()
-                    self.graph_views[id][1] = datetime.now()
+            for id, tmp in enumerate(self.graph_views):
+                gv, last_updated = tmp
+
+                if datetime.datetime.now() - last_updated > datetime.timedelta(seconds=gv.update_frequency_s):
+                    print "Updating ",gv, "last_updated=",last_updated,"now=",datetime.datetime.now()
+                    self.graph_views[id][1] = datetime.datetime.now()
                     gv.update()
             time.sleep(self.update_frequency/1000.0)
 
@@ -79,6 +81,8 @@ class OceanMaster(object):
 
         @note For now assume graph_view_expression as (Class, args, dict_args)
 
+        @returns GraphView if constructed, None if not constructed
+
         If not it constructs it using graph_view_expression
         """
 
@@ -86,6 +90,15 @@ class OceanMaster(object):
         # deep comparison. It keeps its object in .v
 
         # TODO: rewrite to object GraphViewExpression..
+
+        graph_view_expression = list(graph_view_expression)
+
+        if isinstance(graph_view_expression[0], basestring):
+            if hasattr(graph_view, graph_view_expression[0]):
+                graph_view_expression[0] = getattr(graph_view, graph_view_expression[0])
+            else:
+                ologger.log(MY_CRITICAL_LEVEL, "Not recognized GV name")
+                return None
 
         #1. Check cache
         if deep_eq_wrapper(graph_view_expression) in self.graph_views_dict:
@@ -95,14 +108,27 @@ class OceanMaster(object):
         else:
             ologger.log(MY_IMPORTANT_LEVEL, "Constructing "+str(graph_view_expression) )
 
-            if len(graph_view_expression) < 3:
+            if len(graph_view_expression) != 2:
                 ologger.log(MY_CRITICAL_LEVEL, "Wrong length of the graph_view_expression")
                 return None
 
-            constructed_gv = graph_view_expression[0](*graph_view_expression[1], **graph_view_expression[2])
+
+            try:
+                constructed_gv = graph_view_expression[0](**graph_view_expression[1])
+            except Exception, e:
+                ologger.log(MY_CRITICAL_LEVEL, "Failed construction" + str(e))
+                return None
+
+            ologger.log(MY_IMPORTANT_LEVEL, "Constructed "+str(constructed_gv))
+
             self.graph_views_dict[deep_eq_wrapper(graph_view_expression)] = constructed_gv
-            constructed_gv.update()
-            self.graph_views.append((constructed_gv, datetime.now()))
+
+            try:
+                constructed_gv.update()
+            except Exception, e:
+                ologger.log(MY_CRITICAL_LEVEL, "Failed updating "+str(e))
+
+            self.graph_views.append([constructed_gv, datetime.datetime.now()])
             return constructed_gv
         pass
 
@@ -153,3 +179,4 @@ OC = None
 #    OC.terminate()
 #
 
+#def test cache please
