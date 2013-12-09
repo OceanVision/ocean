@@ -164,6 +164,8 @@ def get_rss_content(request):
 def index(request):
     data = get_rss_content(request)
     if len(data) > 0:
+        data["options"] = json.dumps([ ["ala", "kota"], ["murzyn", "murzyni"]])
+        data["list_display_descriptor"] = json.dumps("SubscribedListDisplay")
         return utils.render(request, 'rss/index.html', data)
     else:
         return HttpResponse(content="fail", content_type="text/plain")

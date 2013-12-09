@@ -8,8 +8,11 @@
 {% endblock %}
 
 <div id="rssItems" class="container" data-center_h="true" data-transit="true">
+
+    <div id="header">
     <p class="header">TOP STORIES</p>
     <a id="sort" href="javascript:toggleItemsOrder()">unsorted</a>
+     </div>
     <input id="search" type="text" value="search in titles" data-value="search in titles">
     {% for item in rss_items %}
     <div class="item" title="{{ items.category }}" news_pk="{{ item.pk }}">
@@ -40,6 +43,93 @@
 </footer>
 
 <script type="text/javascript">
+
+
+    //ListDisplay variables
+    descriptor = {{ list_display_descriptor|safe }}
+    options = {{ options|safe }} //array of arrays. For now only 2-optional are possible
+    current_options = []
+    list_display_state = [descriptor, options, current_options]
+
+
+
+    
+    var option_click = function(e){
+        var id = parseInt($(this).attr("id"))
+        current_options[id] = (current_options[id]+1)%options[id].length;
+        $(this).text(options[id][current_options[id]]);
+        e.preventDefault();
+    }
+    for (var i=0;i < options.length; i++){
+        //assume each has length 2
+        var option_div = $(
+        "<a id='"+i+"' class='toggled' href='#'>"+options[i][0]+"</a>"
+        );
+        option_div.appendTo("#rssItems #header").click(option_click);
+        current_options.push(0);
+    }
+
+
+
+
+
+    $(document).on("ready", function() {
+    page = 0
+    pageSize = 20
+
+    function createNews(news, i) {
+        var item = $("<div></div>")
+            .appendTo("#rssItems")
+            .attr("class", "item")
+            .attr("title", news["category"])
+            .attr("id", "news_" + ((page * pageSize) + i).toString());
+
+        var span = $("<span></span>")
+            .appendTo("#rssItems #news_" + ((page * pageSize) + i).toString())
+            .attr("class", "no");
+
+        var p1 = $("<p></p>")
+            .appendTo("#news_" + ((page * pageSize) + i).toString())
+            .attr("class", "title")
+            .attr("data-color", news["color"])
+            .attr("id", "p1_" + ((page * pageSize) + i).toString());
+        id = "#rssItems #news_" + ((page * pageSize) + i).toString() + " #p1_" + ((page * pageSize) + i).toString()
+        $(id).text(news["title"]);
+
+        var p2 = $("<p></p>")
+            .appendTo("#news_" + ((page * pageSize) + i).toString())
+            .attr("class", "description")
+            .attr("id", "p2_" + ((page * pageSize) + i).toString());
+        id = "#rssItems #news_" + ((page * pageSize) + i).toString() + " #p2_" + ((page * pageSize) + i).toString()
+        $(id).text(news["description"]);
+    }
+
+        //TODO: Czemu to jest tutaj? Przeciez nie kazda strona jest scrollowalna w ten sposob jak ListDisplay ;p
+        $(window).scroll(function() {
+            buffer = 40 // # of pixels from bottom of scroll to fire your function. Minimum 40 (should work for 0
+            if ($("#rssItems").prop('scrollHeight') - $(window).scrollTop() <= $(window).height() + buffer) {
+                page += 1
+                var data = {
+                    'page' : page.toString(),
+                    'page_size' : pageSize.toString()
+                };
+                ajax.request("rss/get_news", "GET", data, function(response) {
+                    console.log(JSON.stringify(response))
+                    response = JSON.parse(response)["rss_items"]
+                    if (response != null) {
+                        for (var i = 0; i < response.length; i++) {
+                            news = response[i]
+                            createNews(news, i)
+                        }
+                    }
+                }, function(xhr, status, error) {
+                    console.log(JSON.stringify(error));
+                    console.log(JSON.stringify(status));
+                    console.log(JSON.stringify(xhr));
+                });
+            }
+        });
+    });
 
 
     //Note: just prototyped..

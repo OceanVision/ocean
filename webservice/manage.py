@@ -23,8 +23,6 @@ def clean(*args):
     exit(0)
 
 if __name__ == "__main__":
-
-
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ocean.settings")
 
     for sig in (SIGINT,):
