@@ -40,16 +40,20 @@
     grayheart = "{% static 'base/img/grayheart.png' %}"
 
 
-    //TODO: Czemu to jest tutaj? Przeciez nie kazda strona jest scrollowalna w ten sposob jak ListDisplay ;p
-    $(window).scroll(function() {
+    var scrollFunction = function() {
+        $(window).unbind("scroll");
+        
         buffer = 40 // # of pixels from bottom of scroll to fire your function. Minimum 40 (should work for 0
         if ($("#rssItems").prop('scrollHeight') - $(window).scrollTop() <= $(window).height() + buffer) {
             state["page"] += 1;
             update_display();
         }
-    });
+        
+        $(window).scroll(scrollFunction);
+    }
 
-
+    //TODO: Czemu to jest tutaj? Przeciez nie kazda strona jest scrollowalna w ten sposob jak ListDisplay ;p
+    $(window).scroll(scrollFunction);
 
 
     //Sends current state to main view (TODO: replace this with calling OceanMaster..)
