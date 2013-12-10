@@ -65,7 +65,7 @@ function Main() {
 
 	    ajax.request("user_profile/sign_in", "POST", data, function(response) {
             if (response != "fail") {
-	            main.load("rss");
+	            window.location.replace("rss");
                 returnValue = true;
             } else {
                 returnValue = false;
@@ -83,7 +83,7 @@ function Main() {
     Main.prototype.signOut = function() {
         var returnValue;
 	    ajax.request("user_profile/sign_out", "GET", "", function(response) {
-            main.load("");
+            window.location.replace("");
             returnValue = true;
         }, function(xhr, status, error) {
             console.log(JSON.stringify(error));
