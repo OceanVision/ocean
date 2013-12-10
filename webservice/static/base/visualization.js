@@ -210,7 +210,58 @@ function Visualization() {
                 }
             });
 
+ // love buttons
+                    //Love button
+            $(".love_it_image").qtip(
+                {
+                show: {
+                    delay: 1000
+                },
+                content: function(){
+                    var data = {
+                        'pk' : $(this).attr("news_pk")
+                    };
 
+                    var list = []
+
+                    ajax.request("rss/get_loved_it_list", "GET", data, function(response) {
+                        list=JSON.parse(response);
+                     });
+
+                    if(list.length==0) return "Love it button";
+                     return list.join("\n");
+                }}
+            );
+            $("#rssItems .love_it_button").off("click").on("click", function(e){
+                    var data = {
+                        'pk' : $(this).attr("news_pk")
+                    };
+                    var news_item = $("#rssItems .item[news_pk="+data.pk+"]")
+                    var love_it_button = news_item.find(".love_it_button")
+
+
+                    var current_state = love_it_button.children("img").attr("src")
+
+                    if(current_state == heart){
+                        ajax.request("rss/loved_it", "GET", data, function(response) {
+                            var value = parseInt(news_item.find(".loved_counter").text())
+                            news_item.find(".loved_counter").text(value + 1)
+                            news_item.find(".love_it_image").attr("src", grayheart);
+                        });
+
+                    }else{
+
+                        ajax.request("rss/unloved_it", "GET", data, function(response) {
+                            var value = parseInt(news_item.find(".loved_counter").text())
+                            news_item.find(".loved_counter").text(value - 1)
+                            news_item.find(".love_it_image").attr("src", heart);
+                        });
+
+
+                    }
+
+                    e.preventDefault();
+             });
 
 
 

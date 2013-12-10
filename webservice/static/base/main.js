@@ -30,6 +30,20 @@ function Main() {
 	    visualization.transit($("body").children().not("#regularMenu"), $(response));
 	};
 
+    Main.prototype.fetch_from_server = function(path, data) {
+	    var response = null;
+	    ajax.request(path, "GET", data, function(r) {
+	        response = r;
+	    }, function(xhr, status, error) {
+               console.log(JSON.stringify(error));
+                console.log(JSON.stringify(status));
+                console.log(JSON.stringify(xhr));
+	    });
+
+	    return response;
+	};
+
+
     Main.prototype.changePassword = function(currentPassword, newPassword, retypedPassword) {
         if (newPassword != retypedPassword) {
             return;
@@ -65,7 +79,7 @@ function Main() {
 
 	    ajax.request("account/sign_in", "POST", data, function(response) {
             if (response != "fail") {
-	            main.load("rss");
+	            window.location.replace("rss");
                 returnValue = true;
             } else {
                 returnValue = false;
@@ -83,7 +97,7 @@ function Main() {
     Main.prototype.signOut = function() {
         var returnValue;
 	    ajax.request("account/sign_out", "GET", "", function(response) {
-            main.load("");
+            window.location.replace("/");
             returnValue = true;
         }, function(xhr, status, error) {
             console.log(JSON.stringify(error));

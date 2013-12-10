@@ -5,6 +5,10 @@ import settings
 import re
 from django.http import HttpResponse
 
+
+#TODO: add logging facility
+
+
 def get_raw_template(path, context={}):
     lines = open(settings.PROJECT_PATH + 'templates/' + path, 'r').readlines()
     html = ''
