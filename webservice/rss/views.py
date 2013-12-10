@@ -113,9 +113,14 @@ def graph_view_all_subscribed(graph_display):
     print "call to graph_view_all_subscribed"
     #TODO: dziala dosyc niestabilnie i w ogole nie ma lapania wyjatkow...
     try:
+        print "username:", graph_display["username"]
 
         rss_items_array = []  # building news to be rendered (isn't very efficient..)
         user = NeoUser.objects.filter(username__exact=graph_display["username"])[0]
+
+
+
+
         user.refresh()
         loved = [news.link for news in user.loves_it.all()]
         print loved
@@ -165,7 +170,9 @@ def graph_view_all_subscribed(graph_display):
 
 #TODO: move to ocean_master
 def get_graph(request, dict_update = {}):
-    """ @param dict_update this dict will update request.GET and form graph_display
+    """
+        @param dict_update this dict will update request.GET and form graph_display
+        @note: state variables are more important than dict_update !!
     """
 
     #TODO: move authentication from here! (to middleware , see stackoverflow)
@@ -174,6 +181,10 @@ def get_graph(request, dict_update = {}):
         temp_dict["username"] = request.user.username # each graph_display should have username..
         temp_dict.update(dict_update)
 
+
+        # Ultimately override all the variables
+
+        # TODO: missing default list display
         if "state" in request.GET:
             temp_dict.update(json.loads(request.GET["state"]))
         else:
@@ -214,11 +225,12 @@ def trending_news(request):
             ]
     data = get_graph(request, {"graph_view": "TrendingNews", "options": options, "page":0, "page_size":20})
     if len(data) > 0:
-        data["options"] = json.dumps(options)
-        data["descriptor"] = json.dumps("ListDisplay")
-        data["graph_view"] = json.dumps("TrendingNews")
-        data["title"] = "TRENDING NEWS"
-        data["likeable"] = 0
+        if "descriptor" not in data:
+            data["options"] = json.dumps(options)
+            data["descriptor"] = json.dumps("ListDisplay")
+            data["graph_view"] = json.dumps("TrendingNews")
+            data["title"] = "TRENDING NEWS"
+            data["likeable"] = 0
 
         return utils.render(request, 'rss/index.html', data)
     else:
@@ -229,11 +241,12 @@ def index(request):
 
     data = get_graph(request, {"graph_view": "Subscribed"})
     if len(data) > 0:
-        data["descriptor"] = json.dumps("ListDisplay")
-        data["graph_view"] = json.dumps("Subscribed")
-        data["title"] = "SUBSCRIBED NEWS"
-        data["sortable"] = 1
-        data["likeable"] = 1
+        if "descriptor" not in data:
+            data["descriptor"] = json.dumps("ListDisplay")
+            data["graph_view"] = json.dumps("Subscribed")
+            data["title"] = "SUBSCRIBED NEWS"
+            data["sortable"] = 1
+            data["likeable"] = 1
         return utils.render(request, 'rss/index.html', data)
     else:
         return HttpResponse(content="fail", content_type="text/plain")
@@ -302,7 +315,7 @@ def manage(request, message=''):
 def get_news(request):
     data = get_graph(request)
     if len(data) > 0:
-        return HttpResponse(json.dumps(data))
+        return utils.render(request, 'rss/list_display_renderer.html', data)
     else:
         return HttpResponse(content="fail", content_type="text/plain")
 

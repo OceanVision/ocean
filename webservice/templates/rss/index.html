@@ -16,35 +16,8 @@
     {% endifequal %}
      </div>
     <input id="search" type="text" value="search in titles" data-value="search in titles">
-    {% for item in rss_items %}
-    <div class="item" title="{{ items.category }}" news_pk="{{ item.pk }}">
-        <span class="no"></span>
-        <p class="title"  data-color="{{ item.color }}">{{ item.title }}
-            <span style="float:right" class="loved_counter" >{{ item.loved_counter }}</span>
-            <span style="float:right">+</span>
-        </p>
-        <p class="description">
-            {{ item.description|safe|removetags:"a div" }}
 
-            <br>
-
-            <span style="font-size:small;">{{ item.pubdate }}</span>
-
-
-            {% ifequal likeable 1 %}
-            <a class ="love_it_button" href="#" news_pk="{{ item.pk }}" >
-                {% ifequal item.loved 0 %}
-                <img class="love_it_image" news_pk="{{ item.pk }}" src="{% static 'base/img/heart.png' %}" title="You love it man" >
-                {% endifequal %}
-                {% ifnotequal item.loved 0 %}
-                <img class="love_it_image" news_pk="{{ item.pk }}" src="{% static 'base/img/grayheart.png' %}" title="You definitely don't" >
-                {% endifnotequal %}
-            </a>
-            {% endifequal %}
-        </p>
-
-    </div>
-    {% endfor %}
+    {% include 'rss/list_display_renderer.html' %}
 </div>
 
 <footer>
@@ -61,51 +34,14 @@
     state = {"descriptor": descriptor, "options": options, "page": 0, "page_size": 20, "graph_view": {{ graph_view|safe }}}
 
 
-
-
-  function createNews(news, i) {
-        var page = state["page"]
-        var pageSize = state["page_size"]
-
-        var item = $("<div></div>")
-            .appendTo("#rssItems")
-            .attr("class", "item")
-            .attr("title", news["category"])
-            .attr("id", "news_" + ((page * pageSize) + i).toString());
-
-        var span = $("<span></span>")
-            .appendTo("#rssItems #news_" + ((page * pageSize) + i).toString())
-            .attr("class", "no");
-
-        var p1 = $("<p></p>")
-            .appendTo("#news_" + ((page * pageSize) + i).toString())
-            .attr("class", "title")
-            .attr("data-color", news["color"])
-            .attr("id", "p1_" + ((page * pageSize) + i).toString());
-        id = "#rssItems #news_" + ((page * pageSize) + i).toString() + " #p1_" + ((page * pageSize) + i).toString()
-        $(id).text(news["title"]);
-
-        var p2 = $("<p></p>")
-            .appendTo("#news_" + ((page * pageSize) + i).toString())
-            .attr("class", "description")
-            .attr("id", "p2_" + ((page * pageSize) + i).toString());
-        id = "#rssItems #news_" + ((page * pageSize) + i).toString() + " #p2_" + ((page * pageSize) + i).toString()
-        $(id).text(news["description"]);
-    }
-
-        //TODO: Czemu to jest tutaj? Przeciez nie kazda strona jest scrollowalna w ten sposob jak ListDisplay ;p
-        $(window).scroll(function() {
-            buffer = 40 // # of pixels from bottom of scroll to fire your function. Minimum 40 (should work for 0
-            if ($("#rssItems").prop('scrollHeight') - $(window).scrollTop() <= $(window).height() + buffer) {
-                state["page"] += 1;
-                update_display();
-            }
-        });
-
-
-
-
-
+    //TODO: Czemu to jest tutaj? Przeciez nie kazda strona jest scrollowalna w ten sposob jak ListDisplay ;p
+    $(window).scroll(function() {
+        buffer = 40 // # of pixels from bottom of scroll to fire your function. Minimum 40 (should work for 0
+        if ($("#rssItems").prop('scrollHeight') - $(window).scrollTop() <= $(window).height() + buffer) {
+            state["page"] += 1;
+            update_display();
+        }
+    });
 
 
 
@@ -115,63 +51,24 @@
         data={
         'state':JSON.stringify(state)
         };
-        ajax.request("rss/get_news", "GET", data, function(response) {
-            console.log(JSON.stringify(response))
-
-
-
-            response = JSON.parse(response)["rss_items"]
-            if (response != null) {
-                for (var i = 0; i < response.length; i++) {
-                    news = response[i]
-                    createNews(news, i)
-                }
-            }
-
-            //We need to update all the handlers, because divs are new
-            visualization.updateEventHandlers();
-        }, function(xhr, status, error) {
-            console.log(JSON.stringify(error));
-            console.log(JSON.stringify(status));
-            console.log(JSON.stringify(xhr));
-        });
-
-
+        rendered_news = main.fetch_from_server("rss/get_news", data);
+        $(rendered_news).appendTo("#rssItems");
+        visualization.updateEventHandlers();
     }
+
+
+
     var rewrite_display = function(){
         data={
         'state':JSON.stringify(state)
         };
-        ajax.request("rss/get_news", "GET", data, function(response) {
-
-            state['page'] = 0; //reset state! (TODO: rewrite to reset_state() fn?)
-
-            console.log(JSON.stringify(response))
-            response = JSON.parse(response)["rss_items"]
-
-            $("#rssItems .item").remove();
-
-            if (response != null) {
-                for (var i = 0; i < response.length; i++) {
-                    news = response[i]
-                    createNews(news, i)
-                }
-            }
-
-
-            //We need to update all the handlers, because divs are new
-            visualization.updateEventHandlers()
-        }, function(xhr, status, error) {
-            console.log(JSON.stringify(error));
-            console.log(JSON.stringify(status));
-            console.log(JSON.stringify(xhr));
-        });
-
-
+        rendered_news = main.fetch_from_server("rss/get_news", data);
+        $("#rssItems .item").remove();
+        $(rendered_news).appendTo("#rssItems");
+        visualization.updateEventHandlers();
     }
 
-    var test_action = function(){
-    }
+
 
 
     var option_click = function(e){
@@ -290,6 +187,10 @@
 
 
 
+$(document).on("ready", function() {
+    //update_display();
+
+});
 </script>
 
 {% endblock %}

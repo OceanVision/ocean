@@ -30,6 +30,20 @@ function Main() {
 	    visualization.transit($("body").children().not("#regularMenu"), $(response));
 	};
 
+    Main.prototype.fetch_from_server = function(path, data) {
+	    var response = null;
+	    ajax.request(path, "GET", data, function(r) {
+	        response = r;
+	    }, function(xhr, status, error) {
+               console.log(JSON.stringify(error));
+                console.log(JSON.stringify(status));
+                console.log(JSON.stringify(xhr));
+	    });
+
+	    return response;
+	};
+
+
     Main.prototype.changePassword = function(currentPassword, newPassword, retypedPassword) {
         if (newPassword != retypedPassword) {
             return;
@@ -83,7 +97,7 @@ function Main() {
     Main.prototype.signOut = function() {
         var returnValue;
 	    ajax.request("user_profile/sign_out", "GET", "", function(response) {
-            window.location.replace("");
+            window.location.replace("/");
             returnValue = true;
         }, function(xhr, status, error) {
             console.log(JSON.stringify(error));

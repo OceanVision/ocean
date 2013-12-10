@@ -1,0 +1,32 @@
+{% load static %}
+{% get_static_prefix as STATIC_URL %}
+
+{% for item in rss_items %}
+    <div class="item" title="{{ items.category }}" news_pk="{{ item.pk }}">
+        <span class="no"></span>
+        <p class="title"  data-color="{{ item.color }}">{{ item.title }}
+            <span style="float:right" class="loved_counter" >{{ item.loved_counter }}</span>
+            <span style="float:right">+</span>
+        </p>
+        <p class="description">
+            {{ item.description|safe|removetags:"a div" }}
+
+            <br>
+
+            <span style="font-size:small;">{{ item.pubdate }}</span>
+
+
+            {% ifequal likeable 1 %}
+            <a class ="love_it_button" href="#" news_pk="{{ item.pk }}" >
+                {% ifequal item.loved 0 %}
+                <img class="love_it_image" news_pk="{{ item.pk }}" src="{% static 'base/img/heart.png' %}" title="You love it man" >
+                {% endifequal %}
+                {% ifnotequal item.loved 0 %}
+                <img class="love_it_image" news_pk="{{ item.pk }}" src="{% static 'base/img/grayheart.png' %}" title="You definitely don't" >
+                {% endifnotequal %}
+            </a>
+            {% endifequal %}
+        </p>
+
+    </div>
+{% endfor %}
