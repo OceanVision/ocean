@@ -187,9 +187,13 @@ def get_graph(request, dict_update = {}):
         # TODO: missing default list display
         if "state" in request.GET:
             temp_dict.update(json.loads(request.GET["state"]))
+            print "LIKEABLE=", temp_dict["likeable"]
         else:
             print "WARNING: no state in request.GET"
             temp_dict.update(dict(request.GET))
+
+
+
 
         # @note: this function will be moved to OceanMaster
         if "graph_view" in temp_dict:
