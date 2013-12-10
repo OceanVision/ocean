@@ -323,10 +323,19 @@ def add_channel(request):
         list = my_batch.submit()
 
         if list[0] is None:
-            if not NewsWebsite.objects.filter(link=request.GET["link"].split("?ajax=ok")[0]):
+            link = request.GET["link"].encode("utf8").split("?ajax=ok")[0]
+            if not NewsWebsite.objects.filter(link=link):
 
                 def get_node_value(node, value):
-                    return node.getElementsByTagName(value)[0].childNodes[0].nodeValue.strip()
+                    searched_nodes = node.getElementsByTagName(value)
+                    if searched_nodes:
+                        childs = searched_nodes[0].childNodes
+                        if childs:
+                            return childs[0].nodeValue.strip()
+                    return ""
+
+                #def get_node_value(node, value):
+                #    return node.getElementsByTagName(value)[0].childNodes[0].nodeValue.strip()
 
                 #TODO: Try to solve "?ajax=ok" problem another way.
                 response = urllib2.urlopen(request.GET["link"].split("?ajax=ok")[0])
@@ -356,7 +365,8 @@ def add_channel(request):
 
             else:
                 #TODO: Try to solve "?ajax=ok" problem another way.
-                channel_node = NewsWebsite.objects.filter(link__exact=request.GET["link"])[0].split("?ajax=ok")[0]
+                link = request.GET["link"].encode("utf8").split("?ajax=ok")[0]
+                channel_node = NewsWebsite.objects.filter(link__exact=link)[0]
 
             # Add subscription
             user = NeoUser.objects.filter(username__exact=request.user.username)[0]
