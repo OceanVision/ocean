@@ -32,6 +32,12 @@
     options = {{ options|safe }} //array of arrays. For now only 2-optional are possible
     page_size = 20
     state = {"descriptor": descriptor, "options": options, "page": 0, "page_size": 20, "graph_view": {{ graph_view|safe }}}
+    state["likeable"] = {{ likeable|safe }}
+    state["sortable"] = {{ sortable|safe }}
+
+    //TODO: shouldnt be public
+    heart = "{% static 'base/img/heart.png' %}"
+    grayheart = "{% static 'base/img/grayheart.png' %}"
 
 
     //TODO: Czemu to jest tutaj? Przeciez nie kazda strona jest scrollowalna w ten sposob jak ListDisplay ;p
@@ -122,68 +128,6 @@
         });
 
 
-
-
-
-
-
-    //TODO: Should go to vizaulization.updateEventHandlers, but fails : (
-
-            //Love button
-            $(".love_it_image").qtip(
-                {
-                show: {
-                    delay: 1000
-                },
-                content: function(){
-                    var data = {
-                        'pk' : $(this).attr("news_pk")
-                    };
-
-                    list = []
-
-                    ajax.request("rss/get_loved_it_list", "GET", data, function(response) {
-                        list=JSON.parse(response);
-                        console.log(list);
-                     });
-
-                    if(list.length==0) return "Love it button";
-                     return list.join("\n");
-                }}
-            );
-            $("#rssItems .love_it_button").click(function(e){
-                    var data = {
-                        'pk' : $(this).attr("news_pk")
-                    };
-                    news_item = $("#rssItems .item[news_pk="+data.pk+"]")
-                    love_it_button = news_item.find(".love_it_button")
-
-                    heart = "{% static 'base/img/heart.png' %}"
-                    grayheart = "{% static 'base/img/grayheart.png' %}"
-
-                    current_state = love_it_button.children("img").attr("src")
-                    console.log(current_state)
-
-                    if(current_state == heart){
-                        ajax.request("rss/loved_it", "GET", data, function(response) {
-                            value = parseInt(news_item.find(".loved_counter").text())
-                            news_item.find(".loved_counter").text(value + 1)
-                            news_item.find(".love_it_image").attr("src", grayheart);
-                        });
-
-                    }else{
-
-                        ajax.request("rss/unloved_it", "GET", data, function(response) {
-                            value = parseInt(news_item.find(".loved_counter").text())
-                            news_item.find(".loved_counter").text(value - 1)
-                            news_item.find(".love_it_image").attr("src", heart);
-                        });
-
-
-                    }
-
-                    e.preventDefault();
-             });
 
 
 
