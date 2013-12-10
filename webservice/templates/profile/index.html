@@ -1,0 +1,35 @@
+{% extends 'base/index.html' %}
+{% load static %}
+{% get_static_prefix as STATIC_URL %}
+
+{% block body %}
+
+    <p class="message">
+        {{ message }}
+    </p>
+
+    {% ifequal message "" %}
+    <div id="profile" class="container" data-center_h="true" data-transit="true">
+        <p class="header">
+            {{ username }} <br>
+        </p>
+        <div class="item">
+            <p class="description">
+                {{ first_name }} {{ last_name }} <br>
+                {{ email }}<br>
+                {% ifequal is_staff 1 %}
+                    <i>STAFF</i> <br>
+                {% endifequal %}
+
+                <br>
+                Joined: {{ date_joined }} <br>
+                <br>
+                <br>
+                {{ profile_description }} <br>
+            </p>
+        </div>
+    </div>
+    {% endifequal %}
+
+
+{% endblock %}

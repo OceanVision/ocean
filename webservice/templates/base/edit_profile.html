@@ -2,6 +2,18 @@
 {% block body %}
 
 <div id="editProfileForm" class="container form" data-center_h="true" data-center_v="true" data-transit="true">
+
+    <div class="leaflet"><p class="header">EDIT PROFILE</p></div>
+        <!--
+        <textarea rows="3" cols=20"></textarea><br><br>
+    <a class="submit" href="javascript:changeDescription()">submit</a><br>
+    -->
+    <form action="/edit_profile" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Submit" />
+    </form>
+
     <div class="leaflet"><p class="header">CHANGE PASSWORD</p></div>
     <input id="currentPassword" type="text" value="current password" 
         data-value="current password" data-type="password"><br>
@@ -13,6 +25,7 @@
 </div>
 
 <script type="text/javascript">
+
     //TODO: make synchronous
     var changePassword = function() {
         $("#editProfileForm a.submit").addClass("disabled");
@@ -20,6 +33,7 @@
         $("#editProfileForm a.submit").removeClass("disabled");
     };
 
+    // Trigger changePassword when ENTER pressed
     $("#editProfileForm input")
         .off("keypress")
         .on("keypress", function (e) {

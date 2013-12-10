@@ -6,4 +6,8 @@
 *.swp
 *.vim
 
+# Local configurations
 webservice/ocean/settings_local.py
+
+# Local log files
+logs/

@@ -27,7 +27,8 @@ p.header {
 p.message {
     position: absolute;
     display: inline-block;
-    top: 400px;
+    top: 50px;
+    left: 100px;
     font-size: 20px;
     font-weight: bold;
     color: #ef2929;
@@ -337,13 +338,34 @@ div#rssItems div.item {
     clear: both;
 }
 
+div#profile {
+    width: 65%;
+    padding-top: 63px;
+    position: absolute;
+    float: left;
+    z-index: 0;
+}
+
+div#profile p.header {
+    display: inline-block;
+    float: left;
+    box-shadow: none;
+    font-size: 30px;
+}
+
+div#profile p.description {
+    display: inline-block;
+    float: left;
+    box-shadow: none;
+}
+
 /* ========== F O R M ========== */
 
 div.form {
     width: 340px;
 }
 
-div.form input {
+div.form input, div.form textarea {
     background-color: transparent;
     border: 0px;
     border-bottom: 2px solid #e9e9e9;
@@ -378,7 +400,7 @@ div.form a.back {
 }
 
 div.form input {
-    font-size: 40px;
+    font-size: 20px;
 }
 
 div.form input.focus {
@@ -386,6 +408,9 @@ div.form input.focus {
     font-style: normal;
 }
 
+div.form p {
+    color: #bbb;
+}
 div.form p.header {
     color: #bbb;
 }
@@ -403,7 +428,6 @@ div#signInForm a.submit, div#editProfileForm a.submit {
 
 div#editProfileForm {
     width: 400px;
-    position: absolute;
 }
 
 div#editProfileForm input {

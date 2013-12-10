@@ -16,6 +16,7 @@ class UserProfile(models.Model):
     user = models.ForeignKey(User, unique=True)
     description = models.CharField(max_length=200)
     profile_image = models.ImageField(upload_to=get_image_path, blank=True, null=True)
+    show_email = models.BooleanField()
 
     def __unicode__(self):  # Python 3: def __str__(self):
         return self.user.get_full_name()

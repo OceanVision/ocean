@@ -40,7 +40,7 @@ function Main() {
             'new_password' : newPassword
         };
 
-        ajax.request("user_profile/change_password", "POST", data, function(response) {
+        ajax.request("account/change_password", "POST", data, function(response) {
 	        if (response != "fail") {
 	            main.load("rss");
                 returnValue = true;
@@ -63,7 +63,7 @@ function Main() {
 	        'password' : password //$("Crypto.SHA256($("#password").val())
 	    };
 
-	    ajax.request("user_profile/sign_in", "POST", data, function(response) {
+	    ajax.request("account/sign_in", "POST", data, function(response) {
             if (response != "fail") {
 	            main.load("rss");
                 returnValue = true;
@@ -82,7 +82,7 @@ function Main() {
 
     Main.prototype.signOut = function() {
         var returnValue;
-	    ajax.request("user_profile/sign_out", "GET", "", function(response) {
+	    ajax.request("account/sign_out", "GET", "", function(response) {
             main.load("");
             returnValue = true;
         }, function(xhr, status, error) {

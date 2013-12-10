@@ -5,12 +5,23 @@ from django.contrib.auth import authenticate, logout
 from django.contrib.auth.models import User
 import django.contrib.auth
 
+from rss.models import UserProfile
 
 def sign_in(request):
     username = request.POST['username']
     password = request.POST['password']
     # TODO: add hash authentication
     user = authenticate(username=username, password=password)
+    # UserProfile init
+    user_profile = UserProfile.objects.filter(user=user)
+    if len(user_profile) == 0:
+        UserProfile.objects.create(
+            user=user,
+            description='',
+            show_email=True,
+            profile_image=None
+        )
+
     if user is not None:
         # TODO: is_active flag checking
         if user.is_active:
