@@ -212,6 +212,7 @@ function Visualization() {
 
  // love buttons
                     //Love button
+       if ($(".love_it_image").data('qtip')) {
             $(".love_it_image").qtip(
                 {
                 show: {
@@ -232,6 +233,7 @@ function Visualization() {
                      return list.join("\n");
                 }}
             );
+      }
             $("#rssItems .love_it_button").off("click").on("click", function(e){
                     var data = {
                         'pk' : $(this).attr("news_pk")
