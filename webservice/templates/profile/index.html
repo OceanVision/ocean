@@ -22,10 +22,17 @@
                 {% endifequal %}
 
                 <br>
-                Joined: {{ date_joined }} <br>
+                Joined: {{ date_joined }} <br><br>
+            <a 
+                id="privateMessage"
+                class="submit"
+                href="javascript:main.load('account/inbox?user={{ username }}')">
+                SEND PRIVATE MESSAGE
+            </a>
                 <br>
                 <br>
-                {{ profile_description }} <br>
+                {{ username }}'s personal description:<br>
+                <i>{{ profile_description }}</i> <br>
             </p>
         </div>
     </div>

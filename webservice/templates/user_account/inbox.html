@@ -1,0 +1,61 @@
+{% extends 'base/index.html' %}
+{% block body %}
+
+<div id="rssItems" class="container" data-center_h="true" data-transit="true">
+    <p class="header">INBOX: {{ contact }}</p>
+    <input id="search" type="text" value="search in messages" data-value="search in messages"></input>
+    <br><br><br>
+    <form action="/account/inbox?user={{ contact }}" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+    </form>
+    <br><br><br>
+    {% for message in messages %}
+    <div class="item" >
+        <span class="no"></span>
+        <p class="title" data-color={{ message.color }}>
+            <i>{{ message.author }}</i>: {{ message.private_message|safe }}
+        </p>
+        <p class="description">
+            <span style="font-size:small;">{{ message.date }}</span>
+        </p>
+    </div>
+    {% endfor %}
+</div>
+
+<footer>
+    <a href="javascript:main.load('mission')">our mission</a>
+</footer>
+
+<script type="text/javascript">
+
+    //$("div#rssItems input#add")
+    //    .off("keyup")
+    //    .on("keyup", function (e) {
+    var itemsOrder = "ascending";
+    var toggleItemsOrder = function() {
+        if (itemsOrder == "unsorted" || itemsOrder == "descending") {
+            itemsOrder = "ascending"
+        } else {
+            itemsOrder = "descending"
+        }
+
+        main.sort($("#rssItems"), $("#rssItems div.item"), itemsOrder);
+        $("div#rssItems a#sort")
+                .removeClass("ascending descending")
+                .addClass(itemsOrder)
+                .text(itemsOrder);
+    };
+
+    $("div#rssItems input#search")
+        .off("keyup")
+        .on("keyup", function (e) {
+            var pattern = $(this).val();
+            if (pattern != $(this).data("value")) {
+                main.searchInTitles(pattern);
+            }
+        });
+</script>
+
+
+{% endblock %}

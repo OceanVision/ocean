@@ -135,7 +135,7 @@ an error in neo4django you have to have at least one node in graph).
 * rss - temporary application handling rss requests (show_news)
 
 
-## Side notes
+## Side notes and issues
 
 * Neo4j database restarting
 
@@ -143,4 +143,14 @@ an error in neo4django you have to have at least one node in graph).
 
         sudo rm /var/lib/neo4j/data/graph.db/* -r -f
 
+* Django models attribute changes
+
+    When working on webservice, rarely models definitions would change. If so, confilcts could happen like:
+
+        DatabaseError: column rss_userprofile.show_email does not exist
+
+    (in below case a column named `show_email` has been added to model `UserProfile`.)
+    (This error appears when dealing with old models instances using new definitions)
+
+    Current *risky* **workaround** is to `drop table rss_userprofile;` from within PostgreSQL console.
 

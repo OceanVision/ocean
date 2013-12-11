@@ -15,11 +15,22 @@ def get_image_path(instance, filename):
 class UserProfile(models.Model):
     user = models.ForeignKey(User, unique=True)
     description = models.CharField(max_length=200)
-    profile_image = models.ImageField(upload_to=get_image_path, blank=True, null=True)
+    profile_image = models.ImageField(
+        upload_to=get_image_path,
+        blank=True,
+        null=True
+    )
     show_email = models.BooleanField()
 
     def __unicode__(self):  # Python 3: def __str__(self):
         return self.user.get_full_name()
+
+
+class PrivateMessages(models.Model):
+    sender = models.ForeignKey(User, related_name='sent')
+    receiver = models.ForeignKey(User, related_name='received')
+    message = models.CharField(max_length=2000)
+    date = models.DateTimeField(auto_now_add=True) #When created set to "now"
 
 
 class News(neo4j_models.NodeModel):

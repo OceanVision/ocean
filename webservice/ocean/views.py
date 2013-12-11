@@ -13,9 +13,11 @@ def index(request):
 def sign_in(request):
     return utils.render(request, 'base/sign_in.html')
 
+
 class ProfileEditForm(forms.Form):
     description = forms.CharField(max_length=200)
     show_email = forms.BooleanField(required=False)
+
 
 def edit_profile(request):
     # Read current user profile data
@@ -46,7 +48,7 @@ def edit_profile(request):
         form.fields['show_email'].initial = current_show_email
     return render(
         request,
-        'base/edit_profile.html',
+        'user_account/edit_profile.html',
         { 'form' : form }
     )
 

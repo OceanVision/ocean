@@ -4,10 +4,6 @@
 <div id="editProfileForm" class="container form" data-center_h="true" data-center_v="true" data-transit="true">
 
     <div class="leaflet"><p class="header">EDIT PROFILE</p></div>
-        <!--
-        <textarea rows="3" cols=20"></textarea><br><br>
-    <a class="submit" href="javascript:changeDescription()">submit</a><br>
-    -->
     <form action="/edit_profile" method="post">
         {% csrf_token %}
         {{ form.as_p }}
