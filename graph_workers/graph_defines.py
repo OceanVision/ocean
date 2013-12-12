@@ -16,6 +16,8 @@ HAS_INSTANCE_RELATION = "<<INSTANCE>>"
 SUBSCRIBES_TO_RELATION = "__subscribes_to__"
 PRODUCES_RELATION = "__produces__"
 LOVES_IT_RELATION = "__loves_it__"
+# Website __has__ ContentSource relation:
+HAS_RELATION = "__has__"
 
 #root = graph_db.node(0)
 
@@ -23,3 +25,6 @@ LOVES_IT_RELATION = "__loves_it__"
 NEWS_TYPE_MODEL_NAME = "News"
 NEOUSER_TYPE_MODEL_NAME = "NeoUser"
 NEWS_WEBSITE_TYPE_MODEL_NAME = "NewsWebsite"
+WEBSITE_TYPE_MODEL_NAME = 'Website'
+CONTENT_SOURCE_TYPE_MODEL_NAME = 'ContentSource'
+

@@ -49,7 +49,20 @@ class News(neo4j_models.NodeModel):
     pubdate = neo4j_models.StringProperty()
 
 
-class NewsWebsite(neo4j_models.NodeModel):
+class Website(neo4j_models.NodeModel):
+
+    def refresh(self):
+        """ Reload an object from the database """
+        return self.__class__._default_manager.get(pk=self.pk)
+
+    has = neo4j_models.Relationship('ContentSource', rel_type=HAS_RELATION, related_name='has')
+
+    link = neo4j_models.URLProperty()
+    title = neo4j_models.StringProperty()
+    language = neo4j_models.StringProperty()
+
+
+class ContentSource(neo4j_models.NodeModel):
 
     def refresh(self):
         """ Reload an object from the database """
@@ -78,10 +91,46 @@ class NeoUser(neo4j_models.NodeModel):
         """ Reload an object from the database """
         return self.__class__._default_manager.get(pk=self.pk)
 
-    subscribes_to = neo4j_models.Relationship('NewsWebsite',
-                                              rel_type=SUBSCRIBES_TO_RELATION, related_name="subscribed")
-    loves_it = neo4j_models.Relationship("News",
-                                         rel_type=LOVES_IT_RELATION, related_name="loved")
+    subscribes_to = neo4j_models.Relationship(
+        'NewsWebsite',
+        rel_type=SUBSCRIBES_TO_RELATION,
+        related_name="subscribed"
+    )
+    loves_it = neo4j_models.Relationship(
+        "News",
+        rel_type=LOVES_IT_RELATION,
+        related_name="loved"
+    )
 
     # There has to be related user in django.contrib.auth.User !! TODO: relation?
     username = neo4j_models.StringProperty()
+
+
+### DEPRECATED Models ###
+
+#TODO: Delete following code after system refactorization
+
+class NewsWebsite(neo4j_models.NodeModel):
+    """
+        DEPRECATED - will be deleted after refactorization
+    """
+
+    def refresh(self):
+        """ Reload an object from the database """
+        return self.__class__._default_manager.get(pk=self.pk)
+
+
+    produces = neo4j_models.Relationship('News', rel_type=PRODUCES_RELATION, related_name="produced")
+
+    link = neo4j_models.URLProperty()
+    title = neo4j_models.StringProperty()
+    description = neo4j_models.StringProperty()
+    image_width = neo4j_models.IntegerProperty()
+    image_height = neo4j_models.IntegerProperty()
+    image_link = neo4j_models.URLProperty()
+    image_url = neo4j_models.URLProperty()
+    language = neo4j_models.StringProperty()
+    source_type = neo4j_models.StringProperty()
+
+#NOTE: End of future deletion
+
