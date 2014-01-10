@@ -55,87 +55,88 @@ class TrendingNews(GraphView):
     period_options = ["Week", "Day", "Hour"]
 
     def get_graph(self, graph_display):
-
-
-        if "page_size" in graph_display:
-
-            if 'page' in graph_display:
-                page = int(graph_display['page'])
-                page_size = int(graph_display['page_size'])
-
-            print "TrendingNews required to post ",page,"with page_size=",page_size
-
-            a = page * page_size
-            if a < len(self.prepared_view):
-                b = (page + 1) * page_size
-                if b <= len(self.prepared_view):
-                    return self.prepared_view[a:b]
-                else:
-                    return self.prepared_view[a:]
-
-            return []
-        else:
-            return self.prepared_view
+        #TODO: refactor this shit
+        return []
+        #if "page_size" in graph_display:
+        #
+        #    if 'page' in graph_display:
+        #        page = int(graph_display['page'])
+        #        page_size = int(graph_display['page_size'])
+        #
+        #    print "TrendingNews required to post ",page,"with page_size=",page_size
+        #
+        #    a = page * page_size
+        #    if a < len(self.prepared_view):
+        #        b = (page + 1) * page_size
+        #        if b <= len(self.prepared_view):
+        #            return self.prepared_view[a:b]
+        #        else:
+        #            return self.prepared_view[a:]
+        #
+        #    return []
+        #else:
+        #    return self.prepared_view
 
     def update(self):
-        print "Updating  TrendingNews ", self.period
-        #TODO : Improve efficiency
-
-        dt_threshold = None
-        if TrendingNews.period_options[self.period] == "Week" :
-            dt_threshold = get_datetime_gmt_now() - datetime.timedelta(days=7)
-        elif TrendingNews.period_options[self.period] == "Day":
-            dt_threshold = get_datetime_gmt_now() - datetime.timedelta(days=1)
-        elif TrendingNews.period_options[self.period] == "Hour":
-            dt_threshold = get_datetime_gmt_now() - datetime.timedelta(seconds=60*60)
-
-        #TODO: add checking
-
-        timestamp = GMTdatetime_to_database_timestamp(dt_threshold)
-
-        # TODO:
-        # This query looks at every node in the graph, right : not the best idea
-        # Solution : index over timestamp (quite easy to do in neo4j - investigate and measure performance)
-
-        cypher_query = """
-            START root=node(0)
-            MATCH root-[rel:`<<TYPE>>`]->news_type-[rel2:`<<INSTANCE>>`]->news
-            WHERE news_type.name="rss:News" and news.pubdate_timestamp > { timestamp }
-            RETURN news
-            ORDER BY news.pubdate_timestamp DESC
-            LIMIT 100
-        """
-
-
-        #user.refresh()
-        #loved = [news.link for news in user.loves_it.all()]
-
-        fetched_news = [r.news for r in
-                        get_records_from_cypher(neo4j.GraphDatabaseService("http://localhost:7474/db/data/"),
-                                      cypher_query, {"timestamp": timestamp})]
-
-        preparing_view = [] #TODO: use previous results
-        colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
-
-
-        fetched_news.sort(key=lambda x:
-            int(x['pubdate_timestamp'])+
-            100000000*int(x['loved_counter']),reverse=True)
-
-        for news in fetched_news:
-            news_dict = {}
-            news_dict['pk'] = news._id
-            news_dict['loved'] = 0 #TODO: repair
-            news_dict.update(
-                {'title': news["title"], 'loved_counter': news['loved_counter'] if news['loved_counter'
-                ] is not None else 0 ,
-                 'description': news["description"], 'link': news["link"],
-                 'pubdate': news["pubdate"], 'category': 2})
-            news_dict['color'] = colors[random.randint(0, 4)]
-            preparing_view.append(news_dict)
-
-
-        self.prepared_view = preparing_view
+        #TODO: refactor this shit
+        #print "Updating  TrendingNews ", self.period
+        ##TODO : Improve efficiency
+        #
+        #dt_threshold = None
+        #if TrendingNews.period_options[self.period] == "Week" :
+        #    dt_threshold = get_datetime_gmt_now() - datetime.timedelta(days=7)
+        #elif TrendingNews.period_options[self.period] == "Day":
+        #    dt_threshold = get_datetime_gmt_now() - datetime.timedelta(days=1)
+        #elif TrendingNews.period_options[self.period] == "Hour":
+        #    dt_threshold = get_datetime_gmt_now() - datetime.timedelta(seconds=60*60)
+        #
+        ##TODO: add checking
+        #
+        #timestamp = GMTdatetime_to_database_timestamp(dt_threshold)
+        #
+        ## TODO:
+        ## This query looks at every node in the graph, right : not the best idea
+        ## Solution : index over timestamp (quite easy to do in neo4j - investigate and measure performance)
+        #
+        #cypher_query = """
+        #    START root=node(0)
+        #    MATCH root-[rel:`<<TYPE>>`]->news_type-[rel2:`<<INSTANCE>>`]->news
+        #    WHERE news_type.name="rss:News" and news.pubdate_timestamp > { timestamp }
+        #    RETURN news
+        #    ORDER BY news.pubdate_timestamp DESC
+        #    LIMIT 100
+        #"""
+        #
+        #
+        ##user.refresh()
+        ##loved = [news.link for news in user.loves_it.all()]
+        #
+        #fetched_news = [r.news for r in
+        #                get_records_from_cypher(neo4j.GraphDatabaseService("http://localhost:7474/db/data/"),
+        #                              cypher_query, {"timestamp": timestamp})]
+        #
+        #preparing_view = [] #TODO: use previous results
+        #colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
+        #
+        #
+        #fetched_news.sort(key=lambda x:
+        #    int(x['pubdate_timestamp'])+
+        #    100000000*int(x['loved_counter']),reverse=True)
+        #
+        #for news in fetched_news:
+        #    news_dict = {}
+        #    news_dict['pk'] = news._id
+        #    news_dict['loved'] = 0 #TODO: repair
+        #    news_dict.update(
+        #        {'title': news["title"], 'loved_counter': news['loved_counter'] if news['loved_counter'
+        #        ] is not None else 0 ,
+        #         'description': news["description"], 'link': news["link"],
+        #         'pubdate': news["pubdate"], 'category': 2})
+        #    news_dict['color'] = colors[random.randint(0, 4)]
+        #    preparing_view.append(news_dict)
+        #
+        #
+        #self.prepared_view = preparing_view
 
         print "Update successful"
 

@@ -180,21 +180,25 @@ class DatabaseManager:
         except Exception as e:
             return {}
 
-    #def get_all_instances(self, **params):
-    #    """
-    #        Get all instances of given type
-    #        @param
-    #    """
-    #
-    #    try:
-    #        query = \
-    #        """
-    #        START root=node(0)
-    #        MATCH root-[r:`<<TYPE>>`]->typenode-[q:`<<INSTANCE>>`]->n
-    #        WHERE typenode.model_name = { class_name }
-    #        RETURN n
-    #        """
+    def get_all_instances(self, **params):
+        """
+            Get all instances of given type
+            @param model_name Model name (for instance ContentSource)
+        """
 
+        try:
+            #TODO: this function should use get_query_results here, or fire_query for instance
+            query = \
+            """
+            START root=node(0)
+            MATCH root-[r:`<<TYPE>>`]->typenode-[q:`<<INSTANCE>>`]->n
+            WHERE typenode.model_name = { model_name }
+            RETURN n
+            """
+            params_query = {"query_string": query, "query_params": params}
+            return self.get_query_results(params_query)
+        except:
+            return {}
 
     def delete_rel(self, **params):
 
@@ -221,6 +225,11 @@ class DatabaseManager:
             return {}
 
     def get_query_results(self, **params):
+        """
+        Execute query and return nodes as python dictionaries
+        @param query_string
+        @param query_params
+        """
         try:
             query_string = params['query_string']
             query_params = params['query_params'] if 'query_params' in params else {}

@@ -49,6 +49,7 @@ class News(neo4j_models.NodeModel):
     guid = neo4j_models.URLProperty()
     pubdate = neo4j_models.StringProperty()
 
+
 class Content(neo4j_models.NodeModel):
     #TODO: dodawac to dekoratorem, lub wlasny obiekt i dziedziczyc po nim
     def refresh(self):
@@ -62,8 +63,10 @@ class Content(neo4j_models.NodeModel):
     loved_counter = neo4j_models.IntegerProperty(default=0)
     description = neo4j_models.StringProperty()
     guid = neo4j_models.URLProperty()
-    pubdate = neo4j_models.StringProperty
+    pubdate = neo4j_models.StringProperty()
 
+
+#TODO: remove after refactoring !!! - obsolete
 class Website(neo4j_models.NodeModel):
 
     def refresh(self):
@@ -84,6 +87,7 @@ class ContentSource(neo4j_models.NodeModel):
         return self.__class__._default_manager.get(pk=self.pk)
 
 
+    #TODO: change to Content
     produces = neo4j_models.Relationship('News', rel_type=PRODUCES_RELATION, related_name="produced")
 
     link = neo4j_models.URLProperty()
