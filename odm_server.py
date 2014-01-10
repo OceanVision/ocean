@@ -25,6 +25,23 @@ ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),"logs/odm_s
 ch_file.setLevel(info_level)
 logger.addHandler(ch_file)
 
+#TODO: move to utils
+def error_handle_odm(func):
+    """ This decorator will return response to message.html with error if catched error """
+    def f(request, *args, **dict_args):
+        try:
+            return func(request, *args, **dict_args)
+        except Exception, e:
+            print 'Failed {0} with {1}..'.format(
+                func.__name__, e)
+            return {}
+        except:
+            print 'Failed {0} with not registered error (not Exception?)'.format(func.__name__)
+            return {}
+
+    f.__name__ = func.__name__
+
+    return f
 
 class DatabaseManager:
     """ Driver for Neo4j database """
@@ -41,70 +58,65 @@ class DatabaseManager:
         self._init_uuid_images()
         self._init_types()
 
+    @error_handle_odm
     def get_by_uuid(self, **params):
-        try:
-            node_uuid = params['node_uuid']
+        node_uuid = params['node_uuid']
 
-            if node_uuid not in self._uuid_images:
-                return {}
-
-            query_string = 'START e=node({node_id})\n' \
-                           'RETURN e'
-            cypher_query = neo4j.CypherQuery(self._graph_db, query_string)
-            query_results = cypher_query.execute(node_id=self._uuid_images[node_uuid])
-
-            if len(query_results) == 0:
-                raise
-            return query_results[0].values[0].get_properties()
-        except Exception, e:
-            logger.log(error_level, "Failed get_by_uuid "+str(e))
+        if node_uuid not in self._uuid_images:
             return {}
 
+        query_string = 'START e=node({node_id})\n' \
+                       'RETURN e'
+        cypher_query = neo4j.CypherQuery(self._graph_db, query_string)
+        query_results = cypher_query.execute(node_id=self._uuid_images[node_uuid])
+
+        if len(query_results) == 0:
+            raise Exception("Query failed") # Are we throwing errors or not?
+
+
+        return query_results[0].values[0].get_properties()
+
+    @error_handle_odm
     def get_by_link(self, **params):
-        try:
-            type = params['type']
-            link = params['link']
+        type = params['type']
+        link = params['link']
 
-            if type not in self._type_images:
-                return {}
-
-            type_id = self._uuid_images[self._type_images[type]]
-            query_string = 'START e=node({type_id})\n' \
-                           'MATCH (e)-[]->(a)\n' \
-                           'WHERE a.link={link}\n' \
-                           'RETURN a'
-            cypher_query = neo4j.CypherQuery(self._graph_db, query_string)
-            query_results = cypher_query.execute(type_id=type_id,
-                                                 link=str(link))
-
-            if len(query_results) == 0:
-                return {}
-            return query_results[0].values[0].get_properties()
-        except:
+        if type not in self._type_images:
             return {}
 
+        type_id = self._uuid_images[self._type_images[type]]
+        query_string = 'START e=node({type_id})\n' \
+                       'MATCH (e)-[]->(a)\n' \
+                       'WHERE a.link={link}\n' \
+                       'RETURN a'
+        cypher_query = neo4j.CypherQuery(self._graph_db, query_string)
+        query_results = cypher_query.execute(type_id=type_id,
+                                             link=str(link))
+
+        if len(query_results) == 0:
+            return {}
+        return query_results[0].values[0].get_properties()
+
+    @error_handle_odm
     def set(self, **params):
-        try:
-            node_uuid = params['node_uuid']
-            node_params = params['node_params']
+        node_uuid = params['node_uuid']
+        node_params = params['node_params']
 
-            if node_uuid not in self._uuid_images:
-                return {}
-
-            query_string = 'START e=node({node_id})\n' \
-                           'SET {node_params}\n' \
-                           'RETURN e'.format(node_id=self._uuid_images[node_uuid],
-                                             node_params=self._str(node_params))
-            # nie wiem jeszcze jak inaczej parametryzowac tutaj, to bardziej zlozona sprawa
-            cypher_query = neo4j.CypherQuery(self._graph_db, query_string)
-            query_results = cypher_query.execute()
-
-            if len(query_results) == 0:
-                raise
-            return query_results[0].values[0].get_properties()
-        except Exception as e:
-            print e.message
+        if node_uuid not in self._uuid_images:
             return {}
+
+        query_string = 'START e=node({node_id})\n' \
+                       'SET {node_params}\n' \
+                       'RETURN e'.format(node_id=self._uuid_images[node_uuid],
+                                         node_params=self._str(node_params))
+        # nie wiem jeszcze jak inaczej parametryzowac tutaj, to bardziej zlozona sprawa
+        cypher_query = neo4j.CypherQuery(self._graph_db, query_string)
+        query_results = cypher_query.execute()
+
+        if len(query_results) == 0:
+            raise
+        return query_results[0].values[0].get_properties()
+
 
     def add_node(self, **params):
         try:
@@ -179,26 +191,23 @@ class DatabaseManager:
             return query_results[0].values[0].get_properties()
         except Exception as e:
             return {}
-
+    @error_handle_odm
     def get_all_instances(self, **params):
         """
             Get all instances of given type
             @param model_name Model name (for instance ContentSource)
         """
 
-        try:
-            #TODO: this function should use get_query_results here, or fire_query for instance
-            query = \
-            """
-            START root=node(0)
-            MATCH root-[r:`<<TYPE>>`]->typenode-[q:`<<INSTANCE>>`]->n
-            WHERE typenode.model_name = { model_name }
-            RETURN n
-            """
-            params_query = {"query_string": query, "query_params": params}
-            return self.get_query_results(params_query)
-        except:
-            return {}
+        query = \
+        """
+        START root=node(0)
+        MATCH root-[r:`<<TYPE>>`]->typenode-[q:`<<INSTANCE>>`]->n
+        WHERE typenode.model_name = { model_name }
+        RETURN n
+        """
+        params_query = {"query_string": query, "query_params": params}
+        return self.get_query_results(**params_query)
+
 
     def delete_rel(self, **params):
 

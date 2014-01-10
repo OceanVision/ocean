@@ -28,14 +28,15 @@ class ODMClient():
         try:
             self._conn.close()
         except Exception as e:
-            print 'Disconnecting failed.', e.message
+            print 'Disconnecting failed.', str(e)
+
         print 'The client has disconnected.'
 
     def _send(self, data):
         try:
             self._conn.send(json.dumps(data))
         except Exception as e:
-            print 'Sending data failed.', e.message
+            print 'Sending data failed.', str(e)
 
     def _recv(self):
         data = None
@@ -43,7 +44,7 @@ class ODMClient():
             received_data = str(self._conn.recv(8192))
             data = json.loads(received_data) if len(received_data) > 0 else {}
         except Exception as e:
-            print 'Receiving data failed.', e.message
+            print 'Receiving data failed.', str(e)
         return data
 
     def get_by_uuid(self, node_uuid):
@@ -140,6 +141,18 @@ class ODMClient():
         }}
         self._send(data)
         return self._recv()
+
+    def __getattr__(self, item):
+        """ Generic function calling in case there is no explicitly defined function, but there is such function in ODMServer """
+        try:
+            return getattr(self, item)
+        except:
+            def generic_result(**params):
+                data = {'func_name' : item, 'params':params}
+                print data
+                self._send(data)
+                return self._recv()
+            return generic_result
 
 # if __name__ == "__main__":
     # client = Client()
