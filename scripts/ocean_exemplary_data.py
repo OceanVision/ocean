@@ -8,6 +8,7 @@ from py2neo import neo4j
 from py2neo import node, rel
 import time
 import sys
+import uuid
 
 sys.path.append('../graph_workers/')
 from graph_defines import *
@@ -48,21 +49,25 @@ if __name__ == "__main__":
     ### Add webservice types ###
     types = [
         node(
+            uuid=str(uuid.uuid1()),
             app_label=APP_LABEL,
             name=APP_LABEL+':'+WEBSITE_TYPE_MODEL_NAME,
             model_name=WEBSITE_TYPE_MODEL_NAME
         ),
         node(
+            uuid=str(uuid.uuid1()),
             app_label=APP_LABEL,
             name=APP_LABEL+':'+NEOUSER_TYPE_MODEL_NAME,
             model_name=NEOUSER_TYPE_MODEL_NAME
         ),
         node(
+            uuid=str(uuid.uuid1()),
             app_label=APP_LABEL,
             name=APP_LABEL+':'+NEWS_TYPE_MODEL_NAME,
             model_name=NEWS_TYPE_MODEL_NAME
         ),
         node(
+            uuid=str(uuid.uuid1()),
             app_label=APP_LABEL,
             name=APP_LABEL+':'+CONTENT_SOURCE_TYPE_MODEL_NAME,
             model_name=CONTENT_SOURCE_TYPE_MODEL_NAME
@@ -82,6 +87,7 @@ if __name__ == "__main__":
     # Old version types
     old_types = [
         node(
+            uuid=str(uuid.uuid1()),
             app_label=APP_LABEL,
             name=APP_LABEL+':'+NEWS_WEBSITE_TYPE_MODEL_NAME,
             model_name=NEWS_WEBSITE_TYPE_MODEL_NAME
@@ -98,10 +104,10 @@ if __name__ == "__main__":
     ### Add users ###
     # Create nodes
     users = [
-        node(username="kudkudak"),
-        node(username="konrad"),
-        node(username="brunokam"),
-        node(username="szymon")
+        node(uuid=str(uuid.uuid1()), username="kudkudak"),
+        node(uuid=str(uuid.uuid1()), username="konrad"),
+        node(uuid=str(uuid.uuid1()), username="brunokam"),
+        node(uuid=str(uuid.uuid1()), username="szymon")
     ]
     users = graph_db.create(*users)
     # Create instance relations
@@ -119,16 +125,19 @@ if __name__ == "__main__":
     ### Add websites ###
     websites = [
         node(
+            uuid=str(uuid.uuid1()),
             link='http://www.gry-online.pl/',
             title='GRY-OnLine',
             language='pl',
         ),
         node(
+            uuid=str(uuid.uuid1()),
             link='http://www.wp.pl/',
             title='Wirtualna Polska',
             language='pl',
         ),
         node(
+            uuid=str(uuid.uuid1()),
             link='http://www.tvn24.pl/',
             title='TVN24.pl - Wiadomosci z kraju i ze swiata',
             language='pl',
@@ -145,6 +154,7 @@ if __name__ == "__main__":
     # Create nodes
     content_sources_list = [
         node(
+            uuid=str(uuid.uuid1()),
             link="http://www.gry-online.pl/rss/news.xml",
             title="GRY-OnLine Wiadomosci",
             description="Najnowsze Wiadomosci",
@@ -157,6 +167,7 @@ if __name__ == "__main__":
             source_type="rss"
         ),
         node(
+            uuid=str(uuid.uuid1()),
             link="http://wiadomosci.wp.pl/kat,1329,ver,rss,rss.xml",
             title="Wiadomosci WP - Wiadomosci - Wirtualna Polska",
             description="Wiadomosci.wp.pl to serwis, dzieki ktoremu mozna \
@@ -170,6 +181,7 @@ zapoznac sie z biezaca sytuacja w kraju i na swiecie.",
             source_type="rss"
         ),
         node(
+            uuid=str(uuid.uuid1()),
             link="http://www.tvn24.pl/najwazniejsze.xml",
             title="TVN24.pl - Wiadomosci z kraju i ze swiata - najnowsze \
 informacje w TVN24",
@@ -232,7 +244,7 @@ relacje na zywo i wiele wiecej.",
     #    title="Wypadek busa w Egipcie. Rannych zostalo dwoch Polakow",
     #    description="Szesciu cudzoziemcow, w tym dwoch Polakow, zostalo rannych w wypadku drogowym w Egipcie. "
     #                "Do zdarzenia doszlo na drodze miedzy Kairem a Aleksandria - informuje serwis ruvr.ru.",
-    #    guid="http://wiadomosci.wp.pl/kat,1329,title,Wypadek-busa-w-Egipcie-Rannych-zostalo-dwoch-Polakow,wid,"
+    #    guuid="http://wiadomosci.wp.pl/kat,1329,title,Wypadek-busa-w-Egipcie-Rannych-zostalo-dwoch-Polakow,wid,"
     #         "16151839,wiadomosc.html"
     #)
     #, node(
@@ -240,7 +252,7 @@ relacje na zywo i wiele wiecej.",
     #                           "trzecich,369594,s.html",
     #    title="Naukowcy: slady polonu w ciele Arafata sugeruja udzial osob trzecich",
     #    description="Palestynskiego lidera otruto w roku 2004.",
-    #    guid="http://www.tvn24.pl/naukowcy-slady-polonu-w-ciele-arafata-sugeruja-udzial-osob-trzecich,369594,s.html"
+    #    guuid="http://www.tvn24.pl/naukowcy-slady-polonu-w-ciele-arafata-sugeruja-udzial-osob-trzecich,369594,s.html"
     #)
     #]
     #
