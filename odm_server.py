@@ -180,7 +180,24 @@ class DatabaseManager:
         except Exception as e:
             return {}
 
+    #def get_all_instances(self, **params):
+    #    """
+    #        Get all instances of given type
+    #        @param
+    #    """
+    #
+    #    try:
+    #        query = \
+    #        """
+    #        START root=node(0)
+    #        MATCH root-[r:`<<TYPE>>`]->typenode-[q:`<<INSTANCE>>`]->n
+    #        WHERE typenode.model_name = { class_name }
+    #        RETURN n
+    #        """
+
+
     def delete_rel(self, **params):
+
         try:
             start_node_uuid = params['start_node_uuid']
             end_node_uuid = params['end_node_uuid']
@@ -191,6 +208,7 @@ class DatabaseManager:
             start_node_id = self._uuid_images[start_node_uuid]
             end_node_id = self._uuid_images[end_node_uuid]
 
+            #TODO: this function should use get_query_results here, or fire_query for instance
             query_string = 'START a=node({start_node_id}), b=node({end_node_id})\n' \
                            'MATCH (a)-[r]-(b)\n' \
                            'DELETE r'
@@ -221,6 +239,7 @@ class DatabaseManager:
 
     def _init_types(self):
         self._type_images.clear()
+        #TODO: this function should use get_query_results here
         query = 'START e=node(0)\n' \
                 'MATCH e-[]->t\n' \
                 'RETURN t.uuid, t'

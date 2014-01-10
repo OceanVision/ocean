@@ -33,6 +33,7 @@ class PrivateMessages(models.Model):
     date = models.DateTimeField(auto_now_add=True) #When created set to "now"
 
 
+#TODO: remove after refactoring !!! - obsolete
 class News(neo4j_models.NodeModel):
     #TODO: dodawac to dekoratorem, lub wlasny obiekt i dziedziczyc po nim
     def refresh(self):
@@ -48,6 +49,20 @@ class News(neo4j_models.NodeModel):
     guid = neo4j_models.URLProperty()
     pubdate = neo4j_models.StringProperty()
 
+class Content(neo4j_models.NodeModel):
+    #TODO: dodawac to dekoratorem, lub wlasny obiekt i dziedziczyc po nim
+    def refresh(self):
+        """ Reload an object from the database """
+        return self.__class__._default_manager.get(pk=self.pk)
+
+    title = neo4j_models.StringProperty()
+
+    link = neo4j_models.URLProperty()
+    #First analytic field!
+    loved_counter = neo4j_models.IntegerProperty(default=0)
+    description = neo4j_models.StringProperty()
+    guid = neo4j_models.URLProperty()
+    pubdate = neo4j_models.StringProperty
 
 class Website(neo4j_models.NodeModel):
 
