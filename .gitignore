@@ -11,3 +11,6 @@ webservice/ocean/settings_local.py
 
 # Local log files
 logs/
+
+# Other directories
+.idea/
