@@ -5,7 +5,7 @@ HOST = 'localhost'
 PORT = 7777
 
 
-class Client():
+class ODMClient():
     def __init__(self):
         self._host = HOST
         self._port = PORT

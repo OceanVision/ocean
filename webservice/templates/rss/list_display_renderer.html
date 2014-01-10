@@ -16,7 +16,7 @@
             <span style="font-size:small;">{{ item.pubdate }}</span>
 
 
-
+            {% ifequal likeable 1 %}
             <a class ="love_it_button" href="#" news_pk="{{ item.pk }}" >
                 {% ifequal item.loved 0 %}
                 <img class="love_it_image" news_pk="{{ item.pk }}" src="{% static 'base/img/heart.png' %}" title="You love it man" >
@@ -25,6 +25,7 @@
                 <img class="love_it_image" news_pk="{{ item.pk }}" src="{% static 'base/img/grayheart.png' %}" title="You definitely don't" >
                 {% endifnotequal %}
             </a>
+            {% endifequal %}
         </p>
 
     </div>

@@ -1,10 +1,10 @@
 """
-Prototype for job fetching news.
+Prototype for job fetching news
 
-First version support threads and workers very locally (cannot scale beyond single machine).append
+First version support threads and workers very locally (cannot scale beyond single machine)
 
 News fetcher definition - Graph Worker working on sources of content, which are rss feeds :)
-Currently it measns working on all NewsWebsites
+Currently it measns working on all ContentSources
 
 Quick note (TODO: move it) about datetime in database:
 d = datetime.fromtimestamp(news_website[NEWS_WEBSITE_LAST_UPDATE]
@@ -17,10 +17,13 @@ d = d.replace(tzinfo = timezone("GMT")) - otherwise the system won't work proper
 #TODO: Handle carefully time (UTC not GMT)
 
 import sys
+import os
 import copy
 from collections import namedtuple
-sys.path.append("..")
+sys.path.append(os.path.join(os.path.dirname(__file__),".."))
 import inspect
+
+from odm_client import ODMClient
 
 from graph_worker import GraphWorker
 import logging
@@ -62,7 +65,7 @@ logger.addHandler(ch_file)
 import threading
 class NewsFetcher(GraphWorker):
     required_privileges = construct_full_privilege()
-    minimum_time_delta_to_update = 0 #TODO: replace
+    minimum_time_delta_to_update = 0
 
     def __init__(self, privileges, master_descriptor=None):
         if not privileges_bigger_or_equal(privileges, NewsFetcher.required_privileges):
@@ -70,6 +73,9 @@ class NewsFetcher(GraphWorker):
 
         # initialize connection. one connection per graph_worker
         self.graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
+
+        self.odm_connection = ODMClient()
+
         self.privileges = copy.deepcopy(privileges)
             # used for interprocess communication, simillar do CV :)
             # master sends terminate to workers and termiantes gracefully itself
@@ -91,6 +97,10 @@ class NewsFetcher(GraphWorker):
 
 
     def process(self, job):
+        """
+        Process job
+        @param job is a dictionary with field neo4j_node
+        """
         news_nodes = self._fetch_news(job.neo4j_node)
         logger.log(MY_DEBUG_LEVEL, "Fetched "+str(len(news_nodes))+" from "+job.neo4j_node["link"])
         n = self._add_news_to_graph(job.neo4j_node, news_nodes)
@@ -135,14 +145,15 @@ class NewsFetcher(GraphWorker):
                 to id by node._id :)
                 if there were no needed fields, they are added :)
         """
-        news_websites = []
-        for n in get_all_instances(self.graph_db, "rss:NewsWebsite"):
-            news_websites.append(n)
-            if NEWS_WEBSITE_LAST_UPDATE not in news_websites[-1]:
-                logger.log(MY_DEBUG_LEVEL, "Adding last_updated field to "+unicode(news_websites[-1]))
-                news_websites[-1][NEWS_WEBSITE_LAST_UPDATE] = 0
+        rss_content_sources = []
+        for n in get_all_instances(self.graph_db, "rss:"+CONTENT_SOURCE_TYPE_MODEL_NAME):
+            if n[CONTENT_SOURCE_RSS_TYPE] == "rss":
+                rss_content_sources.append(n)
+                if CONTENT_SOURCE_LAST_UPDATE not in rss_content_sources[-1]:
+                    logger.log(MY_DEBUG_LEVEL, "Adding last_updated field to "+unicode(rss_content_sources[-1]))
+                    rss_content_sources[-1][CONTENT_SOURCE_LAST_UPDATE] = 0
 
-        return news_websites
+        return rss_content_sources
 
     def _add_news_to_graph(self, news_website, list_of_news):
         """
@@ -157,9 +168,9 @@ class NewsFetcher(GraphWorker):
 
             @returns number of nodes added
         """
-        last_updated = database_timestamp_to_datetime(news_website[NEWS_WEBSITE_LAST_UPDATE])
+        last_updated = database_timestamp_to_datetime(news_website[CONTENT_SOURCE_LAST_UPDATE])
         logger.log(MY_INFO_LEVEL, "Last updated news_website is "+str(last_updated))
-        news_type_node = get_type_metanode(self.graph_db, NEWS_TYPE_MODEL_NAME)
+        news_type_node = get_type_metanode(self.graph_db, CONTENT_TYPE_MODEL_NAME)
 
         # We need this node to add HAS_INSTANCE_RELATION
         nodes_to_add = []
@@ -175,14 +186,14 @@ class NewsFetcher(GraphWorker):
                     newest_id = id
 
         if len(nodes_to_add) == 0:
-            logger.log(MY_INFO_LEVEL, "Warning: No nodes added for "+str(news_website[NEWS_WEBSITE_LINK]))
+            logger.log(MY_INFO_LEVEL, "Warning: No nodes added for "+str(news_website[CONTENT_SOURCE_LINK]))
             return 0
 
         logger.log(MY_INFO_IMPORTANT_LEVEL, "Updating last_updated to "+str(newest))
 
         news_website.update_properties(
             {
-                NEWS_WEBSITE_LAST_UPDATE:
+                CONTENT_SOURCE_LAST_UPDATE:
                 GMTdatetime_to_database_timestamp(newest)
             }
         )  # using graph_db used to fetch this node!!
@@ -218,10 +229,10 @@ class NewsFetcher(GraphWorker):
             @param news_website is a dictionary (with uri)
             @returns lists of all news of website
         """
-        if news_website[NEWS_WEBSITE_RSS_TYPE] != "rss":
+        if news_website[CONTENT_SOURCE_RSS_TYPE] != "rss":
             raise NotImplementedError()
 
-        rss_link = news_website[NEWS_WEBSITE_LINK]
+        rss_link = news_website[CONTENT_SOURCE_LINK]
 
         try:
             response = urllib2.urlopen(rss_link)
@@ -236,10 +247,10 @@ class NewsFetcher(GraphWorker):
 
         # Default iteration stop
         if newer_than is None:
-            logger.log(MY_INFO_LEVEL, ("News website "+news_website[NEWS_WEBSITE_LINK],
-                "last_updated ", database_timestamp_to_datetime(news_website[NEWS_WEBSITE_LAST_UPDATE]))
+            logger.log(MY_INFO_LEVEL, ("News website "+news_website[CONTENT_SOURCE_LINK],
+                "last_updated ", database_timestamp_to_datetime(news_website[CONTENT_SOURCE_LAST_UPDATE]))
             )
-            newer_than = database_timestamp_to_datetime(news_website[NEWS_WEBSITE_LAST_UPDATE])
+            newer_than = database_timestamp_to_datetime(news_website[CONTENT_SOURCE_LAST_UPDATE])
 
         logger.log(MY_INFO_LEVEL, "Fetching news from "+str(rss_link)+" newer_than "+str(newer_than))
 
@@ -268,7 +279,7 @@ class NewsFetcher(GraphWorker):
 
             d = pubdate_to_datetime(try_get_node_value(item, "pubDate"))
 
-            news_node[NEWS_PUBDATE_TIMESTAMP] = GMTdatetime_to_database_timestamp(d)
+            news_node[CONTENT_PUBDATE_TIMESTAMP] = GMTdatetime_to_database_timestamp(d)
 
             if newer_than is None or d > newer_than: # Not sorted :(
                     news_node["pubdate"] = datetime_to_pubdate(d)

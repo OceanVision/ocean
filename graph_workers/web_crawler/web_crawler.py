@@ -215,7 +215,7 @@ class WebCrawler(GraphWorker):
             self.master = self
             # Init first job
             if start_url == None:
-                start_url = self._get_random_newsfeed()[NEWS_WEBSITE_LINK]
+                start_url = self._get_random_newsfeed()[CONTENT_SOURCE_LINK]
                 logger.info("No start_url provided - selected " + str(start_url) + " !")
             start_url_node_id = self._get_url_db_node_id(start_url)
             self.job_list = WebCrawlerJobList()

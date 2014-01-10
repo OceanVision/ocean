@@ -3,7 +3,7 @@ Will be rewritten to database driven communication
 """
 import sys,os
 
-lib_path = os.path.abspath('./news_fetcher')
+lib_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'news_fetcher'))
 sys.path.append(lib_path)
 print __file__
 

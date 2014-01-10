@@ -9,8 +9,10 @@ from py2neo import node, rel
 import time
 import sys
 import uuid
-
+import os
 sys.path.append('../graph_workers/')
+lib_path = os.path.abspath('./graph_workers')
+sys.path.append(lib_path)
 from graph_defines import *
 
 APP_LABEL = 'rss'
@@ -63,8 +65,8 @@ if __name__ == "__main__":
         node(
             uuid=str(uuid.uuid1()),
             app_label=APP_LABEL,
-            name=APP_LABEL+':'+NEWS_TYPE_MODEL_NAME,
-            model_name=NEWS_TYPE_MODEL_NAME
+            name=APP_LABEL+':'+CONTENT_TYPE_MODEL_NAME,
+            model_name=CONTENT_TYPE_MODEL_NAME
         ),
         node(
             uuid=str(uuid.uuid1()),

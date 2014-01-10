@@ -29,8 +29,6 @@ def get_category_array(graph_display):
     return category_array
 
 
-
-
 @utils.error_writing
 @utils.timed
 def get_loved_it_list(request):
@@ -42,7 +40,6 @@ def get_loved_it_list(request):
 @utils.error_writing
 @utils.timed
 def loved_it(request):
-    #TODO: how to handle errors in views like this?
     if 'pk' not in request.GET:
         raise Exception("Not passed primary key to loved_it view")
     news = News.objects.filter(pk=int(request.GET['pk']))[0] #TODO: add some kind of caching here
@@ -117,8 +114,6 @@ def graph_view_all_subscribed(graph_display):
 
         rss_items_array = []  # building news to be rendered (isn't very efficient..)
         user = NeoUser.objects.filter(username__exact=graph_display["username"])[0]
-
-
 
 
         user.refresh()
@@ -342,7 +337,6 @@ def add_channel(request):
         if list[0] is None:
             link = request.GET["link"].encode("utf8").split("?ajax=ok")[0]
             if not NewsWebsite.objects.filter(link=link):
-
                 def get_node_value(node, value):
                     searched_nodes = node.getElementsByTagName(value)
                     if searched_nodes:
@@ -350,9 +344,6 @@ def add_channel(request):
                         if childs:
                             return childs[0].nodeValue.strip()
                     return ""
-
-                #def get_node_value(node, value):
-                #    return node.getElementsByTagName(value)[0].childNodes[0].nodeValue.strip()
 
                 #TODO: Try to solve "?ajax=ok" problem another way.
                 response = urllib2.urlopen(request.GET["link"].split("?ajax=ok")[0])
@@ -390,11 +381,6 @@ def add_channel(request):
             user.subscribes_to.add(channel_node)
             user.save()
 
-            # Another way
-            #graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
-            #subscribe_relation = py2neo.rel(user, models.SUBSCRIBES_TO_RELATION, channel_node)
-            #graph_db.create(subscribe_relation)
-
             return manage(request)
         else:
             return render(request, 'rss/message.html', {'message': 'Channel already exists in users subscriptions'})
@@ -426,12 +412,6 @@ def delete_channel(request):
                             "DELETE rel; "
             my_batch.append_cypher(delete_cypher, {"link": request.GET["link"].encode("utf8").split("?ajax=ok")[0]})
             my_batch.submit()
-
-            # Doesn't work because of "lazy nodes"
-            # channel = user.subscribes_to.filter(link__exact=request.GET["link"])[0]
-            # channel.subscribed.remove(user)
-            # user.save()
-
             #return HttpResponse(content="Ok")
             return manage(request)
         else:

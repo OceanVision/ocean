@@ -1,51 +1,45 @@
 from py2neo import neo4j
 import uuid
+import os
 import socket
 from threading import Thread, Lock
 import json
 
 
+
+# Logging (TODO: move creation of logger to utils)
+import logging
+
+# Defining levels to get rid of other loggers
+info_level = 100
+error_level = 200
+
+logging.basicConfig(level=info_level)
+logger = logging.getLogger(__name__ + "_ocean")
+ch = logging.StreamHandler()
+formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+logger.propagate = False
+ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),"logs/odm_server.log"), )
+ch_file.setLevel(info_level)
+logger.addHandler(ch_file)
+
+
 class DatabaseManager:
+    """ Driver for Neo4j database """
+
     def __init__(self):
+        """Create DatabaseManager driver"""
+
+        logger.log(info_level, "Created DatabaseManager object")
+
         self._graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
         self._uuid_images = dict()
         self._type_images = dict()
 
         self._init_uuid_images()
         self._init_types()
-
-    def _init_types(self):
-        self._type_images.clear()
-        query = 'START e=node(0)\n' \
-                'MATCH e-[]->t\n' \
-                'RETURN t.uuid, t'
-        cypher_query = neo4j.CypherQuery(self._graph_db, query)
-        query_results = cypher_query.execute()
-        for record in query_results:
-            key = record.values[1]['model_name']
-            value = record.values[0]
-            self._type_images[key] = value
-
-    def _init_uuid_images(self):
-        self._uuid_images.clear()
-        query = 'START e=node(*)\n' \
-                'WHERE id(e) <> 0\n' \
-                'RETURN id(e), e'
-        cypher_query = neo4j.CypherQuery(self._graph_db, query)
-        query_results = cypher_query.execute()
-        for record in query_results:
-            key = record.values[1]['uuid']
-            value = record.values[0]
-            self._uuid_images[key] = value
-
-    def _str(self, dictionary, element='e'):
-        string = ''
-        for (key, value) in dictionary.iteritems():
-            if isinstance(value, basestring):
-                string += ',' + str(element) + '.' + str(key) + '=' + '"' + str(value) + '"'
-            else:
-                string += ',' + str(element) + '.' + str(key) + '=' + str(value)
-        return str(string[1:])
 
     def get_by_uuid(self, **params):
         try:
@@ -62,7 +56,8 @@ class DatabaseManager:
             if len(query_results) == 0:
                 raise
             return query_results[0].values[0].get_properties()
-        except:
+        except Exception, e:
+            logger.log(error_level, "Failed get_by_uuid "+str(e))
             return {}
 
     def get_by_link(self, **params):
@@ -223,6 +218,43 @@ class DatabaseManager:
             return []
 
 
+
+    def _init_types(self):
+        self._type_images.clear()
+        query = 'START e=node(0)\n' \
+                'MATCH e-[]->t\n' \
+                'RETURN t.uuid, t'
+        cypher_query = neo4j.CypherQuery(self._graph_db, query)
+        query_results = cypher_query.execute()
+        for record in query_results:
+            key = record.values[1]['model_name']
+            value = record.values[0]
+            self._type_images[key] = value
+
+    def _init_uuid_images(self):
+        self._uuid_images.clear()
+        query = 'START e=node(*)\n' \
+                'WHERE id(e) <> 0\n' \
+                'RETURN id(e), e'
+        cypher_query = neo4j.CypherQuery(self._graph_db, query)
+        query_results = cypher_query.execute()
+        for record in query_results:
+            key = record.values[1]['uuid']
+            value = record.values[0]
+            self._uuid_images[key] = value
+
+    def _str(self, dictionary, element='e'):
+        string = ''
+        for (key, value) in dictionary.iteritems():
+            if isinstance(value, basestring):
+                string += ',' + str(element) + '.' + str(key) + '=' + '"' + str(value) + '"'
+            else:
+                string += ',' + str(element) + '.' + str(key) + '=' + str(value)
+        return str(string[1:])
+
+
+
+
 class Connection():
     def __init__(self, client_id, conn):
         self.id = client_id
@@ -250,7 +282,7 @@ class Connection():
             print 'Disconnecting with client', self.id, 'failed.', e.message
 
 
-class Server():
+class ODMServer():
     def __init__(self, host, port):
         self._host = host
         self._port = port
@@ -313,5 +345,5 @@ HOST = 'localhost'
 PORT = 7777
 
 if __name__ == '__main__':
-    server = Server(HOST, PORT)
+    server = ODMServer(HOST, PORT)
     server.start()

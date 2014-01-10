@@ -3,12 +3,12 @@ This file defines constants used in graph operations
 """
 
 
-NEWS_WEBSITE_LAST_UPDATE = "last_updated"
-NEWS_WEBSITE_LINK = "link"
-NEWS_WEBSITE_RSS_TYPE = "source_type"
+CONTENT_SOURCE_LAST_UPDATE = "last_updated"
+CONTENT_SOURCE_LINK = "link"
+CONTENT_SOURCE_RSS_TYPE = "source_type"
 
-NEWS_PUBDATE_TIMESTAMP = "pubdate_timestamp"
-NEWS_PUBDATE = "pubdate"
+CONTENT_PUBDATE_TIMESTAMP = "pubdate_timestamp"
+CONTENT_PUBDATE = "pubdate"
 
 
 HAS_TYPE_RELATION = "<<TYPE>>"
@@ -22,7 +22,7 @@ HAS_RELATION = "__has__"
 #root = graph_db.node(0)
 
 
-NEWS_TYPE_MODEL_NAME = "News"
+CONTENT_TYPE_MODEL_NAME = "Content"
 NEOUSER_TYPE_MODEL_NAME = "NeoUser"
 NEWS_WEBSITE_TYPE_MODEL_NAME = "NewsWebsite"
 WEBSITE_TYPE_MODEL_NAME = 'Website'
