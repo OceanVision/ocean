@@ -181,13 +181,13 @@ class DatabaseManager:
         node_id = self._uuid_images[parent_uuid]
 
 
-        cypher_query = \
-            """
-            START parent=node( {node_id} )
-            MATCH parent-[r: `{rel_name}` ]->children
-            """
+        #TODO: how to add WHERE by params using parameters in cypher
+        #TODO: `{rel_name}` not working
+
+        cypher_query = "START parent=node( {node_id} )\n"
+        cypher_query += "MATCH parent-[r: `{0}` ]->children\n".format(rel_name)
         if len(params):
-            cypher_query = cypher_query + "WHERE" + " ".join(["children."+str(k)+"="+str(v) for (k, v) in params.iteritems()]) +"\n"
+            cypher_query = cypher_query + "WHERE " + " ".join(["children."+str(k)+"="+json.dumps(v) for (k, v) in params.iteritems()]) +"\n"
         cypher_query = cypher_query + "RETURN children"
 
         print cypher_query

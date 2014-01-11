@@ -49,10 +49,24 @@ if __name__ == "__main__":
             print "Found type ", t
             type_content_source = t
 
+    ### Retrieve all instances by get_all_children and after that ###
+    ### recieve only the first one ###
     assert(type_content_source is not None)
 
-    print cl.get_all_children(parent_uuid=type_content_source["uuid"], rel_name="<<INSTANCE>>")
+    all_children = db.get_all_children(parent_uuid=type_content_source["uuid"], rel_name="<<INSTANCE>>")
+    
+    assert(len(all_children) > 2)
 
+    picked_child = all_children[0]
+    
+    picked_child_queried = db.get_all_children(parent_uuid=type_content_source["uuid"], 
+        rel_name="<<INSTANCE>>", link=picked_child["link"])
+
+    print picked_child
+    print picked_child_queried
+
+    assert(len(picked_child_queried) == 1 and \
+        picked_child_queried[0]["uuid"] == picked_child["uuid"])
     
 
         
