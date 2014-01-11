@@ -269,8 +269,7 @@ class DatabaseManager:
         rel_results = self.add_rel(start_node_uuid=self._model_name_images[model_name],
                                    end_node_uuid=node_params['uuid'],
                                    rel_type='<<INSTANCE>>')
-        return {'node': node_results[0][1],
-                'rel': rel_results}
+        return {'uuid': node_results[0][1]["uuid"]}
 
     @error_handle_odm
     def delete_node(self, **params):

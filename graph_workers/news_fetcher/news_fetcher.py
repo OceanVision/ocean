@@ -71,9 +71,6 @@ class NewsFetcher(GraphWorker):
         if not privileges_bigger_or_equal(privileges, NewsFetcher.required_privileges):
             raise Exception("Not enough privileges")
 
-        # initialize connection. one connection per graph_worker
-        self.graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
-
         self.odm_client = ODMClient()
         logger.log(MY_INFO_LEVEL, "Conneting to ODM Service")
         self.odm_client.connect()
@@ -161,11 +158,6 @@ class NewsFetcher(GraphWorker):
         """
             @param news_website -
                 node to which we will attach the news
-                **note** : assumes that are sorted newer to older !!!
-                **note** : news_website has to have OPEN graph_db connection,
-                best option : THE SAME AS self.graph_db!! (news_website.graph_db) !!
-
-
             Adds news to graph taking care of all metadata
 
             @returns number of nodes added
@@ -215,25 +207,17 @@ class NewsFetcher(GraphWorker):
 
 
         for n in nodes_to_add:
-            print "Adding node ", n
-            self.odm_client.add_node(model_name=CONTENT_TYPE_MODEL_NAME, node_params=n)
-            print "Contents (news) in the graph: ", len(self.odm_client.get_all_instances(model_name=CONTENT_TYPE_MODEL_NAME))
+            n["uuid"] = self.odm_client.add_node(model_name=CONTENT_TYPE_MODEL_NAME, node_params=n)["uuid"]
+            self.odm_client.add_rel(start_node_uuid=news_website["uuid"],
+                                    end_node_uuid=n["uuid"],
+                                    rel_type=PRODUCES_RELATION,
+                                    rel_params={}
+                                    )
 
-
-        #nodes_added = self.graph_db.create(*nodes_to_add)
-        #
-
-        #produces_relations = [py2neo.rel(news_website, PRODUCES_RELATION, content)
-        #                      for content in nodes_added]
-
-        #
-        #
-        #self.graph_db.create(*instance_relations)
-        #self.graph_db.create(*produces_relations)
 
         logger.log(MY_INFO_LEVEL, "Updating NewsWebsite "+unicode(news_website))
-        logger.log(MY_INFO_LEVEL, "Added for instance "+unicode(nodes_added[0]["title"]))
-        #return len(nodes_added)
+        logger.log(MY_INFO_LEVEL, "Added for instance "+unicode(nodes_to_add[0]["title"]))
+        return len(nodes_to_add)
 
 
     def _fetch_news(self, news_website, newer_than=None):
