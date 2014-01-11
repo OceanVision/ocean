@@ -302,16 +302,21 @@ class DatabaseManager:
         start_node_id = self._uuid_images[start_node_uuid]
         end_node_id = self._uuid_images[end_node_uuid]
 
-        query_string = \
-            '''
-            START a=node({start_node_id}), b=node({end_node_id})
-            CREATE (a)-[r:`{rel_type}` {rel_params}]->(b)
-            RETURN r
-            '''
+        #TODO: replace code on jan
+        query_string = "START a=node({start_node_id}), b=node({end_node_id})"
+        query_string += " CREATE (a)-[r:`{0}` {1}]->(b)".format(rel_type, "{rel_params}")
+        query_string += "RETURN r"
+
+        #query_string = \
+        #    '''
+        #    START a=node({start_node_id}), b=node({end_node_id})
+        #    CREATE (a)-[r:`{rel_type}` {rel_params}]->(b)
+        #    RETURN r
+        #    '''
         query_results = self.get_query_results(query_string,
                                                start_node_id=start_node_id,
                                                end_node_id=end_node_id,
-                                               rel_type=str(rel_type),
+                                               #rel_type=str(rel_type),
                                                rel_params=rel_params)
         if len(query_results) == 0:
             raise Exception('Executing query failed')

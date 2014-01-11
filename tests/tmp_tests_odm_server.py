@@ -76,7 +76,7 @@ if __name__ == "__main__":
     cl.add_node(model_name="Content", node_params={})
     cl.add_node(model_name="Content", node_params={}) 
     after_adding_content_nodes = len(cl.get_all_instances(model_name="Content"))
-    print "After adding content nodes ", initial_content_nodes 
+    print "After adding content nodes ", after_adding_content_nodes 
     assert(after_adding_content_nodes-initial_content_nodes == 3)
 #     print cl.get_all_children("1814d088-7a2 f-11e3-8ac6-485d60f20495", 
 
