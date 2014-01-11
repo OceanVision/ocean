@@ -210,21 +210,21 @@ class NewsFetcher(GraphWorker):
 
 
 
-        nodes_added = self.graph_db.create(*nodes_to_add)
+        #nodes_added = self.graph_db.create(*nodes_to_add)
+        #
+        #instance_relations = [py2neo.rel(news_type_node, HAS_INSTANCE_RELATION, content)
+        #                      for content in nodes_added]
+        #produces_relations = [py2neo.rel(news_website, PRODUCES_RELATION, content)
+        #                      for content in nodes_added]
 
-        instance_relations = [py2neo.rel(news_type_node, HAS_INSTANCE_RELATION, content)
-                              for content in nodes_added]
-        produces_relations = [py2neo.rel(news_website, PRODUCES_RELATION, content)
-                              for content in nodes_added]
-
-
-
-        self.graph_db.create(*instance_relations)
-        self.graph_db.create(*produces_relations)
+        #
+        #
+        #self.graph_db.create(*instance_relations)
+        #self.graph_db.create(*produces_relations)
 
         logger.log(MY_INFO_LEVEL, "Updating NewsWebsite "+unicode(news_website))
         logger.log(MY_INFO_LEVEL, "Added for instance "+unicode(nodes_added[0]["title"]))
-        return len(nodes_added)
+        #return len(nodes_added)
 
 
     def _fetch_news(self, news_website, newer_than=None):

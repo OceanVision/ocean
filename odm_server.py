@@ -96,6 +96,7 @@ class DatabaseManager:
         cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
         query_results = cypher_query.execute(**query_params)
 
+
         results = []
         for result in query_results:
             values = []
@@ -108,6 +109,23 @@ class DatabaseManager:
         return results
 
     @error_handle_odm
+    def get_query_results_nodes(self, query_string, **query_params):
+        """
+        Executes query and returns results as python dictionaries
+        @param query_string
+        @param query_params
+        """
+        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
+        query_results = cypher_query.execute(**query_params)
+
+
+        results = []
+        for result in query_results:
+            results.append(result.values[0].get_properties())
+        return results
+
+
+    @error_handle_odm
     def run_query(self, query_string, **query_params):
         """
         Executes query only
@@ -117,10 +135,14 @@ class DatabaseManager:
         cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
         cypher_query.run(**query_params)
 
+
+
     @error_handle_odm
     def get_by_uuid(self, **params):
         node_uuid = params['node_uuid']
 
+        #TODO: this code assumes that all uuid->id mapping is in memory, it is not a good assumption
+        #it should execute a query if asked for non exisiting uuid
         if node_uuid not in self._uuid_images:
             raise Exception('Unknown uuid')
 
@@ -131,6 +153,46 @@ class DatabaseManager:
             '''
         return self.get_query_results(query_string,
                                       node_id=self._uuid_images[params['node_uuid']])[0][0]
+
+
+    @error_handle_odm
+    def get_type_nodes(self):
+        """ Get type nodes """
+        cypher_query = \
+            '''
+            START root=node(0)
+            MATCH root-[r:`<<TYPE>>`]->n
+            RETURN n
+            '''
+        return self.get_query_results_nodes(cypher_query)
+
+
+
+    @error_handle_odm
+    def get_all_children(self, parent_uuid, rel_name,  **params):
+        """
+            Get all children of node with parent_uuid uuid related
+            by relation rel_name with parameters
+        """
+
+        if parent_uuid not in self._uuid_images:
+            raise Exception('Unknown uuid')
+
+        node_id = self._uuid_images[parent_uuid]
+
+
+        cypher_query = \
+            """
+            START parent=node( {node_id} )
+            MATCH parent-[r: `{rel_name}` ]->children
+            """
+        if len(params):
+            cypher_query = cypher_query + "WHERE" + " ".join(["children."+str(k)+"="+str(v) for (k, v) in params.iteritems()]) +"\n"
+        cypher_query = cypher_query + "RETURN children"
+
+        print cypher_query
+
+        return self.get_query_results_nodes(cypher_query, node_id=node_id, rel_name=rel_name)
 
     @error_handle_odm
     def get_by_link(self, **params):
@@ -153,6 +215,10 @@ class DatabaseManager:
 
     @error_handle_odm
     def get_all_instances(self, **params):
+        """
+        Gets all instances of given model_name
+        @param model_name string
+        """
         query_string = \
             '''
             START e=node(0)
@@ -161,7 +227,7 @@ class DatabaseManager:
             RETURN n
             '''
         return self.get_query_results(query_string,
-                                      params)
+                                      **params)[0]
 
     @error_handle_odm
     def set(self, **params):

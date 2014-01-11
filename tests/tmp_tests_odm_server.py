@@ -13,19 +13,49 @@ from odm_server import DatabaseManager
 from odm_client import ODMClient
 
 if __name__ == "__main__":
+    
+    ### Create Objects ###
     db = DatabaseManager()
     cs = db.get_all_instances(model_name="ContentSource")
+    print "Fetched ContentSources"
+    print cs 
     
-
+    ### Get not existing node ###
     print db.get_by_uuid(node_uuid="x")
     
+    ### Connect ###
     cl = ODMClient()
     cl.connect()
-    print cl.get_all_instances(model_name="ContentSource")
 
+    ### Get all instances of ContentSource ###
     print cs
     uuid_0 = cs[0]['uuid']
 
+    ### Change one instance and see if change has occured ###
     cl.set(uuid_0, {'image_height': 100})
 
+    print "Specific node:"
     print cl.get_by_uuid(uuid_0)
+
+    ### Get type nodes and get all children of <<TYPE>> = "ContentSource"
+    print ".."
+
+    type_content_source = None
+
+    assert(len(cl.get_type_nodes()) >= 3)
+
+    for t in cl.get_type_nodes():
+        if t["model_name"] == "ContentSource":
+            print "Found type ", t
+            type_content_source = t
+
+    assert(type_content_source is not None)
+
+    print cl.get_all_children(parent_uuid=type_content_source["uuid"], rel_name="<<INSTANCE>>")
+
+    
+
+        
+
+#     print cl.get_all_children("1814d088-7a2 f-11e3-8ac6-485d60f20495", 
+

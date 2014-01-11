@@ -66,8 +66,8 @@ def get_records_from_cypher(graph_db, cypher_query, params = None):
 def count_same_news(graph_db, news_website, news_title):
     my_batch = neo4j.ReadBatch(graph_db)
     cypher_query = "START root=node(0) \n MATCH root-[r:`<<TYPE>>`]->"+\
-        "n-[r2:`<<INSTANCE>>`]->w" + "\n WHERE n.name = "+\
-        "\"rss:News\" \n"+\
+        "n-[r2:`<<INSTANCE>>`]->w" + "\n WHERE n.model_name = "+\
+        "\"Content\" \n"+\
         "and w.title = {news_title} \n" + "RETURN count(w)"
     my_batch.append_cypher(cypher_query, {"news_title" : news_title.encode("utf8")})
     results = my_batch.submit()
