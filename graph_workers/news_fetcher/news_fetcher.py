@@ -145,7 +145,7 @@ class NewsFetcher(GraphWorker):
                 if there were no needed fields, they are added :)
         """
         rss_content_sources = []
-        for n in self.odm_client.get_all_instances(model_name=CONTENT_SOURCE_TYPE_MODEL_NAME):
+        for n in self.odm_client.get_instances(model_name=CONTENT_SOURCE_TYPE_MODEL_NAME):
             if n[CONTENT_SOURCE_RSS_TYPE] == "rss":
                 rss_content_sources.append(n)
                 if CONTENT_SOURCE_LAST_UPDATE not in rss_content_sources[-1]:
@@ -192,7 +192,7 @@ class NewsFetcher(GraphWorker):
         )
 
         # Count exisiting nodes
-        existing_nodes = len(self.odm_client.get_all_children\
+        existing_nodes = len(self.odm_client.get_children\
                 (parent_uuid=news_website["uuid"], rel_name="<<HAS_INSTANCE_RELATION>>",
                  title=nodes_to_add[newest_id]["title"]))
 

@@ -33,7 +33,7 @@ def error_handle_odm(func):
         try:
             return func(request, *args, **dict_args)
         except Exception, e:
-            print '{0} failed with {1}.'.format(func.__name__, e)
+            print '{0} failed: {1}.'.format(func.__name__, e)
             return {}
         except:
             print '{0} failed with not registered error.'.format(func.__name__)
@@ -54,7 +54,7 @@ class DatabaseManager:
         self._model_name_images = dict()
 
         self._init_uuid_images()
-        self._init_types()
+        self._init_model_name_images()
 
     @error_handle_odm
     def _execute_query(self, query_string, multi_value=False, **query_params):
@@ -95,7 +95,7 @@ class DatabaseManager:
         cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
         cypher_query.run(**query_params)
 
-    def _init_types(self):
+    def _init_model_name_images(self):
         self._model_name_images.clear()
         query_string = \
             '''
@@ -168,8 +168,7 @@ class DatabaseManager:
                                    link=link)[0]
 
     @error_handle_odm
-    def get_type_nodes(self):
-        """ Get type nodes """
+    def get_model_nodes(self):
         cypher_query = \
             '''
             START e=node(0)
@@ -179,7 +178,7 @@ class DatabaseManager:
         return self._execute_query(cypher_query)
 
     @error_handle_odm
-    def get_all_children(self, **params):
+    def get_children(self, **params):
         node_uuid = params['node_uuid']
 
         if node_uuid not in self._uuid_images:
@@ -194,26 +193,25 @@ class DatabaseManager:
             START e=node({node_id})
             MATCH (e)-[r:`''' + rel_type + '''`]->(a)
             ''' \
-            + (('WHERE ' + self._str(children_params, 'a', 'AND')) \
-            if len(children_params) > 0 else '') + \
-            '''
+            + (('WHERE ' + self._str(children_params, 'a', 'AND'))
+            if len(children_params) > 0 else '') + '''
             RETURN a
             '''
         # There is a problem with node_params if they are given to _run_query
         return self._execute_query(cypher_query, node_id=node_id)
 
     @error_handle_odm
-    def get_all_instances(self, **params):
-        """
-        Gets all instances of given model_name
-        @param model_name string
-        """
+    def get_instances(self, **params):
+        children_params = params['children_params'] \
+            if 'children_params' in params else {}
         query_string = \
             '''
             START e=node(0)
-            MATCH (e)-[r:`<<TYPE>>`]->(t)-[q:`<<INSTANCE>>`]->(n)
-            WHERE t.model_name = {model_name}
-            RETURN n
+            MATCH (e)-[r:`<<TYPE>>`]->(t)-[q:`<<INSTANCE>>`]->(a)
+            WHERE t.model_name = {model_name}''' \
+            + ((' AND ' + self._str(children_params, 'a', 'AND'))
+            if len(children_params) > 0 else '') + '''
+            RETURN a
             '''
         return self._execute_query(query_string, **params)
 
@@ -340,30 +338,59 @@ class DatabaseManager:
 
 
 class Connection():
-    def __init__(self, client_id, conn):
-        self.id = client_id
-        self.conn = conn
+    def __init__(self, client_id, conn, manager):
+        self._id = client_id
+        self._conn = conn
+        self._manager = manager
 
-    def send(self, data):
+    def _send(self, data):
         try:
-            self.conn.send(json.dumps(data))
+            self._conn.send(json.dumps(data))
         except Exception as e:
-            print 'Sending data to client', self.id, 'failed.', e.message
+            print 'Sending data to client', self._id, 'failed.', e.message
 
-    def recv(self):
+    def _recv(self):
         data = None
         try:
-            received_data = str(self.conn.recv(8192))
+            received_data = str(self._conn.recv(8192))
             data = json.loads(received_data) if len(received_data) > 0 else {}
         except Exception as e:
-            print 'Receiving data from client', self.id, 'failed.', e.message
+            print 'Receiving data from client', self._id, 'failed.', e.message
         return data
 
-    def disconnect(self):
+    def _disconnect(self):
         try:
-            self.conn.close()
+            self._conn.close()
+            print 'Client {0} disconnected.'.format(str(self._id))
         except Exception as e:
-            print 'Disconnecting with client', self.id, 'failed.', e.message
+            print 'Disconnecting with client', self._id, 'failed.', e.message
+
+    @error_handle_odm
+    def _execute(self, func_name, params):
+        func = getattr(self._manager, str(func_name))
+        print 'Client {0}: {1}'.format(self._id, func_name)
+        return func(**params)
+
+    def handle(self):
+        while True:
+            request = self._recv()
+            if not request:
+                break
+
+            try:
+                if request.__class__.__name__ == 'dict':
+                    results = self._execute(request['func_name'],
+                                            request['params'])
+                else:
+                    results = []
+                    for item in request:
+                        results.append(self._execute(item['func_name'],
+                                                     item['params']))
+                self._send(results)
+            except:
+                pass
+
+        self._disconnect()
 
 
 class ODMServer():
@@ -372,40 +399,19 @@ class ODMServer():
         self._port = port
         self._manager = DatabaseManager()
         self._dynamic_id = 0
-        self._conn_list = []
 
     def _get_new_id(self):
         self._dynamic_id += 1
         return self._dynamic_id
 
-    def _handle_client(self, conn, lock):
-        while True:
-            request = conn.recv()
-            if not request:
-                break
-
-            try:
-                func = getattr(self._manager, str(request['func_name']))
-                print 'Client {0}: {1}'.format(conn.id, request['func_name'])
-                results = func(**request['params'])
-                conn.send(results)
-            except:
-                pass
-
-        lock.acquire()
-        self._conn_list.remove(conn)
-        conn.disconnect()
-        print 'Client {0} disconnected.'.format(str(conn.id))
-        lock.release()
-
-    def _handle_connections(self, server_socket, lock):
+    def _handle_connections(self, server_socket):
         while True:
             conn, addr = server_socket.accept()
-            conn = Connection(self._get_new_id(), conn)
-            self._conn_list.append(conn)
-            Thread(target=self._handle_client, args=(conn, lock)).start()
+            new_id = self._get_new_id()
+            conn = Connection(new_id, conn, self._manager)
+            Thread(target=conn.handle).start()
             print 'New connection from {0}, new client id: {1}' \
-                .format(str(addr), str(conn.id))
+                .format(str(addr), str(new_id))
 
     def start(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -423,8 +429,7 @@ class ODMServer():
 
         server_socket.listen(10)
         print 'The server is listening on port {0}.'.format(str(self._port))
-        lock = Lock()
-        self._handle_connections(server_socket, lock)
+        self._handle_connections(server_socket)
 
 HOST = 'localhost'
 PORT = 7777

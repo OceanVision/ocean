@@ -6,6 +6,28 @@ PORT = 7777
 
 
 class ODMClient:
+    class Batch:
+        def __init__(self, client):
+            self.client = client
+            self.tasks = []
+
+        def append(self, func_name, **params):
+            """
+            Appends ODM task to the list
+            @param func_name string
+            @param params dictionary/keywords
+            """
+            self.tasks.append({'func_name': func_name, 'params': params})
+
+        def execute(self):
+            """
+            Executes tasks which are currently appended to the list
+            """
+            self.client.send(self.tasks)
+            results = self.client.recv()
+            del self.tasks[0:len(self.tasks)]
+            return results
+
     def __init__(self):
         self._host = HOST
         self._port = PORT
@@ -33,13 +55,13 @@ class ODMClient:
 
         print 'The client has disconnected.'
 
-    def _send(self, data):
+    def send(self, data):
         try:
             self._conn.send(json.dumps(data))
         except Exception as e:
             print 'Sending data failed.', str(e)
 
-    def _recv(self):
+    def recv(self):
         data = None
         try:
             received_data = str(self._conn.recv(8192))
@@ -47,6 +69,9 @@ class ODMClient:
         except Exception as e:
             print 'Receiving data failed.', str(e)
         return data
+
+    def get_batch(self):
+        return self.Batch(self)
 
     def get_by_uuid(self, node_uuid):
         """
@@ -56,8 +81,8 @@ class ODMClient:
         data = {'func_name': 'get_by_uuid', 'params': {
             'node_uuid': node_uuid
         }}
-        self._send(data)
-        return self._recv()
+        self.send(data)
+        return self.recv()
 
     def get_by_link(self, model_name, link):
         """
@@ -69,35 +94,47 @@ class ODMClient:
             'model_name': model_name,
             'link': link
         }}
-        self._send(data)
-        return self._recv()
+        self.send(data)
+        return self.recv()
 
-    def get_all_children(self, node_uuid, rel_type, **children_params):
+    def get_model_nodes(self):
         """
-        Gets all children of node with parent_uuid uuid
+        Gets model nodes
+        """
+        data = {'func_name': 'get_model_nodes', 'params': {}}
+        self.send(data)
+        return self.recv()
+
+    def get_children(self, node_uuid, rel_type, **children_params):
+        """
+        Gets children of node with parent_uuid uuid
             related by relation rel_name with parameters
         @param node_uuid string
         @param rel_type string
         @param children_params dictionary/keywords
         """
-        data = {'func_name': 'get_all_children', 'params': {
+        data = {'func_name': 'get_children', 'params': {
             'node_uuid': node_uuid,
             'rel_type': rel_type,
             'children_params': children_params
         }}
-        self._send(data)
-        return self._recv()
+        print data
+        self.send(data)
+        return self.recv()
 
-    def get_all_instances(self, model_name):
+    def get_instances(self, model_name, **children_params):
         """
         Gets all instances of given model_name
         @param model_name string
+        @param children_params dictionary/keywords
         """
-        data = {'func_name': 'get_all_instances', 'params': {
-            'model_name': model_name
+        print 'ok'
+        data = {'func_name': 'get_instances', 'params': {
+            'model_name': model_name,
+            'children_params': children_params
         }}
-        self._send(data)
-        return self._recv()
+        self.send(data)
+        return self.recv()
 
     def set(self, node_uuid, node_params):
         """
@@ -109,8 +146,8 @@ class ODMClient:
             'node_uuid': node_uuid,
             'node_params': node_params
         }}
-        self._send(data)
-        return self._recv()
+        self.send(data)
+        return self.recv()
 
     def add_node(self, model_name, node_params):
         """
@@ -122,8 +159,8 @@ class ODMClient:
             'model_name': model_name,
             'node_params': node_params
         }}
-        self._send(data)
-        return self._recv()
+        self.send(data)
+        return self.recv()
 
     def delete_node(self, node_uuid):
         """
@@ -133,8 +170,8 @@ class ODMClient:
         data = {'func_name': 'delete_node', 'params': {
             'node_uuid': node_uuid
         }}
-        self._send(data)
-        self._recv()
+        self.send(data)
+        self.recv()
 
     def add_rel(self, start_node_uuid, end_node_uuid, rel_type, rel_params={}):
         """
@@ -151,8 +188,8 @@ class ODMClient:
             'rel_type': rel_type,
             'rel_params': rel_params
         }}
-        self._send(data)
-        return self._recv()
+        self.send(data)
+        return self.recv()
 
     def delete_rel(self, start_node_uuid, end_node_uuid):
         """
@@ -165,8 +202,8 @@ class ODMClient:
             'start_node_uuid': start_node_uuid,
             'end_node_uuid': end_node_uuid
         }}
-        self._send(data)
-        self._recv()
+        self.send(data)
+        self.recv()
 
     def execute_query(self, query_string, **query_params):
         """
@@ -179,8 +216,8 @@ class ODMClient:
             'query_string': query_string,
             'query_params': query_params
         }}
-        self._send(data)
-        return self._recv()
+        self.send(data)
+        return self.recv()
 
     def run_query(self, query_string, **query_params):
         """
@@ -192,8 +229,8 @@ class ODMClient:
             'query_string': query_string,
             'query_params': query_params
         }}
-        self._send(data)
-        self._recv()
+        self.send(data)
+        self.recv()
 
     def __getattr__(self, item):
         """
@@ -204,6 +241,6 @@ class ODMClient:
         except:
             def generic_result(**params):
                 data = {'func_name': item, 'params': params}
-                self._send(data)
-                return self._recv()
+                self.send(data)
+                return self.recv()
             return generic_result
