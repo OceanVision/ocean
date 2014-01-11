@@ -74,7 +74,9 @@ class NewsFetcher(GraphWorker):
         # initialize connection. one connection per graph_worker
         self.graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
 
-        self.odm_connection = ODMClient()
+        self.odm_client = ODMClient()
+        logger.log(MY_INFO_LEVEL, "Conneting to ODM Service")
+        self.odm_client.connect()
 
         self.privileges = copy.deepcopy(privileges)
             # used for interprocess communication, simillar do CV :)
@@ -146,7 +148,7 @@ class NewsFetcher(GraphWorker):
                 if there were no needed fields, they are added :)
         """
         rss_content_sources = []
-        for n in get_all_instances(self.graph_db, "rss:"+CONTENT_SOURCE_TYPE_MODEL_NAME):
+        for n in self.odm_client.get_all_instances(model_name=CONTENT_SOURCE_TYPE_MODEL_NAME):
             if n[CONTENT_SOURCE_RSS_TYPE] == "rss":
                 rss_content_sources.append(n)
                 if CONTENT_SOURCE_LAST_UPDATE not in rss_content_sources[-1]:
@@ -170,7 +172,7 @@ class NewsFetcher(GraphWorker):
         """
         last_updated = database_timestamp_to_datetime(news_website[CONTENT_SOURCE_LAST_UPDATE])
         logger.log(MY_INFO_LEVEL, "Last updated news_website is "+str(last_updated))
-        news_type_node = get_type_metanode(self.graph_db, CONTENT_TYPE_MODEL_NAME)
+        #news_type_node = get_type_metanode(self.graph_db, CONTENT_TYPE_MODEL_NAME)
 
         # We need this node to add HAS_INSTANCE_RELATION
         nodes_to_add = []
@@ -180,7 +182,7 @@ class NewsFetcher(GraphWorker):
 
             if d_news > last_updated:
 
-                nodes_to_add.append(py2neo.node(**news))  # assume is dictionary
+                nodes_to_add.append(news)  # assume is dictionary
                 if d_news > newest:
                     newest = d_news
                     newest_id = id
@@ -191,10 +193,9 @@ class NewsFetcher(GraphWorker):
 
         logger.log(MY_INFO_IMPORTANT_LEVEL, "Updating last_updated to "+str(newest))
 
-        news_website.update_properties(
+        self.odm_client.set(news_website["uuid"],
             {
-                CONTENT_SOURCE_LAST_UPDATE:
-                GMTdatetime_to_database_timestamp(newest)
+                CONTENT_SOURCE_LAST_UPDATE: GMTdatetime_to_database_timestamp(newest)
             }
         )  # using graph_db used to fetch this node!!
 
@@ -207,12 +208,16 @@ class NewsFetcher(GraphWorker):
             logger.log(MY_CRITICAL_LEVEL, "ERROR: Existing nodes ! Probably something wrong with "+unicode(news_website))
             return 0
 
+
+
         nodes_added = self.graph_db.create(*nodes_to_add)
 
         instance_relations = [py2neo.rel(news_type_node, HAS_INSTANCE_RELATION, content)
                               for content in nodes_added]
         produces_relations = [py2neo.rel(news_website, PRODUCES_RELATION, content)
                               for content in nodes_added]
+
+
 
         self.graph_db.create(*instance_relations)
         self.graph_db.create(*produces_relations)

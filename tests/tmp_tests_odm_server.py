@@ -14,7 +14,7 @@ from odm_client import ODMClient
 
 if __name__ == "__main__":
     db = DatabaseManager()
-    print db.get_all_instances(model_name="ContentSource")
+    cs = db.get_all_instances(model_name="ContentSource")
     
 
     print db.get_by_uuid(node_uuid="x")
@@ -22,3 +22,10 @@ if __name__ == "__main__":
     cl = ODMClient()
     cl.connect()
     print cl.get_all_instances(model_name="ContentSource")
+
+    print cs
+    uuid_0 = cs[0]['uuid']
+
+    cl.set(uuid_0, {'image_height': 100})
+
+    print cl.get_by_uuid(uuid_0)
