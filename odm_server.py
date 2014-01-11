@@ -226,8 +226,8 @@ class DatabaseManager:
             WHERE t.model_name = {model_name}
             RETURN n
             '''
-        return self.get_query_results(query_string,
-                                      **params)[0]
+        return self.get_query_results_nodes(query_string,
+                                      **params)
 
     @error_handle_odm
     def set(self, **params):
