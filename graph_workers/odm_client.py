@@ -22,7 +22,8 @@ class ODMClient:
                     return
             else:
                 break
-        print 'The client has connected to {0}:{1}.'.format(str(self._host), str(self._port))
+        print 'The client has connected to {0}:{1}.' \
+            .format(str(self._host), str(self._port))
 
     def disconnect(self):
         try:
@@ -67,6 +68,22 @@ class ODMClient:
         data = {'func_name': 'get_by_link', 'params': {
             'model_name': model_name,
             'link': link
+        }}
+        self._send(data)
+        return self._recv()
+
+    def get_all_children(self, node_uuid, rel_type, **children_params):
+        """
+        Gets all children of node with parent_uuid uuid
+            related by relation rel_name with parameters
+        @param node_uuid string
+        @param rel_type string
+        @param children_params dictionary/keywords
+        """
+        data = {'func_name': 'get_all_children', 'params': {
+            'node_uuid': node_uuid,
+            'rel_type': rel_type,
+            'children_params': children_params
         }}
         self._send(data)
         return self._recv()
@@ -121,7 +138,8 @@ class ODMClient:
 
     def add_rel(self, start_node_uuid, end_node_uuid, rel_type, rel_params={}):
         """
-        Adds a relationship rel_type with rel_params between nodes of start_node_uuid and end_node_uuid
+        Adds a relationship rel_type with rel_params
+            between nodes of start_node_uuid and end_node_uuid
         @param start_node_uuid string
         @param end_node_uuid string
         @param rel_type string
@@ -138,7 +156,8 @@ class ODMClient:
 
     def delete_rel(self, start_node_uuid, end_node_uuid):
         """
-        Deletes a relationship between nodes of start_node_uuid and end_node_uuid
+        Deletes a relationship between nodes of start_node_uuid
+            and end_node_uuid
         @param start_node_uuid string
         @param end_node_uuid string
         """
@@ -149,13 +168,14 @@ class ODMClient:
         self._send(data)
         self._recv()
 
-    def get_query_results(self, query_string, **query_params):
+    def execute_query(self, query_string, **query_params):
         """
-        Gets query_string results with given query_params
+        Executes query_string with given query_params
+            and returns results as python dictionaries
         @param query_string string
         @param query_params dictionary/keywords
         """
-        data = {'func_name': 'get_query_results', 'params': {
+        data = {'func_name': 'execute_query', 'params': {
             'query_string': query_string,
             'query_params': query_params
         }}
@@ -164,7 +184,7 @@ class ODMClient:
 
     def run_query(self, query_string, **query_params):
         """
-        Executes query_string with given query_params
+        Runs query_string with given query_params
         @param query_string string
         @param query_params dictionary/keywords
         """
@@ -176,7 +196,9 @@ class ODMClient:
         self._recv()
 
     def __getattr__(self, item):
-        """ Generic function calling in case there is no explicitly defined function """
+        """
+        Generic function calling in case there is no explicitly defined function
+        """
         try:
             return getattr(self, item)
         except:
@@ -185,28 +207,3 @@ class ODMClient:
                 self._send(data)
                 return self._recv()
             return generic_result
-
-# if __name__ == "__main__":
-    # client = ODMClient()
-    # client.connect()
-
-    # print client.get_by_uuid('e8eb82ae-7a45-11e3-9f04-2cd05ae1c39b')
-    # print client.get_by_link('Website', 'http://www.gry-online.pl/')
-    # print client.set(uuid, {'atrybut': 5, 'atrybut2': 'dupa'})
-    # print client.get_by_uuid(uuid)
-    # print client.add_node('NeoUser', {'username': 'ziom'})
-    # client.delete_node('1783f6e8-7a49-11e3-84c1-2cd05ae1c39b')
-    # print client.add_rel('1783f6e8-7a49-11e3-84c1-2cd05ae1c39b',
-    #                      'e9174542-7a45-11e3-9f04-2cd05ae1c39b', {'name': 'ziomalska_relacja', 'lala': 2})
-    # print client.delete_rel('a8d435bc-79f5-11e3-86e4-2cd05ae1c39b', 'eb3cb198-79f7-11e3-bc35-2cd05ae1c39b')
-    # query_string = \
-    #     '''
-    #     START e=node(345)
-    #     MATCH (e)-[]-(a)-[]-(b)
-    #     RETURN b
-    #     '''
-    # results = client.get_query_results(query_string)
-    # for result in results:
-    #     print result
-
-    # client.disconnect()

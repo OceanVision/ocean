@@ -53,14 +53,16 @@ if __name__ == "__main__":
     ### recieve only the first one ###
     assert(type_content_source is not None)
 
-    all_children = db.get_all_children(parent_uuid=type_content_source["uuid"], rel_name="<<INSTANCE>>")
+    all_children = db.get_all_children(node_uuid=type_content_source["uuid"],
+                                       rel_type="<<INSTANCE>>")
     
     assert(len(all_children) > 2)
 
     picked_child = all_children[0]
     
-    picked_child_queried = db.get_all_children(parent_uuid=type_content_source["uuid"], 
-        rel_name="<<INSTANCE>>", link=picked_child["link"])
+    picked_child_queried = db.get_all_children(node_uuid=type_content_source["uuid"],
+        rel_type="<<INSTANCE>>", children_params={'link': picked_child["link"],
+                                                  'language': 'pl'})
 
     print picked_child
     print picked_child_queried

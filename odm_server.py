@@ -12,20 +12,23 @@ info_level = 100
 error_level = 200
 
 logging.basicConfig(level=info_level)
-logger = logging.getLogger(__name__ + "_ocean")
+logger = logging.getLogger(__name__ + '_ocean')
 ch = logging.StreamHandler()
 formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
-ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),"logs/odm_server.log"), )
+ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),
+                                           'logs/odm_server.log'))
 ch_file.setLevel(info_level)
 logger.addHandler(ch_file)
 
 
 #TODO: move to utils
 def error_handle_odm(func):
-    """ This decorator will return response to message.html with error if catched """
+    """
+    This decorator will return response to message.html with error if caught
+    """
     def f(request, *args, **dict_args):
         try:
             return func(request, *args, **dict_args)
@@ -45,163 +48,115 @@ class DatabaseManager:
     def __init__(self):
         """Create DatabaseManager driver"""
         logger.log(info_level, 'Created DatabaseManager object')
-        self._graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
+        self._graph_db = \
+            neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
         self._uuid_images = dict()
         self._model_name_images = dict()
 
         self._init_uuid_images()
         self._init_types()
 
-    def _init_types(self):
-        self._model_name_images.clear()
-        #TODO: this function should use get_query_results here
-        query = 'START e=node(0)\n' \
-                'MATCH e-[]->t\n' \
-                'RETURN t.uuid, t'
-        cypher_query = neo4j.CypherQuery(self._graph_db, query)
-        query_results = cypher_query.execute()
-        for record in query_results:
-            key = record.values[1]['model_name']
-            value = record.values[0]
-            self._model_name_images[key] = value
-
-    def _init_uuid_images(self):
-        self._uuid_images.clear()
-        query = 'START e=node(*)\n' \
-                'WHERE id(e) <> 0\n' \
-                'RETURN id(e), e'
-        cypher_query = neo4j.CypherQuery(self._graph_db, query)
-        query_results = cypher_query.execute()
-        for record in query_results:
-            key = record.values[1]['uuid']
-            value = record.values[0]
-            self._uuid_images[key] = value
-
-    def _str(self, dictionary, element='e'):
-        string = ''
-        for (key, value) in dictionary.iteritems():
-            if isinstance(value, basestring):
-                string += ',' + str(element) + '.' + str(key) + '=' + '"' + str(value) + '"'
-            else:
-                string += ',' + str(element) + '.' + str(key) + '=' + str(value)
-        return str(string[1:])
-
     @error_handle_odm
-    def get_query_results(self, query_string, **query_params):
+    def _execute_query(self, query_string, multi_value=False, **query_params):
         """
         Executes query and returns results as python dictionaries
-        @param query_string
-        @param query_params
+        @param query_string string
+        @param multi_value bool
+        @param query_params dictionary
         """
         cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
         query_results = cypher_query.execute(**query_params)
-
 
         results = []
         for result in query_results:
             values = []
-            for value in result.values:
-                if value.__class__.__name__ == 'Node' or value.__class__.__name__ == 'Relationship':
-                    values.append(value.get_properties())
+            if not multi_value:
+                value = result.values[0]
+                if value.__class__.__name__ in ('Node', 'Relationship'):
+                    values = value.get_properties()
                 else:
-                    values.append(value)
+                    values = value
+            else:
+                for value in result.values:
+                    if value.__class__.__name__ in ('Node', 'Relationship'):
+                        values.append(value.get_properties())
+                    else:
+                        values.append(value)
             results.append(values)
         return results
 
     @error_handle_odm
-    def get_query_results_nodes(self, query_string, **query_params):
+    def _run_query(self, query_string, **query_params):
         """
-        Executes query and returns results as python dictionaries
-        @param query_string
-        @param query_params
-        """
-        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
-        query_results = cypher_query.execute(**query_params)
-
-
-        results = []
-        for result in query_results:
-            results.append(result.values[0].get_properties())
-        return results
-
-
-    @error_handle_odm
-    def run_query(self, query_string, **query_params):
-        """
-        Executes query only
+        Runs query only
         @param query_string
         @param query_params
         """
         cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
         cypher_query.run(**query_params)
 
+    def _init_types(self):
+        self._model_name_images.clear()
+        query_string = \
+            '''
+            START e=node(0)
+            MATCH (e)-[]->(t)
+            RETURN t.uuid, t
+            '''
+        query_results = self._execute_query(query_string, True)
+        for record in query_results:
+            key = record[1]['model_name']
+            value = record[0]
+            self._model_name_images[key] = value
 
+    def _init_uuid_images(self):
+        self._uuid_images.clear()
+        query_string = \
+            '''
+            START e=node(*)
+            WHERE id(e) <> 0
+            RETURN id(e), e
+            '''
+        query_results = self._execute_query(query_string, True)
+        for record in query_results:
+            key = record[1]['uuid']
+            value = record[0]
+            self._uuid_images[key] = value
+
+    def _str(self, dictionary, element='e', separator=','):
+        string = ''
+        for (key, value) in dictionary.iteritems():
+            string += str(separator) + ' ' + str(element) + '.' \
+                      + str(key) + '=' + json.dumps(value) + ' '
+        return str(string[(len(separator) + 1):])
 
     @error_handle_odm
     def get_by_uuid(self, **params):
         node_uuid = params['node_uuid']
 
-        #TODO: this code assumes that all uuid->id mapping is in memory, it is not a good assumption
-        #it should execute a query if asked for non exisiting uuid
+        #TODO: this code assumes that all uuid->id mapping is in memory,
+        # it is not a good assumption
+        # it should execute a query if asked for non exisiting uuid
         if node_uuid not in self._uuid_images:
             raise Exception('Unknown uuid')
 
+        node_id = self._uuid_images[params['node_uuid']]
         query_string = \
             '''
             START e=node({node_id})
             RETURN e
             '''
-        return self.get_query_results(query_string,
-                                      node_id=self._uuid_images[params['node_uuid']])[0][0]
-
-
-    @error_handle_odm
-    def get_type_nodes(self):
-        """ Get type nodes """
-        cypher_query = \
-            '''
-            START root=node(0)
-            MATCH root-[r:`<<TYPE>>`]->n
-            RETURN n
-            '''
-        return self.get_query_results_nodes(cypher_query)
-
-
-
-    @error_handle_odm
-    def get_all_children(self, parent_uuid, rel_name,  **params):
-        """
-            Get all children of node with parent_uuid uuid related
-            by relation rel_name with parameters
-        """
-
-        if parent_uuid not in self._uuid_images:
-            raise Exception('Unknown uuid')
-
-        node_id = self._uuid_images[parent_uuid]
-
-
-        #TODO: how to add WHERE by params using parameters in cypher
-        #TODO: `{rel_name}` not working
-
-        cypher_query = "START parent=node( {node_id} )\n"
-        cypher_query += "MATCH parent-[r: `{0}` ]->children\n".format(rel_name)
-        if len(params):
-            cypher_query = cypher_query + "WHERE " + " ".join(["children."+str(k)+"="+json.dumps(v) for (k, v) in params.iteritems()]) +"\n"
-        cypher_query = cypher_query + "RETURN children"
-
-        print cypher_query
-
-        return self.get_query_results_nodes(cypher_query, node_id=node_id, rel_name=rel_name)
+        return self._execute_query(query_string, node_id=node_id)[0]
 
     @error_handle_odm
     def get_by_link(self, **params):
         model_name = params['model_name']
-        link = params['link']
 
         if model_name not in self._model_name_images:
             raise Exception('Unknown type')
 
+        mode_name_id = self._uuid_images[self._model_name_images[model_name]]
+        link = params['link']
         query_string = \
             '''
             START e=node({model_name_id})
@@ -209,9 +164,43 @@ class DatabaseManager:
             WHERE a.link={link}
             RETURN a
             '''
-        return self.get_query_results(query_string,
-                                      model_name_id=self._uuid_images[self._model_name_images[model_name]],
-                                      link=link)[0][0]
+        return self._execute_query(query_string, model_name_id=mode_name_id,
+                                   link=link)[0]
+
+    @error_handle_odm
+    def get_type_nodes(self):
+        """ Get type nodes """
+        cypher_query = \
+            '''
+            START e=node(0)
+            MATCH (e)-[r:`<<TYPE>>`]->(a)
+            RETURN a
+            '''
+        return self._execute_query(cypher_query)
+
+    @error_handle_odm
+    def get_all_children(self, **params):
+        node_uuid = params['node_uuid']
+
+        if node_uuid not in self._uuid_images:
+            raise Exception('Unknown uuid')
+
+        node_id = self._uuid_images[node_uuid]
+        children_params = params['children_params'] \
+            if 'children_params' in params else {}
+        rel_type = params['rel_type']
+        cypher_query = \
+            '''
+            START e=node({node_id})
+            MATCH (e)-[r:`''' + rel_type + '''`]->(a)
+            ''' \
+            + (('WHERE ' + self._str(children_params, 'a', 'AND')) \
+            if len(children_params) > 0 else '') + \
+            '''
+            RETURN a
+            '''
+        # There is a problem with node_params if they are given to _run_query
+        return self._execute_query(cypher_query, node_id=node_id)
 
     @error_handle_odm
     def get_all_instances(self, **params):
@@ -222,54 +211,57 @@ class DatabaseManager:
         query_string = \
             '''
             START e=node(0)
-            MATCH e-[r:`<<TYPE>>`]->t-[q:`<<INSTANCE>>`]->n
+            MATCH (e)-[r:`<<TYPE>>`]->(t)-[q:`<<INSTANCE>>`]->(n)
             WHERE t.model_name = {model_name}
             RETURN n
             '''
-        return self.get_query_results_nodes(query_string,
-                                      **params)
+        return self._execute_query(query_string, **params)
 
     @error_handle_odm
     def set(self, **params):
         node_uuid = params['node_uuid']
-        node_params = params['node_params']
 
         if node_uuid not in self._uuid_images:
             raise Exception('Unknown uuid')
 
+        node_id = self._uuid_images[node_uuid]
+        node_params = self._str(params['node_params'])
         query_string = \
             '''
             START e=node({node_id})
             SET {node_params}
-            RETURN e
-            '''.format(node_id=self._uuid_images[node_uuid],
-                       node_params=self._str(node_params))
-        return self.get_query_results(query_string)[0][0]
+            '''.format(node_id=node_id, node_params=node_params)
+        # There is a problem with node_params if they are given to _run_query
+        self._run_query(query_string)
 
     @error_handle_odm
     def add_node(self, **params):
         model_name = params['model_name']
-        node_params = params['node_params']
 
         if model_name not in self._model_name_images:
             raise Exception('Unknown type')
 
+        node_params = params['node_params']
         node_params['uuid'] = str(uuid.uuid1())
         query_string = \
             '''
             CREATE e=({node_params})
-            RETURN id(e), e
+            RETURN id(e)
             '''
-        node_results = self.get_query_results(query_string, node_params=node_params)
+        node_results = self._execute_query(query_string,
+                                           node_params=node_params)
 
         if len(node_results) == 0:
             raise Exception('Executing query failed')
 
-        self._uuid_images[node_params['uuid']] = node_results[0][0]
-        rel_results = self.add_rel(start_node_uuid=self._model_name_images[model_name],
-                                   end_node_uuid=node_params['uuid'],
-                                   rel_type='<<INSTANCE>>')
-        return {'uuid': node_results[0][1]["uuid"]}
+        self._uuid_images[node_params['uuid']] = node_results[0]
+
+        start_node_uuid = self._model_name_images[model_name]
+        end_node_uuid = node_params['uuid']
+        rel_type = '<<INSTANCE>>'
+        self.add_rel(start_node_uuid=start_node_uuid,
+                     end_node_uuid=end_node_uuid, rel_type=rel_type)
+        return {'uuid': node_params['uuid']}
 
     @error_handle_odm
     def delete_node(self, **params):
@@ -278,56 +270,47 @@ class DatabaseManager:
         if node_uuid not in self._uuid_images:
             raise Exception('Unknown uuid')
 
+        node_id = self._uuid_images[node_uuid]
         query_string = \
             '''
             START e=node({node_id})
             MATCH (e)-[r]-()
             DELETE e, r
             '''
-        self.run_query(query_string,
-                       node_id=self._uuid_images[node_uuid])
+        self._run_query(query_string, node_id=node_id)
         del self._uuid_images[node_uuid]
 
     @error_handle_odm
     def add_rel(self, **params):
         start_node_uuid = params['start_node_uuid']
         end_node_uuid = params['end_node_uuid']
-        rel_type = params['rel_type']
-        rel_params = params['rel_params'] if 'rel_params' in params else {}
 
-        if start_node_uuid not in self._uuid_images or end_node_uuid not in self._uuid_images:
+        if start_node_uuid not in self._uuid_images \
+            or end_node_uuid not in self._uuid_images:
             raise Exception('Unknown uuid')
 
         start_node_id = self._uuid_images[start_node_uuid]
         end_node_id = self._uuid_images[end_node_uuid]
+        rel_type = params['rel_type']
+        rel_params = params['rel_params'] if 'rel_params' in params else {}
 
-        #TODO: replace code on jan
-        query_string = "START a=node({start_node_id}), b=node({end_node_id})"
-        query_string += " CREATE (a)-[r:`{0}` {1}]->(b)".format(rel_type, "{rel_params}")
-        query_string += "RETURN r"
-
-        #query_string = \
-        #    '''
-        #    START a=node({start_node_id}), b=node({end_node_id})
-        #    CREATE (a)-[r:`{rel_type}` {rel_params}]->(b)
-        #    RETURN r
-        #    '''
-        query_results = self.get_query_results(query_string,
-                                               start_node_id=start_node_id,
-                                               end_node_id=end_node_id,
-                                               #rel_type=str(rel_type),
-                                               rel_params=rel_params)
-        if len(query_results) == 0:
-            raise Exception('Executing query failed')
-        return query_results[0][0]
+        query_string = \
+            '''
+            START a=node({start_node_id}), b=node({end_node_id})
+            CREATE (a)-[r:`''' + rel_type + '''` {rel_params}]->(b)
+            '''
+        # There is a problem with node_params if they are given to _run_query
+        self._run_query(query_string, start_node_id=start_node_id,
+                        end_node_id=end_node_id, rel_params=rel_params)
 
     @error_handle_odm
     def delete_rel(self, **params):
         start_node_uuid = params['start_node_uuid']
         end_node_uuid = params['end_node_uuid']
 
-        if start_node_uuid not in self._uuid_images or end_node_uuid not in self._uuid_images:
-            raise Exception('Unknown uuid.')
+        if start_node_uuid not in self._uuid_images \
+            or end_node_uuid not in self._uuid_images:
+            raise Exception('Unknown uuid')
 
         start_node_id = self._uuid_images[start_node_uuid]
         end_node_id = self._uuid_images[end_node_uuid]
@@ -335,12 +318,25 @@ class DatabaseManager:
         query_string = \
             '''
             START a=node({start_node_id}), b=node({end_node_id})
-            MATCH (a)-[r]-(b)
+            MATCH (a)-[r]->(b)
             DELETE r
             '''
-        self.run_query(query_string,
-                       start_node_id=start_node_id,
-                       end_node_id=end_node_id)
+        self._run_query(query_string, start_node_id=start_node_id,
+                        end_node_id=end_node_id)
+
+    @error_handle_odm
+    def execute_query(self, **params):
+        query_string = params['query_string']
+        query_params = params['query_params']
+
+        return self._execute_query(query_string, True, **query_params)
+
+    @error_handle_odm
+    def run_query(self, **params):
+        query_string = params['query_string']
+        query_params = params['query_params']
+
+        self._run_query(query_string, **query_params)
 
 
 class Connection():
@@ -408,7 +404,8 @@ class ODMServer():
             conn = Connection(self._get_new_id(), conn)
             self._conn_list.append(conn)
             Thread(target=self._handle_client, args=(conn, lock)).start()
-            print 'New connection from {0}, new client id: {1}'.format(str(addr), str(conn.id))
+            print 'New connection from {0}, new client id: {1}' \
+                .format(str(addr), str(conn.id))
 
     def start(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
