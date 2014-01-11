@@ -69,7 +69,14 @@ if __name__ == "__main__":
         picked_child_queried[0]["uuid"] == picked_child["uuid"])
     
 
-        
-
+    ### Testing adding nodes ###
+    initial_content_nodes = len(cl.get_all_instances(model_name="Content"))
+    print "Initially content nodes ", initial_content_nodes 
+    cl.add_node("Content", {})
+    cl.add_node("Content", {})
+    cl.add_node("Content", {}) 
+    after_adding_content_nodes = len(cl.get_all_instances(model_name="Content"))
+    print "After adding content nodes ", initial_content_nodes 
+    assert(after_adding_content_nodes-initial_content_nodes == 3)
 #     print cl.get_all_children("1814d088-7a2 f-11e3-8ac6-485d60f20495", 
 

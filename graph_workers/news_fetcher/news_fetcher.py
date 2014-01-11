@@ -197,9 +197,14 @@ class NewsFetcher(GraphWorker):
             {
                 CONTENT_SOURCE_LAST_UPDATE: GMTdatetime_to_database_timestamp(newest)
             }
-        )  # using graph_db used to fetch this node!!
+        )
 
-        existing_nodes = count_same_news(self.graph_db, news_website, nodes_to_add[newest_id]["title"])
+        # Count exisiting nodes
+        existing_nodes = len(self.odm_client.get_all_children\
+                (parent_uuid=news_website["uuid"], rel_name="<<HAS_INSTANCE_RELATION>>",
+                 title=nodes_to_add[newest_id]["title"]))
+
+
 
         if existing_nodes > 0:
             logger.log(MY_CRITICAL_LEVEL, "")
@@ -209,11 +214,15 @@ class NewsFetcher(GraphWorker):
             return 0
 
 
+        for n in nodes_to_add:
+            print "Adding node ", n
+            self.odm_client.add_node(model_name=CONTENT_TYPE_MODEL_NAME, node_params=n)
+            print "Contents (news) in the graph: ", len(self.odm_client.get_all_instances(model_name=CONTENT_TYPE_MODEL_NAME))
+
 
         #nodes_added = self.graph_db.create(*nodes_to_add)
         #
-        #instance_relations = [py2neo.rel(news_type_node, HAS_INSTANCE_RELATION, content)
-        #                      for content in nodes_added]
+
         #produces_relations = [py2neo.rel(news_website, PRODUCES_RELATION, content)
         #                      for content in nodes_added]
 
