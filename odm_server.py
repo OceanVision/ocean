@@ -104,6 +104,80 @@ class DatabaseManager:
         self._init_model_name_images()
 
     @error_handle_odm
+    def _execute_query(self, query_string, multi_value=False, **query_params):
+        """
+        Executes query and returns results as python dictionaries
+        @param query_string string
+        @param multi_value bool
+        @param query_params dictionary
+        """
+        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
+        query_results = cypher_query.execute(**query_params)
+
+        results = []
+        for result in query_results:
+            values = []
+            if not multi_value:
+                value = result.values[0]
+                if value.__class__.__name__ in ('Node', 'Relationship'):
+                    values = value.get_properties()
+                else:
+                    values = value
+            else:
+                for value in result.values:
+                    if value.__class__.__name__ in ('Node', 'Relationship'):
+                        values.append(value.get_properties())
+                    else:
+                        values.append(value)
+            results.append(values)
+        return results
+
+    @error_handle_odm
+    def _run_query(self, query_string, **query_params):
+        """
+        Runs query only
+        @param query_string
+        @param query_params
+        """
+        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
+        cypher_query.run(**query_params)
+
+    def _init_model_name_images(self):
+        self._model_name_images.clear()
+        query_string = \
+            '''
+            START e=node(0)
+            MATCH (e)-[]->(t)
+            RETURN t.uuid, t
+            '''
+        query_results = self._execute_query(query_string, True)
+        for record in query_results:
+            key = record[1]['model_name']
+            value = record[0]
+            self._model_name_images[key] = value
+
+    def _init_uuid_images(self):
+        self._uuid_images.clear()
+        query_string = \
+            '''
+            START e=node(*)
+            WHERE id(e) <> 0
+            RETURN id(e), e
+            '''
+        query_results = self._execute_query(query_string, True)
+        for record in query_results:
+            key = record[1]['uuid']
+            value = record[0]
+            self._uuid_images[key] = value
+
+    def _str(self, dictionary, element='e', separator=','):
+        string = ''
+        for (key, value) in dictionary.iteritems():
+            string += str(separator) + ' ' + str(element) + '.' \
+                      + str(key) + '=' + json.dumps(value) + ' '
+        return str(string[(len(separator) + 1):])
+
+    @error_handle_odm
     def get_by_uuid(self, **params):
         node_uuid = params['node_uuid']
 
@@ -236,8 +310,6 @@ class DatabaseManager:
 
     @error_handle_odm
     def delete_node(self, **params):
-        print params
-
         node_uuid = params['node_uuid']
 
         if node_uuid not in self._uuid_images:
@@ -314,81 +386,6 @@ class DatabaseManager:
         self._run_query(query_string, **query_params)
 
 
-    #@error_handle_odm
-    def _execute_query(self, query_string, multi_value=False, **query_params):
-        """
-        Executes query and returns results as python dictionaries
-        @param query_string string
-        @param multi_value bool
-        @param query_params dictionary
-        """
-        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
-        query_results = cypher_query.execute(**query_params)
-
-        results = []
-        for result in query_results:
-            values = []
-            if not multi_value:
-                value = result.values[0]
-                if value.__class__.__name__ in ('Node', 'Relationship'):
-                    values = value.get_properties()
-                else:
-                    values = value
-            else:
-                for value in result.values:
-                    if value.__class__.__name__ in ('Node', 'Relationship'):
-                        values.append(value.get_properties())
-                    else:
-                        values.append(value)
-            results.append(values)
-        return results
-
-    @error_handle_odm
-    def _run_query(self, query_string, **query_params):
-        """
-        Runs query only
-        @param query_string
-        @param query_params
-        """
-        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
-        cypher_query.run(**query_params)
-
-    def _init_model_name_images(self):
-        self._model_name_images.clear()
-        query_string = \
-            '''
-            START e=node(0)
-            MATCH (e)-[]->(t)
-            RETURN t.uuid, t
-            '''
-        query_results = self._execute_query(query_string, True)
-        for record in query_results:
-            key = record[1]['model_name']
-            value = record[0]
-            self._model_name_images[key] = value
-
-    def _init_uuid_images(self):
-        self._uuid_images.clear()
-        query_string = \
-            '''
-            START e=node(*)
-            WHERE id(e) <> 0
-            RETURN id(e), e
-            '''
-        query_results = self._execute_query(query_string, True)
-        for record in query_results:
-            key = record[1]['uuid']
-            value = record[0]
-            self._uuid_images[key] = value
-
-    def _str(self, dictionary, element='e', separator=','):
-        string = ''
-        for (key, value) in dictionary.iteritems():
-            string += str(separator) + ' ' + str(element) + '.' \
-                      + str(key) + '=' + json.dumps(value) + ' '
-        return str(string[(len(separator) + 1):])
-
-
 class Connection():
     def __init__(self, client_id, conn, manager):
         self._id = client_id
@@ -422,7 +419,6 @@ class Connection():
 
     @error_handle_odm
     def _execute(self, func_name, params):
-
         func = getattr(self._manager, str(func_name))
         print 'Client {0}: {1}'.format(self._id, func_name)
         return func(**params)
