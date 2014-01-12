@@ -86,23 +86,7 @@ if __name__ == "__main__":
     cl.delete_node(node_uuid=uuid3)
     after_del_content_nodes = len(cl.get_instances(model_name="Content"))
     assert(after_del_content_nodes-initial_content_nodes == 0)
-#     print cl.get_all_children("1814d088-7a2 f-11e3-8ac6-485d60f20495", 
-
-
-# TODO: add asserts
-#     batch = cl.get_batch()
-#     batch.append('get_instances', model_name='NeoUser')
-#     batch.append('get_instances', model_name='Content')
-#     batch.append('add_node', model_name='Content', node_params={})
-#     print 'Batch execute:'
-#     res1 = batch.execute()
-#     uuid_1 = res1[2]['uuid']
-#     batch.append('delete_node', node_uuid=uuid_1)
-#     res2 = batch.execute()
-#     for item in res1:
-#         print item
-#     print res2[0]
-# 
+#     print cl.get_all_children("1814d088-7a2 f-11e3-8ac6-485d60f20495",
 
     print "5. Test query execution"
     ### Test execute query ###
@@ -118,5 +102,16 @@ if __name__ == "__main__":
     results = cl.execute_query(query_string = cypher_query, query_params = {})
 
     print len(results)
-    
 
+    print '6. Test batch execution'
+    res1 = cl.get_instances('NeoUser')
+    res2 = cl.get_by_link('Website', 'http://www.gry-online.pl/')
+
+    batch = cl.get_batch()
+    batch.append(cl.get_instances, ['NeoUser'])
+    batch.append(cl.get_by_link, ['Website', 'http://www.gry-online.pl/'])
+    res3 = batch.execute()
+
+    assert (res1 == res3[0])
+    assert (res2 == res3[1])
+    print 'OK'

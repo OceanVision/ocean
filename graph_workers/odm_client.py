@@ -1,5 +1,6 @@
 import socket
 import json
+import inspect
 
 HOST = 'localhost'
 PORT = 7777
@@ -55,13 +56,17 @@ class ODMClient:
             self.client = client
             self.tasks = []
 
-        def append(self, func_name, **params):
+        def _get_data_for_batch(self, func, args):
+            return func(*args)
+
+        def append(self, func, args):
             """
             Appends ODM task to the list
-            @param func_name string
-            @param params dictionary/keywords
+            @param func function
+            @param args list
             """
-            self.tasks.append({'func_name': func_name, 'params': params})
+            data = self._get_data_for_batch(func, args)
+            self.tasks.append(data)
 
         def execute(self):
             """
@@ -130,6 +135,9 @@ class ODMClient:
         data = {'func_name': 'get_by_uuid', 'params': {
             'node_uuid': node_uuid
         }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         return self.recv()
 
@@ -143,6 +151,9 @@ class ODMClient:
             'model_name': model_name,
             'link': link
         }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         return self.recv()
 
@@ -151,35 +162,44 @@ class ODMClient:
         Gets model nodes
         """
         data = {'func_name': 'get_model_nodes', 'params': {}}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         return self.recv()
 
-    def get_children(self, node_uuid, rel_type, **children_params):
+    def get_children(self, node_uuid, rel_type, **params):
         """
         Gets children of node with parent_uuid uuid
             related by relation rel_name with parameters
         @param node_uuid string
         @param rel_type string
-        @param children_params dictionary/keywords
+        @param params dictionary/keywords
         """
         data = {'func_name': 'get_children', 'params': {
             'node_uuid': node_uuid,
             'rel_type': rel_type,
-            'children_params': children_params
+            'children_params': params
         }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         return self.recv()
 
-    def get_instances(self, model_name, **children_params):
+    def get_instances(self, model_name, **params):
         """
         Gets all instances of given model_name
         @param model_name string
-        @param children_params dictionary/keywords
+        @param params dictionary/keywords
         """
         data = {'func_name': 'get_instances', 'params': {
             'model_name': model_name,
-            'children_params': children_params
+            'children_params': params
         }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         return self.recv()
 
@@ -193,6 +213,9 @@ class ODMClient:
             'node_uuid': node_uuid,
             'node_params': node_params
         }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         return self.recv()
 
@@ -206,6 +229,9 @@ class ODMClient:
             'model_name': model_name,
             'node_params': node_params
         }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         return self.recv()
 
@@ -217,24 +243,30 @@ class ODMClient:
         data = {'func_name': 'delete_node', 'params': {
             'node_uuid': node_uuid
         }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         self.recv()
 
-    def add_rel(self, start_node_uuid, end_node_uuid, rel_type, rel_params={}):
+    def add_rel(self, start_node_uuid, end_node_uuid, rel_type, **params):
         """
         Adds a relationship rel_type with rel_params
             between nodes of start_node_uuid and end_node_uuid
         @param start_node_uuid string
         @param end_node_uuid string
         @param rel_type string
-        @param rel_params dictionary
+        @param params dictionary/keywords
         """
         data = {'func_name': 'add_rel', 'params': {
             'start_node_uuid': start_node_uuid,
             'end_node_uuid': end_node_uuid,
             'rel_type': rel_type,
-            'rel_params': rel_params
+            'rel_params': params
         }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         return self.recv()
 
@@ -249,33 +281,42 @@ class ODMClient:
             'start_node_uuid': start_node_uuid,
             'end_node_uuid': end_node_uuid
         }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         self.recv()
 
-    def execute_query(self, query_string, **query_params):
+    def execute_query(self, query_string, **params):
         """
         Executes query_string with given query_params
             and returns results as python dictionaries
         @param query_string string
-        @param query_params dictionary/keywords
+        @param params dictionary/keywords
         """
         data = {'func_name': 'execute_query', 'params': {
             'query_string': query_string,
-            'query_params': query_params
+            'query_params': params
         }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         return self.recv()
 
-    def run_query(self, query_string, **query_params):
+    def run_query(self, query_string, **params):
         """
         Runs query_string with given query_params
         @param query_string string
-        @param query_params dictionary/keywords
+        @param params dictionary/keywords
         """
         data = {'func_name': 'run_query', 'params': {
             'query_string': query_string,
-            'query_params': query_params
+            'query_params': params
         }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
         self.send(data)
         self.recv()
 
