@@ -3,7 +3,51 @@ import json
 
 HOST = 'localhost'
 PORT = 7777
-
+import struct
+""" Utils for  prefix length TCP """
+def socket_read_n(sock, n):
+    """ Read exactly n bytes from the socket.
+        Raise RuntimeError if the connection closed before
+        n bytes were read.
+    """
+    buf = ''
+    while n > 0:
+        data = sock.recv(n)
+        if data == '':
+            raise RuntimeError('unexpected connection close')
+        buf += data
+        n -= len(data)
+    return buf
+def get_message_raw(sock):
+    """
+        Returns raw message (using length prefix framing)
+    """
+    len_buf = socket_read_n(sock, 4) # Read exactly n bytes
+    msg_len = struct.unpack('>L', len_buf)[0]
+    msg_buf = socket_read_n(sock,msg_len)
+    return msg_buf
+def send_message_raw(sock, msg ):
+    """
+        Sends raw message (using length prefix framing)
+    """
+    print "Sending "+msg
+    packed_len = struct.pack('>L', len(msg)) # Number of bytes
+    sock.sendall(packed_len + msg)
+def send_message(sock, msg):
+    """
+        Sends message of class message_class (using length prefix framing)
+    """
+    s = json.dumps(msg)
+    packed_len = struct.pack('>L', len(s)) # Number of bytes
+    sock.sendall(packed_len + s)
+def get_message(sock):
+    """
+        Returns object deserialized by JSON (using length prefix framing)
+    """
+    len_buf = socket_read_n(sock, 4) # Read exactly n bytes
+    msg_len = struct.unpack('>L', len_buf)[0]
+    msg_buf = socket_read_n(sock,msg_len)
+    return json.loads(msg_buf)
 
 class ODMClient:
     class Batch:
@@ -57,7 +101,8 @@ class ODMClient:
 
     def send(self, data):
         try:
-            self._conn.send(json.dumps(data))
+            send_message(self._conn, data)
+            #self._conn.send(json.dumps(data))
         except Exception, e:
             print 'Not sent data', data
             print 'Sending data failed.', str(e)
@@ -66,9 +111,10 @@ class ODMClient:
     def recv(self):
         data = None
         try:
-            received_data = str(self._conn.recv(8192))
-
-            data = json.loads(received_data) if len(received_data) > 0 else {}
+            data = get_message(self._conn)
+            #received_data = str(self._conn.recv(8192))
+            #
+            #data = json.loads(received_data) if len(received_data) > 0 else {}
         except Exception as e:
             print 'Receiving data failed.', str(e)
         return data
