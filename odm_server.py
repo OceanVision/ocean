@@ -346,24 +346,25 @@ class Connection():
     def _send(self, data):
         try:
             self._conn.send(json.dumps(data))
-        except Exception as e:
-            print 'Sending data to client', self._id, 'failed.', e.message
+        except Exception, e:
+            print 'Not sent data ',data
+            print 'Sending data to client', self._id, 'failed.', str(e)
 
     def _recv(self):
         data = None
         try:
             received_data = str(self._conn.recv(8192))
             data = json.loads(received_data) if len(received_data) > 0 else {}
-        except Exception as e:
-            print 'Receiving data from client', self._id, 'failed.', e.message
+        except Exception, e:
+            print 'Receiving data from client', self._id, 'failed.', str(e)
         return data
 
     def _disconnect(self):
         try:
             self._conn.close()
             print 'Client {0} disconnected.'.format(str(self._id))
-        except Exception as e:
-            print 'Disconnecting with client', self._id, 'failed.', e.message
+        except Exception, e:
+            print 'Disconnecting with client', self._id, 'failed.', str(e)
 
     @error_handle_odm
     def _execute(self, func_name, params):

@@ -12,30 +12,31 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../graph_workers"))
 from odm_server import DatabaseManager
 from odm_client import ODMClient
 
+
+#TODO: fill in performance unit test
+def massing_add_delete():
+    pass  #asserts
+
 if __name__ == "__main__":
     
     ### Create Objects ###
     db = DatabaseManager()
     cs = db.get_instances(model_name="ContentSource", children_params={})
-    print "Fetched ContentSources"
-    print cs 
-    
-    ### Get not existing node ###
-    print db.get_by_uuid(node_uuid="x")
+    assert(len(cs) > 0) 
     
     ### Connect ###
     cl = ODMClient()
     cl.connect()
 
-    ### Get all instances of ContentSource ###
-    print cs
+    ### Change one instance and see if change has occured ### 
     uuid_0 = cs[0]['uuid']
-
-    ### Change one instance and see if change has occured ###
+    previous_image_height = cs[0]['image_height']
     cl.set(uuid_0, {'image_height': 100})
+    assert(cl.get_by_uuid(uuid_0)['image_height'] == 100)
+    cl.set(uuid_0, {'image_height': previous_image_height})
+    assert(cl.get_by_uuid(uuid_0)['image_height'] == previous_image_height)
+    
 
-    print "Specific node:"
-    print cl.get_by_uuid(uuid_0)
 
     ### Get type nodes and get all children of <<TYPE>> = "ContentSource"
     print ".."
@@ -43,6 +44,7 @@ if __name__ == "__main__":
     type_content_source = None
 
     assert(len(cl.get_model_nodes()) >= 3)
+    print cl.get_model_nodes()
 
     for t in cl.get_model_nodes():
         if t["model_name"] == "ContentSource":
@@ -70,6 +72,9 @@ if __name__ == "__main__":
     assert(len(picked_child_queried) == 1 and \
         picked_child_queried[0]["uuid"] == picked_child["uuid"])
     
+    print cl.get_instances(model_name="Content")
+
+
 
     ### Testing adding nodes ###
     initial_content_nodes = len(cl.get_instances(model_name="Content"))
@@ -82,15 +87,34 @@ if __name__ == "__main__":
     assert(after_adding_content_nodes-initial_content_nodes == 3)
 #     print cl.get_all_children("1814d088-7a2 f-11e3-8ac6-485d60f20495", 
 
-    batch = cl.get_batch()
-    batch.append('get_instances', model_name='NeoUser')
-    batch.append('get_instances', model_name='Content')
-    batch.append('add_node', model_name='Content', node_params={})
-    print 'Batch execute:'
-    res1 = batch.execute()
-    uuid_1 = res1[2]['uuid']
-    batch.append('delete_node', node_uuid=uuid_1)
-    res2 = batch.execute()
-    for item in res1:
-        print item
-    print res2[0]
+
+# TODO: add asserts
+#     batch = cl.get_batch()
+#     batch.append('get_instances', model_name='NeoUser')
+#     batch.append('get_instances', model_name='Content')
+#     batch.append('add_node', model_name='Content', node_params={})
+#     print 'Batch execute:'
+#     res1 = batch.execute()
+#     uuid_1 = res1[2]['uuid']
+#     batch.append('delete_node', node_uuid=uuid_1)
+#     res2 = batch.execute()
+#     for item in res1:
+#         print item
+#     print res2[0]
+# 
+
+    ### Test execute query ###
+    cypher_query = """
+            START root=node(0)
+            MATCH root-[rel:`<<TYPE>>`]->news_type-[rel2:`<<INSTANCE>>`]->news
+            WHERE news_type.name="rss:News"
+            RETURN news
+            ORDER BY news.pubdate_timestamp DESC
+            LIMIT 100
+        """
+
+    results = cl.execute_query(query_string = cypher_query, query_params = {})
+
+    print len(results)
+    
+

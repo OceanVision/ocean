@@ -213,27 +213,27 @@ relacje na zywo i wiele wiecej.",
         rel(websites[2], HAS_RELATION, content_sources[2])
     )
 
-    #TODO: Delete following code after system refactorization
-    # Create old type websites
-    old_websites = graph_db.create(*content_sources_list)
-
-    # Create old type websites instance relations
-    graph_db.create(
-        rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[0]),
-        rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[1]),
-        rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[2])
-    )
-    #NOTE: End of future deletion
-
-    #map(lambda w: w.add_labels(NEWS_CHANNELS_LABEL),channels) # Add labels
-    #print [x for x in  graph_db.find(NEWS_CHANNELS_LABEL)] # Sanity check
-
-
-    graph_db.create(
-        rel(users[0], SUBSCRIBES_TO_RELATION, content_sources[2]),
-        rel(users[0], SUBSCRIBES_TO_RELATION, content_sources[1]),
-        rel(users[1], SUBSCRIBES_TO_RELATION, content_sources[1]),
-    )
+    ##TODO: Delete following code after system refactorization
+    ## Create old type websites
+    #old_websites = graph_db.create(*content_sources_list)
+    #
+    ## Create old type websites instance relations
+    #graph_db.create(
+    #    rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[0]),
+    #    rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[1]),
+    #    rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[2])
+    #)
+    ##NOTE: End of future deletion
+    #
+    ##map(lambda w: w.add_labels(NEWS_CHANNELS_LABEL),channels) # Add labels
+    ##print [x for x in  graph_db.find(NEWS_CHANNELS_LABEL)] # Sanity check
+    #
+    #
+    #graph_db.create(
+    #    rel(users[0], SUBSCRIBES_TO_RELATION, content_sources[2]),
+    #    rel(users[0], SUBSCRIBES_TO_RELATION, content_sources[1]),
+    #    rel(users[1], SUBSCRIBES_TO_RELATION, content_sources[1]),
+    #)
 #        rel(users[2], SUBSCRIBES_TO_RELATION, content_sources[0]),
 #        rel(users[3], SUBSCRIBES_TO_RELATION, content_sources[0]),
 #    )

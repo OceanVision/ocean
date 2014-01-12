@@ -193,7 +193,7 @@ class NewsFetcher(GraphWorker):
 
         # Count exisiting nodes
         existing_nodes = len(self.odm_client.get_children\
-                (parent_uuid=news_website["uuid"], rel_name="<<HAS_INSTANCE_RELATION>>",
+                (news_website["uuid"], "<<HAS_INSTANCE_RELATION>>",
                  title=nodes_to_add[newest_id]["title"]))
 
 
@@ -216,7 +216,7 @@ class NewsFetcher(GraphWorker):
 
 
         logger.log(MY_INFO_LEVEL, "Updating NewsWebsite "+unicode(news_website))
-        logger.log(MY_INFO_LEVEL, "Added for instance "+unicode(nodes_to_add[0]["title"]))
+        logger.log(MY_INFO_LEVEL, "Added for instance "+nodes_to_add[0]["title"])
         return len(nodes_to_add)
 
 
@@ -254,13 +254,13 @@ class NewsFetcher(GraphWorker):
 
 
         def try_get_node_value(node, value, default = u""):
-            """ Note we return everything as unicode !! """
+            """ Note we return everything as utf-8 !! """
             try:
                 childNodes = node.getElementsByTagName(value)[0].childNodes
                 for child in childNodes:
                     text = child.nodeValue
                     text = text.strip()
-                    if text != "": return text
+                    if text != "": return text#unicode(text).encode("utf-16")
                 return ""
             except:
                 return default
@@ -269,10 +269,15 @@ class NewsFetcher(GraphWorker):
 
         for id,item in enumerate(feed):
             news_node = {}
-            news_node["title"] = unicode(try_get_node_value(item, "title"))
-            news_node["guid"] = unicode(try_get_node_value(item, "guid"))
-            news_node["description"] = unicode(try_get_node_value(item, "description"))
-            news_node["link"] = unicode(try_get_node_value(item, "link"))
+            #news_node["title"] = unicode(try_get_node_value(item, "title"))
+            #news_node["guid"] = unicode(try_get_node_value(item, "guid"))
+            #news_node["description"] = unicode(try_get_node_value(item, "description"))
+            #news_node["link"] = unicode(try_get_node_value(item, "link"))
+            news_node["title"] =try_get_node_value(item, "title").encode("utf8")
+            news_node["guid"] = try_get_node_value(item, "guid").encode("utf8")
+            news_node["description"] = try_get_node_value(item, "description").encode("utf8")
+            news_node["link"] = try_get_node_value(item, "link").encode("utf8")
+
             news_node["loved_counter"] = 0
 
             d = pubdate_to_datetime(try_get_node_value(item, "pubDate"))
