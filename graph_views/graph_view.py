@@ -5,10 +5,8 @@ from graph_utils import database_timestamp_to_datetime, GMTdatetime_to_database_
 import datetime
 from neo4j_wrapper import get_records_from_cypher
 import random
-
-
 from py2neo import neo4j
-
+from odm_client import ODMClient
 
 class GraphView(object):
     """ Abstract class for GraphView """
@@ -111,12 +109,15 @@ class TrendingNews(GraphView):
         """
 
 
-        #user.refresh()
-        #loved = [news.link for news in user.loves_it.all()]
+        ##user.refresh()
+        ##loved = [news.link for news in user.loves_it.all()]
+        #
+        #fetched_news = [r.news for r in
+        #                get_records_from_cypher(neo4j.GraphDatabaseService("http://localhost:7474/db/data/"),
+        #                              cypher_query, {"timestamp": timestamp})]
+        #
 
-        fetched_news = [r.news for r in
-                        get_records_from_cypher(neo4j.GraphDatabaseService("http://localhost:7474/db/data/"),
-                                      cypher_query, {"timestamp": timestamp})]
+        fetched_news = self.odm_client.execute_query(cypher_query, {"timestamp":timestamp} )
 
         preparing_view = [] #TODO: use previous results
         colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
@@ -147,3 +148,6 @@ class TrendingNews(GraphView):
         self.period = period
         self.update_frequency_s = 10
         self.prepared_view = []
+
+        self.odm_client = ODMClient()
+        self.odm_client.connect()
