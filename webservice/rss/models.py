@@ -40,6 +40,8 @@ class News(neo4j_models.NodeModel):
         """ Reload an object from the database """
         return self.__class__._default_manager.get(pk=self.pk)
 
+    uuid = neo4j_models.StringProperty()
+
     title = neo4j_models.StringProperty()
 
     link = neo4j_models.URLProperty()
@@ -55,6 +57,8 @@ class Content(neo4j_models.NodeModel):
     def refresh(self):
         """ Reload an object from the database """
         return self.__class__._default_manager.get(pk=self.pk)
+
+    uuid = neo4j_models.StringProperty()
 
     title = neo4j_models.StringProperty()
 
@@ -86,6 +90,7 @@ class ContentSource(neo4j_models.NodeModel):
         """ Reload an object from the database """
         return self.__class__._default_manager.get(pk=self.pk)
 
+    uuid = neo4j_models.StringProperty()
 
     #TODO: change to Content
     produces = neo4j_models.Relationship('News', rel_type=PRODUCES_RELATION, related_name="produced")
@@ -110,8 +115,10 @@ class NeoUser(neo4j_models.NodeModel):
         """ Reload an object from the database """
         return self.__class__._default_manager.get(pk=self.pk)
 
+    uuid = neo4j_models.StringProperty()
+
     subscribes_to = neo4j_models.Relationship(
-        'NewsWebsite',
+        'ContentSource',
         rel_type=SUBSCRIBES_TO_RELATION,
         related_name="subscribed"
     )

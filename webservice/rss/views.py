@@ -1,9 +1,7 @@
 from ocean_master import OC
-
-
 from django.shortcuts import render
 from django.contrib.auth.models import User
-from models import NeoUser, NewsWebsite, News
+from models import NeoUser, NewsWebsite, News, ContentSource
 from django.http import HttpResponse
 from rss import models
 from py2neo import neo4j
@@ -18,6 +16,7 @@ import xml.dom.minidom
 import py2neo
 import json
 import random
+from odm_client import ODMClient
 
 
 def get_category_array(graph_display):
@@ -37,6 +36,7 @@ def get_loved_it_list(request):
     news = News.objects.filter(pk=int(request.GET['pk']))[0] #TODO: add some kind of caching here
     return HttpResponse(json.dumps([user.username for user in news.loved.all()]))
 
+
 @utils.error_writing
 @utils.timed
 def loved_it(request):
@@ -48,7 +48,6 @@ def loved_it(request):
     loved = [u.username for u in news.loved.all()]
     if user.username in loved: return #returns error
 
-
     user.loves_it.add(news)
     news.loved_counter += 1
 
@@ -58,10 +57,10 @@ def loved_it(request):
 
     return HttpResponse(json.dumps({}))
 
+
 @utils.error_writing
 @utils.timed
 def unloved_it(request):
-
     graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/") # That's fine, connection pool
 
     #TODO: how to handle errors in views like this?
@@ -70,10 +69,9 @@ def unloved_it(request):
     news = News.objects.filter(pk=int(request.GET['pk']))[0] #TODO: add some kind of caching here
     user = NeoUser.objects.filter(username__exact=request.user.username)[0] #TODO: add some kind of caching here
 
-
     print news.loved_counter
 
-    delete_cypher_params = {"user_pk":user.pk, "news_pk": news.pk, "rel_name": LOVES_IT_RELATION}
+    delete_cypher_params = {"user_pk": user.pk, "news_pk": news.pk, "rel_name": LOVES_IT_RELATION}
     print delete_cypher_params
     print user.loves_it.all()
 
@@ -89,7 +87,7 @@ def unloved_it(request):
     my_batch.append_cypher(delete_cypher, delete_cypher_params)
     result = my_batch.submit()
 
-    print "Removed ",result[0], "relations"
+    print "Removed ", result[0], "relations"
 
     # We can save here as unloving is not often called
     news.loved_counter -= result[0]
@@ -112,9 +110,8 @@ def graph_view_all_subscribed(graph_display):
     try:
         print "username:", graph_display["username"]
 
-        rss_items_array = []  # building news to be rendered (isn't very efficient..)
+        content_items_array = []  # building news to be rendered (isn't very efficient..)
         user = NeoUser.objects.filter(username__exact=graph_display["username"])[0]
-
 
         user.refresh()
         loved = [news.link for news in user.loves_it.all()]
@@ -123,18 +120,22 @@ def graph_view_all_subscribed(graph_display):
         colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
         # Get news for authenticated users.
 
+        odm_client = ODMClient()
+        odm_client.connect()
 
-        #TODO: Skrajnie niewydajne..
-        for rss_channel in user.subscribes_to.all():
-            for news in rss_channel.produces.all():
-                news_dict = news.__dict__["_prop_values"]
-                news_dict['pk'] = news.pk
-                news_dict['loved'] = int(news.link in loved)
-                news_dict['color'] = colors[random.randint(0, 4)]
-                rss_items_array.append(news_dict)
+        for content_source in odm_client.get_children(user.uuid, "subscribes_to"):
+            for content in odm_client.get_children(content_source['uuid'], "__produces__"):
+
+                #TODO: nie wiem czym jest pk ale nie ma tego w bazie, loved sie wywala: blad iteracji po int (?)
+                #content_dict['pk'] = content['pk']
+                content['loved'] = 0 #int(content['link'] in loved)
+
+                content['color'] = colors[random.randint(0, 4)]
+
+                content_items_array.append(content)
 
         category_array = get_category_array(graph_display)
-
+        odm_client.disconnect()
 
         page = 0
         page_size = 20
@@ -143,28 +144,26 @@ def graph_view_all_subscribed(graph_display):
             page_size = int(graph_display['page_size'])
 
         a = page * page_size
-        if a < len(rss_items_array):
+        if a < len(content_items_array):
             b = (page + 1) * page_size
-            if b <= len(rss_items_array):
-                rss_items_array = rss_items_array[a:b]
+            if b <= len(content_items_array):
+                content_items_array = content_items_array[a:b]
             else:
-                rss_items_array = rss_items_array[a:]
+                content_items_array = content_items_array[a:]
         else:
-            rss_items_array = None
+            content_items_array = None
 
     except Exception, e:
-        print "Exception in graph_view_all_subscribed : ",e
+        print "Exception in graph_view_all_subscribed : ", e
         return {}
 
     return {'signed_in': True,
-            'rss_items': rss_items_array,
+            'rss_items': content_items_array,
             'categories': category_array}
 
 
-
-
 #TODO: move to ocean_master
-def get_graph(request, dict_update = {}):
+def get_graph(request, dict_update={}):
     """
         @param dict_update this dict will update request.GET and form graph_display
         @note: state variables are more important than dict_update !!
@@ -186,8 +185,6 @@ def get_graph(request, dict_update = {}):
         else:
             print "WARNING: no state in request.GET"
             temp_dict.update(dict(request.GET))
-
-
 
 
         # @note: this function will be moved to OceanMaster
@@ -217,12 +214,12 @@ def get_graph(request, dict_update = {}):
 def trending_news(request):
     # Graph View options (that will be pased to ocean_master)
     options = [
-                {"name": "period",
-                "list": ["Top week", "Top day", "Top hour!"],
-                "state":0,
-                "action":"rewrite_display"}
-            ]
-    data = get_graph(request, {"graph_view": "TrendingNews", "options": options, "page":0, "page_size":20})
+        {"name": "period",
+         "list": ["Top week", "Top day", "Top hour!"],
+         "state": 0,
+         "action": "rewrite_display"}
+    ]
+    data = get_graph(request, {"graph_view": "TrendingNews", "options": options, "page": 0, "page_size": 20})
     if len(data) > 0:
         if "descriptor" not in data:
             data["options"] = json.dumps(options)
@@ -235,9 +232,9 @@ def trending_news(request):
     else:
         return HttpResponse(content="fail", content_type="text/plain")
 
+
 @utils.view_error_writing
 def index(request):
-
     data = get_graph(request, {"graph_view": "Subscribed"})
     if len(data) > 0:
         if "descriptor" not in data:
@@ -254,23 +251,21 @@ def index(request):
 def get_rss_channels(request):
     """Get subscribed RSS channels list from databasa."""
     if request.user.is_authenticated():
-        rss_items_array = []  # building news to be rendered (isn't very efficient..)
+        content_items_array = []  # building news to be rendered (isn't very efficient..)
         user = NeoUser.objects.filter(username__exact=request.user.username)[0]
 
         colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
         # Get news for authenticated users.
-        for channel in user.subscribes_to.all():
-            rss_items_array += [
-                {
-                    'pk' : channel.pk,
-                    'title': channel.title,
-                    'description': channel.description,
-                    'link': channel.link,
-                    'category': 2,
-                    'color': colors[random.randint(0, 4)]
-                }
-            ]
 
+        odm_client = ODMClient()
+        odm_client.connect()
+
+        for content_source in odm_client.get_children(user.uuid, "subscribes_to"):
+            content_source['category'] = 2
+            content_source['color'] = colors[random.randint(0, 4)]
+            content_items_array += [content_source]
+
+        odm_client.disconnect()
 
         category_array = get_category_array(request)
 
@@ -281,17 +276,17 @@ def get_rss_channels(request):
             page_size = int(request.GET['page_size'])
 
         a = page * page_size
-        if a < len(rss_items_array):
+        if a < len(content_items_array):
             b = (page + 1) * page_size
-            if b <= len(rss_items_array):
-                rss_items_array = rss_items_array[a:b]
+            if b <= len(content_items_array):
+                content_items_array = content_items_array[a:b]
             else:
-                rss_items_array = rss_items_array[a:]
+                content_items_array = content_items_array[a:]
         else:
-            rss_items_array = None
+            content_items_array = None
 
         return {'signed_in': True,
-                'rss_channels': rss_items_array,
+                'rss_channels': content_items_array,
                 'categories': category_array,
                 'message': ''}
 
@@ -310,6 +305,7 @@ def manage(request, message=''):
     else:
         return HttpResponse(content='fail', content_type='text/plain')
 
+
 @utils.view_error_writing
 def get_news(request):
     data = get_graph(request)
@@ -319,24 +315,25 @@ def get_news(request):
         return HttpResponse(content="fail", content_type="text/plain")
 
 
-
 @utils.view_error_writing
-def add_channel(request):
+def add_content_source(request):
     if request.user.is_authenticated():
-        graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
-        my_batch = neo4j.WriteBatch(graph_db)
-        #TODO: efficient   query plx0r
-        check_data_cypher = "START n=node(*) " + \
-                            "MATCH n-[rel:__subscribes_to__]-c " + \
-                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \
-                            "RETURN c; "
-        #TODO: Try to solve "?ajax=ok" problem another way.
-        my_batch.append_cypher(check_data_cypher, {"link": request.GET["link"].encode("utf8").split("?ajax=ok")[0]})
-        list = my_batch.submit()
 
-        if list[0] is None:
+        odm_client = ODMClient()
+        odm_client.connect()
+
+        user = NeoUser.objects.filter(username__exact=request.user.username)[0]
+
+        is_subscribed = False
+        for content_source in odm_client.get_children(user.uuid, 'subscribes_to'):
+            if content_source['link'] == request.GET["link"].encode("utf8").split("?ajax=ok")[0]:
+                is_subscribed = True
+
+        # If user doesn't subscribe ContentSource with given link
+        if not is_subscribed:
             link = request.GET["link"].encode("utf8").split("?ajax=ok")[0]
-            if not NewsWebsite.objects.filter(link=link):
+            # If ContentSource node with given link doesn't exist
+            if len(odm_client.get_by_link("ContentSource", link)) == 0:
                 def get_node_value(node, value):
                     searched_nodes = node.getElementsByTagName(value)
                     if searched_nodes:
@@ -364,58 +361,53 @@ def add_channel(request):
                     image_link = get_node_value(channel, "link")
                     image_url = get_node_value(channel, "url")
 
-                channel_node = NewsWebsite.objects.create(link=request.GET["link"].split("?ajax=ok")[0],
-                                                          title=title, description=description,
-                                                          image_width=image_width, image_height=image_height,
-                                                          image_link=image_link, image_url=image_url,
-                                                          language=language, source_type="rss")
-                channel_node.save()
-
-            else:
-                #TODO: Try to solve "?ajax=ok" problem another way.
-                link = request.GET["link"].encode("utf8").split("?ajax=ok")[0]
-                channel_node = NewsWebsite.objects.filter(link__exact=link)[0]
+                odm_client.add_node("ContentSource", {"link": request.GET["link"].split("?ajax=ok")[0], "title": title,
+                                                      "description": description, "image_width": image_width,
+                                                      "image_height": image_height, "image_link": image_link,
+                                                      "image_url": image_url, "language": language,
+                                                      "source_type": "rss"})
 
             # Add subscription
-            user = NeoUser.objects.filter(username__exact=request.user.username)[0]
-            user.subscribes_to.add(channel_node)
-            user.save()
+            link = request.GET["link"].encode("utf8").split("?ajax=ok")[0]
+            content_source = odm_client.get_by_link("ContentSource", link)
+
+            odm_client.add_rel(user.uuid, content_source["uuid"], "subscribes_to")
+
+            odm_client.disconnect()
 
             return manage(request)
         else:
             return render(request, 'rss/message.html', {'message': 'Channel already exists in users subscriptions'})
+
     else:
-        # Redirect anonymous users to login page.
+        #Redirect anonymous users to login page.
         return render(request, 'rss/message.html', {'message': 'You are not logged in'})
 
 
 @utils.view_error_writing
-def delete_channel(request):
+def delete_content_source(request):
     if request.user.is_authenticated():
-        graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
-        my_batch = neo4j.WriteBatch(graph_db)
-        check_data_cypher = "START n=node(*) " + \
-                            "MATCH n-[rel:__subscribes_to__]-c " + \
-                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \
-                            "RETURN c; "
-        #TODO: Try to solve "?ajax=ok" problem another way.
-        my_batch.append_cypher(check_data_cypher, {"link": request.GET["link"].encode("utf8").split("?ajax=ok")[0]})
-        list = my_batch.submit()
+        odm_client = ODMClient()
+        odm_client.connect()
 
-        if list[0] is not None:
-            graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
-            my_batch = neo4j.WriteBatch(graph_db)
-            #TODO: it is like the worst query we can have here : look at every single relation user->newswebsite..
-            delete_cypher = "START n=node(*) " + \
-                            "MATCH n-[rel:__subscribes_to__]-c " + \
-                            "WHERE HAS(n.username) AND n.username=\"" + request.user.username + "\" AND c.link={link} " + \
-                            "DELETE rel; "
-            my_batch.append_cypher(delete_cypher, {"link": request.GET["link"].encode("utf8").split("?ajax=ok")[0]})
-            my_batch.submit()
-            #return HttpResponse(content="Ok")
+        user = NeoUser.objects.filter(username__exact=request.user.username)[0]
+
+        is_subscribed = False
+        for content_source in odm_client.get_children(user.uuid, 'subscribes_to'):
+            if content_source['link'] == request.GET["link"].encode("utf8").split("?ajax=ok")[0]:
+                is_subscribed = True
+
+        if is_subscribed:
+            link = request.GET["link"].encode("utf8").split("?ajax=ok")[0]
+            content_source = odm_client.get_by_link("ContentSource", link)
+
+            odm_client.delete_rel(user.uuid, content_source["uuid"])
+
+            odm_client.disconnect()
+
             return manage(request)
         else:
-            return render(request, 'rss/message.html', {'message': "It's not users subscription."} )
+            return render(request, 'rss/message.html', {'message': "It's not users subscription."})
     else:
         # Redirect anonymous users to login page.
         return render(request, 'rss/message.html', {'message': 'You are not logged in'})
