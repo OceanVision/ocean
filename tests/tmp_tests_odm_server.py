@@ -28,6 +28,8 @@ if __name__ == "__main__":
     cl = ODMClient()
     cl.connect()
 
+
+    print "1. Change one instance"
     ### Change one instance and see if change has occured ### 
     uuid_0 = cs[0]['uuid']
     previous_image_height = cs[0]['image_height']
@@ -39,10 +41,8 @@ if __name__ == "__main__":
 
 
     ### Get type nodes and get all children of <<TYPE>> = "ContentSource"
-    print ".."
-
+    print "2 and 3. Get model node and check get_children"
     type_content_source = None
-
     assert(len(cl.get_model_nodes()) >= 3)
     print cl.get_model_nodes()
 
@@ -54,37 +54,38 @@ if __name__ == "__main__":
     ### Retrieve all instances by get_all_children and after that ###
     ### recieve only the first one ###
     assert(type_content_source is not None)
-
     all_children = db.get_children(node_uuid=type_content_source["uuid"],
                                        rel_type="<<INSTANCE>>")
-    
     assert(len(all_children) > 2)
+    
 
     picked_child = all_children[0]
-    
     picked_child_queried = db.get_children(node_uuid=type_content_source["uuid"],
-        rel_type="<<INSTANCE>>", children_params={'link': picked_child["link"],
-                                                  'language': 'pl'})
-
-    print picked_child
-    print picked_child_queried
-
+        rel_type="<<INSTANCE>>", children_params={'link': picked_child["link"]})
     assert(len(picked_child_queried) == 1 and \
         picked_child_queried[0]["uuid"] == picked_child["uuid"])
     
-    print cl.get_instances(model_name="Content")
 
 
-
+    print "4. Test adding nodes"
     ### Testing adding nodes ###
     initial_content_nodes = len(cl.get_instances(model_name="Content"))
+    try:
+        print "First content ",cl.get_instances(model_name="Content")[0]
+    except:
+        pass
     print "Initially content nodes ", initial_content_nodes 
-    cl.add_node(model_name="Content", node_params={})
-    cl.add_node(model_name="Content", node_params={})
-    cl.add_node(model_name="Content", node_params={}) 
+    uuid1=cl.add_node(model_name="Content", node_params={})["uuid"]
+    uuid2=cl.add_node(model_name="Content", node_params={})["uuid"]
+    uuid3=cl.add_node(model_name="Content", node_params={})["uuid"]
     after_adding_content_nodes = len(cl.get_instances(model_name="Content"))
     print "After adding content nodes ", after_adding_content_nodes 
     assert(after_adding_content_nodes-initial_content_nodes == 3)
+    cl.delete_node(node_uuid=uuid1)
+    cl.delete_node(node_uuid=uuid2)
+    cl.delete_node(node_uuid=uuid3)
+    after_del_content_nodes = len(cl.get_instances(model_name="Content"))
+    assert(after_del_content_nodes-initial_content_nodes == 0)
 #     print cl.get_all_children("1814d088-7a2 f-11e3-8ac6-485d60f20495", 
 
 
@@ -103,11 +104,12 @@ if __name__ == "__main__":
 #     print res2[0]
 # 
 
+    print "5. Test query execution"
     ### Test execute query ###
     cypher_query = """
             START root=node(0)
             MATCH root-[rel:`<<TYPE>>`]->news_type-[rel2:`<<INSTANCE>>`]->news
-            WHERE news_type.name="rss:News"
+            WHERE news_type.model_name="Content"
             RETURN news
             ORDER BY news.pubdate_timestamp DESC
             LIMIT 100

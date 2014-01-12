@@ -167,7 +167,6 @@ class ODMClient:
             'rel_type': rel_type,
             'children_params': children_params
         }}
-        print data
         self.send(data)
         return self.recv()
 
@@ -177,7 +176,6 @@ class ODMClient:
         @param model_name string
         @param children_params dictionary/keywords
         """
-        print 'ok'
         data = {'func_name': 'get_instances', 'params': {
             'model_name': model_name,
             'children_params': children_params
