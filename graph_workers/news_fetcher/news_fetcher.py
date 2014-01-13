@@ -101,8 +101,12 @@ class NewsFetcher(GraphWorker):
         @param job is a dictionary with field neo4j_node
         """
         #TODO: add newer_than
+        logger.log(MY_INFO_LEVEL, "Processing "+ job.neo4j_node["link"])
         news_nodes = self._fetch_news(job.neo4j_node)
         #logger.log(MY_DEBUG_LEVEL, "Fetched "+str(len(news_nodes))+" from "+job.neo4j_node["link"])
+        if len(news_nodes) > 0: logger.log(MY_INFO_IMPORTANT_LEVEL,
+                        "Fetched {0} news from {1}".format(len(news_nodes), job.neo4j_node["link"]))
+
         n = self._add_news_to_graph(job.neo4j_node, news_nodes)
         if n > 0: logger.log(MY_INFO_IMPORTANT_LEVEL, "Added {0} news to graph".format(n))
 
@@ -224,7 +228,7 @@ class NewsFetcher(GraphWorker):
 
 
         logger.log(MY_INFO_LEVEL, "Updating NewsWebsite "+unicode(news_website))
-        logger.log(MY_INFO_LEVEL, "Added for instance "+nodes_to_add[0]["title"])
+        logger.log(MY_INFO_LEVEL, "Added for instance "+nodes_to_add[0]["title"]+str(nodes_to_add[0]))
         return len(nodes_to_add)
 
 
@@ -266,9 +270,19 @@ class NewsFetcher(GraphWorker):
             try:
                 childNodes = node.getElementsByTagName(value)[0].childNodes
                 for child in childNodes:
-                    text = child.nodeValue
-                    text = text.strip()
-                    if text != "": return text#unicode(text).encode("utf-16")
+                    text = child.wholeText
+                    text = text.strip(" ")
+                    if text == "" or text == " ":
+                        print "Empty text"
+                        print text.firstChild.wholeText # cDATA?
+                    return text
+                #print "\n\n\n"
+                #print node.getElementsByTagName(value)
+                #print node.getElementsByTagName(value)[0]
+                #print dir(node.getElementsByTagName(value)[0])
+                #print node.getElementsByTagName(value)[0].toxml()
+                #print node.getElementsByTagName(value)[0].firstChild.nodeType
+                #print "\n\n\n"
                 return ""
             except:
                 return default
@@ -291,6 +305,9 @@ class NewsFetcher(GraphWorker):
             d = pubdate_to_datetime(try_get_node_value(item, "pubDate"))
 
             news_node[CONTENT_PUBDATE_TIMESTAMP] = GMTdatetime_to_database_timestamp(d)
+
+            if len(news_node["title"])<5 or len(news_node["description"])<5 or len(news_node["link"])<5:
+                continue
 
             if newer_than is None or d > newer_than: # Not sorted :(
                     news_node["pubdate"] = datetime_to_pubdate(d)

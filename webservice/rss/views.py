@@ -165,6 +165,7 @@ def graph_view_all_subscribed(graph_view_descriptor):
 
 
 #TODO: move to ocean_master
+@utils.error_writing
 def get_graph(request, graph_view_descriptor_in={}):
     """
         This function returns graph that will be rendered by GraphDisplay
@@ -185,7 +186,6 @@ def get_graph(request, graph_view_descriptor_in={}):
         # TODO: missing default list display
         if "state" in request.GET:
             graph_view_descriptor.update(json.loads(request.GET["state"]))
-            print "LIKEABLE=", graph_view_descriptor["likeable"]
         else:
             print "WARNING: no state in request.GET"
             graph_view_descriptor.update(dict(request.GET))
@@ -202,6 +202,7 @@ def get_graph(request, graph_view_descriptor_in={}):
                 # Construct appriopriate GraphView (c urrently not generic :( )
 
 
+
                 # Setup options
                 option_dict = {}
                 for opt in graph_view_descriptor["options"]:
@@ -210,12 +211,13 @@ def get_graph(request, graph_view_descriptor_in={}):
                 # Get GraphView (construct if not in cache) from Ocean Master
                 gv = OC.construct_graph_view((graph_view_descriptor["graph_view"], option_dict))
 
+
+
                 # Return data used by GraphDisplay
                 data = {'signed_in': True,
                         'rss_items': gv.get_graph(graph_view_descriptor),
                         'categories': get_category_array(graph_view_descriptor)}
 
-                print "Data updated with ",graph_view_descriptor["likeable"]
 
                 data.update(graph_view_descriptor)
 
@@ -231,13 +233,14 @@ def get_graph(request, graph_view_descriptor_in={}):
 
 @utils.view_error_writing
 def trending_news(request):
-    # Graph View options (that will be pased to ocean_master)
+    # Options on display
     options = [
         {"name": "period",
          "list": ["Top week", "Top day", "Top hour!"],
          "state": 0,
          "action": "rewrite_display"}
     ]
+
     data = get_graph(request, {"graph_view": "TrendingNews", "options": options, "page": 0, "page_size": 20})
     if len(data) > 0:
         if "descriptor" not in data:

@@ -53,8 +53,6 @@ class TrendingNews(GraphView):
     period_options = ["Week", "Day", "Hour"]
 
     def get_graph(self, graph_display):
-        #TODO: refactor this shit
-        #return []
         if "page_size" in graph_display:
 
             if 'page' in graph_display:
@@ -76,10 +74,6 @@ class TrendingNews(GraphView):
             return self.prepared_view
 
     def update(self):
-        #TODO: refactor this shit
-        #print "Updating  TrendingNews ", self.period
-        ##TODO : Improve efficiency
-        #
         dt_threshold = None
         if TrendingNews.period_options[self.period] == "Week" :
             dt_threshold = get_datetime_gmt_now() - datetime.timedelta(days=7)
@@ -102,22 +96,19 @@ class TrendingNews(GraphView):
         cypher_query = """
             START root=node(0)
             MATCH root-[rel:`<<TYPE>>`]->news_type-[rel2:`<<INSTANCE>>`]->news
-            WHERE news_type.name="rss:News" and news.pubdate_timestamp > { timestamp }
+            WHERE news_type.model_name="Content" and news.pubdate_timestamp > { timestamp }
             RETURN news
             ORDER BY news.pubdate_timestamp DESC
             LIMIT 100
         """
 
 
-        ##user.refresh()
-        ##loved = [news.link for news in user.loves_it.all()]
-        #
-        #fetched_news = [r.news for r in
-        #                get_records_from_cypher(neo4j.GraphDatabaseService("http://localhost:7474/db/data/"),
-        #                              cypher_query, {"timestamp": timestamp})]
-        #
 
-        fetched_news = self.odm_client.execute_query(cypher_query, {"timestamp":timestamp} )
+        fetched_news = [x[0] for x in self.odm_client.execute_query(cypher_query, timestamp=timestamp)
+        ] #???
+
+        print "Fetched news ", len(fetched_news)
+
 
         preparing_view = [] #TODO: use previous results
         colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
@@ -127,20 +118,12 @@ class TrendingNews(GraphView):
             int(x['pubdate_timestamp'])+
             100000000*int(x['loved_counter']),reverse=True)
 
+
         for news in fetched_news:
-            news_dict = {}
-            news_dict['pk'] = news._id
-            news_dict['loved'] = 0 #TODO: repair
-            news_dict.update(
-                {'title': news["title"], 'loved_counter': news['loved_counter'] if news['loved_counter'
-                ] is not None else 0 ,
-                 'description': news["description"], 'link': news["link"],
-                 'pubdate': news["pubdate"], 'category': 2})
-            news_dict['color'] = colors[random.randint(0, 4)]
-            preparing_view.append(news_dict)
+            news["loved"] = 0 #TODO: repair this
+            news["color"] = colors[random.randint(0,4)] #TODO: remove this
 
-
-        self.prepared_view = preparing_view
+        self.prepared_view = fetched_news
 
         print "Update successful"
 
