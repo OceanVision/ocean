@@ -102,17 +102,17 @@ def unloved_it(request):
 import sys
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 @utils.timed
-def graph_view_all_subscribed(graph_display):
+def graph_view_all_subscribed(graph_view_descriptor):
     """
-        @param graph_display now represented as dictionary. We have to design it more carefully
+        @param graph_view_descriptor now represented as dictionary. We have to design it more carefully
     """
     print "call to graph_view_all_subscribed"
     #TODO: dziala dosyc niestabilnie i w ogole nie ma lapania wyjatkow...
     try:
-        print "username:", graph_display["username"]
+        print "username:", graph_view_descriptor["username"]
 
         content_items_array = []  # building news to be rendered (isn't very efficient..)
-        user = NeoUser.objects.filter(username__exact=graph_display["username"])[0]
+        user = NeoUser.objects.filter(username__exact=graph_view_descriptor["username"])[0]
 
         user.refresh()
         loved = [news.link for news in user.loves_it.all()]
@@ -127,26 +127,18 @@ def graph_view_all_subscribed(graph_display):
         for content_source in odm_client.get_children(user.uuid, "subscribes_to"):
 
             for content in odm_client.get_children(content_source['uuid'], "__produces__"):
-
-                #TODO: nie wiem czym jest pk ale nie ma tego w bazie, loved sie wywala: blad iteracji po int (?)
-                #content_dict['pk'] = content['pk']
-
-
-
                 content['loved'] = int(content['link'] in loved)
-
                 content['color'] = colors[random.randint(0, 4)]
-
                 content_items_array.append(content)
 
-        category_array = get_category_array(graph_display)
+        category_array = get_category_array(graph_view_descriptor)
         odm_client.disconnect()
 
         page = 0
         page_size = 20
-        if 'page' in graph_display:
-            page = int(graph_display['page'])
-            page_size = int(graph_display['page_size'])
+        if 'page' in graph_view_descriptor:
+            page = int(graph_view_descriptor['page'])
+            page_size = int(graph_view_descriptor['page_size'])
 
         a = page * page_size
         if a < len(content_items_array):
@@ -168,54 +160,61 @@ def graph_view_all_subscribed(graph_display):
 
 
 #TODO: move to ocean_master
-def get_graph(request, dict_update={}):
+def get_graph(request, graph_view_descriptor_in={}):
     """
         This function returns graph that will be rendered by GraphDisplay
 
-        @param dict_update this dict will update request.GET and form graph_display
+        @param graph_view_descriptor_in this dict will update request.GET and form graph_display
         @note: state variables are more important than dict_update
     """
 
     #TODO: move authentication from here! (to middleware , see stackoverflow)
     if request.user.is_authenticated():
-        temp_dict = dict()
-        temp_dict["username"] = request.user.username # each graph_display should have username..
-        temp_dict.update(dict_update)
+        graph_view_descriptor = dict()
+        graph_view_descriptor["username"] = request.user.username # each graph_display should have username..
+        graph_view_descriptor.update(graph_view_descriptor_in)
 
 
         # Ultimately override all the variables
 
         # TODO: missing default list display
         if "state" in request.GET:
-            temp_dict.update(json.loads(request.GET["state"]))
-            print "LIKEABLE=", temp_dict["likeable"]
+            graph_view_descriptor.update(json.loads(request.GET["state"]))
+            print "LIKEABLE=", graph_view_descriptor["likeable"]
         else:
             print "WARNING: no state in request.GET"
-            temp_dict.update(dict(request.GET))
+            graph_view_descriptor.update(dict(request.GET))
 
 
         # @note: this function will be moved to OceanMaster
-        if "graph_view" in temp_dict:
-            if temp_dict["graph_view"] == "Subscribed":
-                return graph_view_all_subscribed(temp_dict)
+        if "graph_view" in graph_view_descriptor:
+            if graph_view_descriptor["graph_view"] == "Subscribed":
+                data = graph_view_all_subscribed(graph_view_descriptor)
+                data.update(graph_view_descriptor)
+                return data
 
-
-            elif temp_dict["graph_view"] == "TrendingNews":
+            elif graph_view_descriptor["graph_view"] == "TrendingNews":
                 # Construct appriopriate GraphView (c urrently not generic :( )
 
 
                 # Setup options
                 option_dict = {}
-                for opt in temp_dict["options"]:
+                for opt in graph_view_descriptor["options"]:
                     option_dict[opt["name"]] = opt["state"]
 
                 # Get GraphView (construct if not in cache) from Ocean Master
-                gv = OC.construct_graph_view((temp_dict["graph_view"], option_dict))
+                gv = OC.construct_graph_view((graph_view_descriptor["graph_view"], option_dict))
 
                 # Return data used by GraphDisplay
-                return {'signed_in': True,
-                        'rss_items': gv.get_graph(temp_dict),
-                        'categories': get_category_array(temp_dict)}
+                data = {'signed_in': True,
+                        'rss_items': gv.get_graph(graph_view_descriptor),
+                        'categories': get_category_array(graph_view_descriptor)}
+
+                print "Data updated with ",graph_view_descriptor["likeable"]
+
+                data.update(graph_view_descriptor)
+
+                return data
             else:
                 raise Exception("Not recognized graph_view")
         else:
@@ -255,6 +254,8 @@ def index(request):
         # descriptor is a parametrization which is used by GraphDisplay (maybe change name to GraphDisplayName?)
         if "descriptor" not in data:
             #Parameters that are checked by ListDisplay and used to render stuff
+            #We assume index is ListDisplay btw.
+            #TODO: Code this
             data["descriptor"] = json.dumps("ListDisplay")
             data["graph_view"] = json.dumps("Subscribed")
             data["title"] = "SUBSCRIBED NEWS"
@@ -326,6 +327,7 @@ def manage(request, message=''):
 @utils.view_error_writing
 def get_news(request):
     data = get_graph(request)
+    print "LIKEABLE RETURNED=", data["likeable"]
     if len(data) > 0:
         return utils.render(request, 'rss/list_display_renderer.html', data)
     else:

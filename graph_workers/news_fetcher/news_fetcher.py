@@ -197,16 +197,20 @@ class NewsFetcher(GraphWorker):
         )
 
         # Count exisiting nodes
-        existing_nodes = len(self.odm_client.get_children\
-                (news_website["uuid"], "<<INSTANCE>>",
-                 title=nodes_to_add[newest_id]["title"]))
+        #TODO: problem with multiple adding nodes (TVN) - coding problem?
+        existing_nodes_title = len(self.odm_client.get_children\
+                (news_website["uuid"], HAS_INSTANCE_RELATION,
+                 title=nodes_to_add[newest_id]["title"].encode("utf8")))
+        existing_nodes_desc = len(self.odm_client.get_children\
+                (news_website["uuid"], HAS_INSTANCE_RELATION,
+                 description=nodes_to_add[newest_id]["description"].decode("utf8")))
 
 
 
-        if existing_nodes > 0:
+        if existing_nodes_desc > 0 or existing_nodes_title>0:
             logger.log(MY_CRITICAL_LEVEL, "")
             logger.log(MY_CRITICAL_LEVEL, nodes_to_add[0])
-            logger.log(MY_CRITICAL_LEVEL, existing_nodes)
+            logger.log(MY_CRITICAL_LEVEL, existing_nodes_desc)
             logger.log(MY_CRITICAL_LEVEL, "ERROR: Existing nodes ! Probably something wrong with "+unicode(news_website))
             return 0
 
