@@ -231,7 +231,7 @@ class DatabaseManager:
         if model_name not in self._model_name_images:
             raise Exception('Unknown type')
 
-        # Default values loaded from graph_defines (for instances loved counter for Content)
+        # Default values loaded from graph_defines (for instances loved for Content)
         node_params = GRAPH_MODELS[model_name] if model_name in GRAPH_MODELS else {}
         node_params.update(params['node_params'])
         node_params['uuid'] = str(uuid.uuid1())

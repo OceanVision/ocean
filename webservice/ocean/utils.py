@@ -35,12 +35,15 @@ def view_error_writing(func):
             return func(request, *args, **dict_args)
         except Exception, e:
             print "Failed"
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
             return render(request, 'rss/message.html', {'message': 'Failed {0} with {1}..'.format(
                 func.__name__, e
             )})
 
     return f
-
+import sys,os
 def error_writing(func):
     """ This decorator will return response to message.html with error if catched error """
     def f(request, *args, **dict_args):
@@ -49,6 +52,12 @@ def error_writing(func):
         except Exception, e:
             print 'Failed {0} with {1}..'.format(
                 func.__name__, e)
+            #try:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+            #except:
+            #    pass
 
 
     return f

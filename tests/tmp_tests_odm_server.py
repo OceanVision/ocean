@@ -28,6 +28,10 @@ if __name__ == "__main__":
     cl = ODMClient()
     cl.connect()
 
+    print "0. get instance by params"
+    
+    assert(cl.get_instances(model_name="NeoUser", username="kudkudak")[0]["username"]=="kudkudak")
+
 
     print "1. Change one instance"
     ### Change one instance and see if change has occured ### 

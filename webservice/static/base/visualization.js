@@ -221,7 +221,7 @@ function Visualization() {
                 },
                 content: function(){
                     var data = {
-                        'pk' : $(this).attr("news_pk")
+                        'uuid' : $(this).attr("news_uuid")
                     };
 
                     var list = []
@@ -238,9 +238,9 @@ function Visualization() {
       }
             $("#rssItems .love_it_button").off("click").on("click", function(e){
                     var data = {
-                        'pk' : $(this).attr("news_pk")
+                        'uuid' : $(this).attr("news_uuid")
                     };
-                    var news_item = $("#rssItems .item[news_pk="+data.pk+"]")
+                    var news_item = $("#rssItems .item[news_uuid="+data.uuid+"]")
                     var love_it_button = news_item.find(".love_it_button")
 
 

@@ -19,6 +19,7 @@ import random
 from odm_client import ODMClient
 
 
+
 def get_category_array(graph_display):
     #TODO: make color dependent of various features
     category_array = [{'name': 'Barack Obama', 'color': 'ffbd0c'},
@@ -31,29 +32,45 @@ def get_category_array(graph_display):
 @utils.error_writing
 @utils.timed
 def get_loved_it_list(request):
-    if 'pk' not in request.GET:
-        raise Exception("Not passed primary key to loved_it view")
-    news = News.objects.filter(pk=int(request.GET['pk']))[0] #TODO: add some kind of caching here
-    return HttpResponse(json.dumps([user.username for user in news.loved.all()]))
+    if 'uuid' not in request.GET:
+        raise Exception("Not passed UUID to loved_it view")
+    odm_client = ODMClient()
+    odm_client.connect()
+    user = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=request.user.username)[0]
+
+    loved = [news["link"] for news in odm_client.get_children(user["uuid"], LOVES_IT_RELATION)]
+
+    odm_client.disconnect()
+
+    return HttpResponse(json.dumps(loved))
 
 
 @utils.error_writing
 @utils.timed
 def loved_it(request):
-    if 'pk' not in request.GET:
-        raise Exception("Not passed primary key to loved_it view")
-    news = News.objects.filter(pk=int(request.GET['pk']))[0] #TODO: add some kind of caching here
-    user = NeoUser.objects.filter(username__exact=request.user.username)[0] #TODO: add some kind of caching here
+    if 'uuid' not in request.GET:
+        raise Exception("Not passed UUID to loved_it view")
 
-    loved = [u.username for u in news.loved.all()]
-    if user.username in loved: return #returns error
 
-    user.loves_it.add(news)
-    news.loved_counter += 1
+    odm_client = ODMClient()
+    odm_client.connect()
 
-    #TODO: Issue from github
-    user.save()
-    news.save()
+
+    user = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=request.user.username)[0]
+    news = odm_client.get_by_uuid(node_uuid=request.GET['uuid'])
+
+    #TODO: it is just unbelivabely naive way to do it, rewrite in next iteration
+    #idea : bloomfilters in odm_server (related_bloomfilter)
+    #cool idea btw
+    loved = [news["link"] for news in odm_client.get_children(user["uuid"], LOVES_IT_RELATION)]
+
+    if user["username"] in loved:
+        return
+
+    odm_client.set(node_uuid=news["uuid"], node_params={"loved_counter": news["loved_counter"] + 1})
+    odm_client.add_rel(start_node_uuid=user["uuid"], end_node_uuid=news["uuid"], rel_type=LOVES_IT_RELATION)
+
+    odm_client.disconnect()
 
     return HttpResponse(json.dumps({}))
 
@@ -61,47 +78,23 @@ def loved_it(request):
 @utils.error_writing
 @utils.timed
 def unloved_it(request):
-    graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/") # That's fine, connection pool
+    odm_client = ODMClient()
+    odm_client.connect()
 
-    #TODO: how to handle errors in views like this?
-    if 'pk' not in request.GET:
-        raise Exception("Not passed primary key to loved_it view")
-    news = News.objects.filter(pk=int(request.GET['pk']))[0] #TODO: add some kind of caching here
-    user = NeoUser.objects.filter(username__exact=request.user.username)[0] #TODO: add some kind of caching here
 
-    print news.loved_counter
+    user = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=request.user.username)[0]
+    news = odm_client.get_by_uuid(node_uuid=request.GET['uuid'])
 
-    delete_cypher_params = {"user_pk": user.pk, "news_pk": news.pk, "rel_name": LOVES_IT_RELATION}
-    print delete_cypher_params
-    print user.loves_it.all()
+    odm_client.set(node_uuid=news["uuid"], node_params={"loved_counter": news["loved_counter"] - 1})
+    odm_client.del_rel(start_node_uuid=user["uuid"], end_node_uuid=news["uuid"], rel_type=LOVES_IT_RELATION)
 
-    delete_cypher = \
-        """
-        START n=node( { user_pk } ) , c=node( { news_pk } )
-        MATCH n-[rel:__loves_it__]->c
-        DELETE rel
-        RETURN count(rel);
-        """
-
-    my_batch = neo4j.WriteBatch(graph_db)
-    my_batch.append_cypher(delete_cypher, delete_cypher_params)
-    result = my_batch.submit()
-
-    print "Removed ", result[0], "relations"
-
-    # We can save here as unloving is not often called
-    news.loved_counter -= result[0]
-    news.save()
-
-    #Unfortunately Neo4Django relationship removal sucks
-    #user.loves_it.remove(news)
-    #Not saving on purpose here! it can be lazy because likes are not critical
     return HttpResponse(json.dumps({}))
 
 
 import sys
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 @utils.timed
+@utils.error_writing
 def graph_view_all_subscribed(graph_view_descriptor):
     """
         @param graph_view_descriptor now represented as dictionary. We have to design it more carefully
@@ -110,28 +103,40 @@ def graph_view_all_subscribed(graph_view_descriptor):
     #TODO: dziala dosyc niestabilnie i w ogole nie ma lapania wyjatkow...
     try:
         print "username:", graph_view_descriptor["username"]
+        odm_client = ODMClient()
+        odm_client.connect()
+
+
 
         content_items_array = []  # building news to be rendered (isn't very efficient..)
-        user = NeoUser.objects.filter(username__exact=graph_view_descriptor["username"])[0]
 
-        user.refresh()
-        loved = [news.link for news in user.loves_it.all()]
+        user = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=graph_view_descriptor["username"])[0]
+
+
+        #TODO: pick only most recent loved it
+        #TODO: it is very heavily prototyped, move to separate graph view
+        loved = [news for news in odm_client.get_children(user["uuid"], LOVES_IT_RELATION)]
+        print "Found loved"
+        print loved
 
 
         colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
         # Get news for authenticated users.
 
-        odm_client = ODMClient()
-        odm_client.connect()
 
-        for content_source in odm_client.get_children(user.uuid, "subscribes_to"):
-
-            for content in odm_client.get_children(content_source['uuid'], "__produces__"):
+        print "Getting content sources"
+        for content_source in odm_client.get_children(user["uuid"], SUBSCRIBES_TO_RELATION):
+            print "Content source~!"
+            for content in odm_client.get_children(content_source['uuid'], PRODUCES_RELATION):
                 content['loved'] = int(content['link'] in loved)
                 content['color'] = colors[random.randint(0, 4)]
                 content_items_array.append(content)
 
+
+
+
         category_array = get_category_array(graph_view_descriptor)
+
         odm_client.disconnect()
 
         page = 0
@@ -270,15 +275,20 @@ def get_rss_channels(request):
     """Get subscribed RSS channels list from databasa."""
     if request.user.is_authenticated():
         content_items_array = []  # building news to be rendered (isn't very efficient..)
-        user = NeoUser.objects.filter(username__exact=request.user.username)[0]
-
-        colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
-        # Get news for authenticated users.
 
         odm_client = ODMClient()
         odm_client.connect()
 
-        for content_source in odm_client.get_children(user.uuid, "subscribes_to"):
+        user = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=request.user.username)[0]
+
+
+        colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
+        # Get news for authenticated users.
+
+
+
+
+        for content_source in odm_client.get_children(user["uuid"], "subscribes_to"):
             content_source['category'] = 2
             content_source['color'] = colors[random.randint(0, 4)]
             content_items_array += [content_source]
@@ -302,6 +312,9 @@ def get_rss_channels(request):
                 content_items_array = content_items_array[a:]
         else:
             content_items_array = None
+
+
+        odm_client.disconnect()
 
         return {'signed_in': True,
                 'rss_channels': content_items_array,
@@ -341,11 +354,13 @@ def add_content_source(request):
         odm_client = ODMClient()
         odm_client.connect()
 
-        user = NeoUser.objects.filter(username__exact=request.user.username)[0]
+        user = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=request.user.username)[0]
+
+        print user
 
         is_subscribed = False
         #TODO: Think about caching things like that?
-        for content_source in odm_client.get_children(user.uuid, 'subscribes_to'):
+        for content_source in odm_client.get_children(user["uuid"], 'subscribes_to'):
             if content_source['link'] == request.GET["link"].encode("utf8").split("?ajax=ok")[0]:
                 is_subscribed = True
 
@@ -396,7 +411,7 @@ def add_content_source(request):
             link = request.GET["link"].encode("utf8").split("?ajax=ok")[0]
             content_source = odm_client.get_by_link("ContentSource", link)
 
-            odm_client.add_rel(user.uuid, content_source["uuid"], "subscribes_to")
+            odm_client.add_rel(user["uuid"], content_source["uuid"], "subscribes_to")
 
             odm_client.disconnect()
 

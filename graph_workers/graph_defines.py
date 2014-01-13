@@ -5,7 +5,7 @@ This file defines constants used in graph operations
 
 ### Default dictionaries for all models in the graph ###
 #TODO: add all fields
-CONTENT_MODEL = {"loved": 0, "last_updated": 0}
+CONTENT_MODEL = {"loved_counter": 0, "last_updated": 0}
 GRAPH_MODELS = {"Content":CONTENT_MODEL}
 
 
@@ -21,7 +21,7 @@ CONTENT_PUBDATE = "pubdate"
 
 HAS_TYPE_RELATION = "<<TYPE>>"
 HAS_INSTANCE_RELATION = "<<INSTANCE>>"
-SUBSCRIBES_TO_RELATION = "__subscribes_to__"
+SUBSCRIBES_TO_RELATION = "subscribes_to"
 PRODUCES_RELATION = "__produces__"
 LOVES_IT_RELATION = "__loves_it__"
 # Website __has__ ContentSource relation:
