@@ -100,8 +100,9 @@ class NewsFetcher(GraphWorker):
         Process job
         @param job is a dictionary with field neo4j_node
         """
+        #TODO: add newer_than
         news_nodes = self._fetch_news(job.neo4j_node)
-        logger.log(MY_DEBUG_LEVEL, "Fetched "+str(len(news_nodes))+" from "+job.neo4j_node["link"])
+        #logger.log(MY_DEBUG_LEVEL, "Fetched "+str(len(news_nodes))+" from "+job.neo4j_node["link"])
         n = self._add_news_to_graph(job.neo4j_node, news_nodes)
         if n > 0: logger.log(MY_INFO_IMPORTANT_LEVEL, "Added {0} news to graph".format(n))
 
@@ -151,6 +152,7 @@ class NewsFetcher(GraphWorker):
                 if CONTENT_SOURCE_LAST_UPDATE not in rss_content_sources[-1]:
                     logger.log(MY_DEBUG_LEVEL, "Adding last_updated field to "+unicode(rss_content_sources[-1]))
                     rss_content_sources[-1][CONTENT_SOURCE_LAST_UPDATE] = 0
+                    self.odm_client.set(node_uuid=rss_content_sources[-1]["uuid"], node_params={CONTENT_SOURCE_LAST_UPDATE:0} )
 
         return rss_content_sources
 
@@ -162,6 +164,8 @@ class NewsFetcher(GraphWorker):
 
             @returns number of nodes added
         """
+        if len(list_of_news) == 0: return
+
         last_updated = database_timestamp_to_datetime(news_website[CONTENT_SOURCE_LAST_UPDATE])
         logger.log(MY_INFO_LEVEL, "Last updated news_website is "+str(last_updated))
         #news_type_node = get_type_metanode(self.graph_db, CONTENT_TYPE_MODEL_NAME)
@@ -181,6 +185,7 @@ class NewsFetcher(GraphWorker):
 
         if len(nodes_to_add) == 0:
             logger.log(MY_INFO_LEVEL, "Warning: No nodes added for "+str(news_website[CONTENT_SOURCE_LINK]))
+            logger.log(MY_INFO_LEVEL, "However list_of_news fetched was "+str(len(list_of_news)))
             return 0
 
         logger.log(MY_INFO_IMPORTANT_LEVEL, "Updating last_updated to "+str(newest))
@@ -193,7 +198,7 @@ class NewsFetcher(GraphWorker):
 
         # Count exisiting nodes
         existing_nodes = len(self.odm_client.get_children\
-                (news_website["uuid"], "<<HAS_INSTANCE_RELATION>>",
+                (news_website["uuid"], "<<INSTANCE>>",
                  title=nodes_to_add[newest_id]["title"]))
 
 
@@ -210,8 +215,7 @@ class NewsFetcher(GraphWorker):
             n["uuid"] = self.odm_client.add_node(model_name=CONTENT_TYPE_MODEL_NAME, node_params=n)["uuid"]
             self.odm_client.add_rel(start_node_uuid=news_website["uuid"],
                                     end_node_uuid=n["uuid"],
-                                    rel_type=PRODUCES_RELATION,
-                                    rel_params={}
+                                    rel_type=PRODUCES_RELATION
                                     )
 
 
@@ -236,7 +240,7 @@ class NewsFetcher(GraphWorker):
             response = urllib2.urlopen(rss_link)
             html = response.read()
             doc = xml.dom.minidom.parseString(html)
-            feed = doc.childNodes[0].getElementsByTagName("channel")[0].getElementsByTagName("item")
+            feed = doc.getElementsByTagName("rss")[0].getElementsByTagName("channel")[0].getElementsByTagName("item")
             #<root>-><rss>-><channel>
         except Exception, e:
             logger.log(MY_CRITICAL_LEVEL, "Warning: Incorrect RSS format ")
@@ -245,12 +249,12 @@ class NewsFetcher(GraphWorker):
 
         # Default iteration stop
         if newer_than is None:
-            logger.log(MY_INFO_LEVEL, ("News website "+news_website[CONTENT_SOURCE_LINK],
-                "last_updated ", database_timestamp_to_datetime(news_website[CONTENT_SOURCE_LAST_UPDATE]))
-            )
+            #logger.log(MY_INFO_LEVEL, ("News website "+news_website[CONTENT_SOURCE_LINK],
+            #    "last_updated ", database_timestamp_to_datetime(news_website[CONTENT_SOURCE_LAST_UPDATE]))
+            #)
             newer_than = database_timestamp_to_datetime(news_website[CONTENT_SOURCE_LAST_UPDATE])
 
-        logger.log(MY_INFO_LEVEL, "Fetching news from "+str(rss_link)+" newer_than "+str(newer_than))
+        #logger.log(MY_INFO_LEVEL, "Fetching news from "+str(rss_link)+" newer_than "+str(newer_than))
 
 
         def try_get_node_value(node, value, default = u""):

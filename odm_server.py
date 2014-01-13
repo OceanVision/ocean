@@ -1,3 +1,14 @@
+"""
+Ocean Database Manager
+
+general idea is as follows: ODM have many get procedures, however only one way
+to add or set node/rel (add_node, set, add_rel,  del_rel, del_node)
+
+get_by_uuid will be cached, as well as multiget. Other get procedures are
+not guaranteed to be cached
+"""
+
+
 from py2neo import neo4j
 import uuid
 import os
@@ -6,6 +17,10 @@ from threading import Thread, Lock
 import json
 # Logging (TODO: move creation of logger to utils)
 import logging
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__),"graph_workers"))
+from graph_defines import *
 
 # Defining levels to get rid of other loggers
 info_level = 100
@@ -103,79 +118,6 @@ class DatabaseManager:
         self._init_uuid_images()
         self._init_model_name_images()
 
-    @error_handle_odm
-    def _execute_query(self, query_string, multi_value=False, **query_params):
-        """
-        Executes query and returns results as python dictionaries
-        @param query_string string
-        @param multi_value bool
-        @param query_params dictionary
-        """
-        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
-        query_results = cypher_query.execute(**query_params)
-
-        results = []
-        for result in query_results:
-            values = []
-            if not multi_value:
-                value = result.values[0]
-                if value.__class__.__name__ in ('Node', 'Relationship'):
-                    values = value.get_properties()
-                else:
-                    values = value
-            else:
-                for value in result.values:
-                    if value.__class__.__name__ in ('Node', 'Relationship'):
-                        values.append(value.get_properties())
-                    else:
-                        values.append(value)
-            results.append(values)
-        return results
-
-    @error_handle_odm
-    def _run_query(self, query_string, **query_params):
-        """
-        Runs query only
-        @param query_string
-        @param query_params
-        """
-        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
-        cypher_query.run(**query_params)
-
-    def _init_model_name_images(self):
-        self._model_name_images.clear()
-        query_string = \
-            '''
-            START e=node(0)
-            MATCH (e)-[]->(t)
-            RETURN t.uuid, t
-            '''
-        query_results = self._execute_query(query_string, True)
-        for record in query_results:
-            key = record[1]['model_name']
-            value = record[0]
-            self._model_name_images[key] = value
-
-    def _init_uuid_images(self):
-        self._uuid_images.clear()
-        query_string = \
-            '''
-            START e=node(*)
-            WHERE id(e) <> 0
-            RETURN id(e), e
-            '''
-        query_results = self._execute_query(query_string, True)
-        for record in query_results:
-            key = record[1]['uuid']
-            value = record[0]
-            self._uuid_images[key] = value
-
-    def _str(self, dictionary, element='e', separator=','):
-        string = ''
-        for (key, value) in dictionary.iteritems():
-            string += str(separator) + ' ' + str(element) + '.' \
-                      + str(key) + '=' + json.dumps(value) + ' '
-        return str(string[(len(separator) + 1):])
 
     @error_handle_odm
     def get_by_uuid(self, **params):
@@ -281,12 +223,17 @@ class DatabaseManager:
 
     @error_handle_odm
     def add_node(self, **params):
+
+        #TODO: add default values and check if there are no extra fields
+
         model_name = params['model_name']
 
         if model_name not in self._model_name_images:
             raise Exception('Unknown type')
 
-        node_params = params['node_params']
+        # Default values loaded from graph_defines (for instances loved counter for Content)
+        node_params = GRAPH_MODELS[model_name] if model_name in GRAPH_MODELS else {}
+        node_params.update(params['node_params'])
         node_params['uuid'] = str(uuid.uuid1())
         query_string = \
             '''
@@ -384,6 +331,80 @@ class DatabaseManager:
         query_params = params['query_params']
 
         self._run_query(query_string, **query_params)
+
+    @error_handle_odm
+    def _execute_query(self, query_string, multi_value=False, **query_params):
+        """
+        Executes query and returns results as python dictionaries
+        @param query_string string
+        @param multi_value bool
+        @param query_params dictionary
+        """
+        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
+        query_results = cypher_query.execute(**query_params)
+
+        results = []
+        for result in query_results:
+            values = []
+            if not multi_value:
+                value = result.values[0]
+                if value.__class__.__name__ in ('Node', 'Relationship'):
+                    values = value.get_properties()
+                else:
+                    values = value
+            else:
+                for value in result.values:
+                    if value.__class__.__name__ in ('Node', 'Relationship'):
+                        values.append(value.get_properties())
+                    else:
+                        values.append(value)
+            results.append(values)
+        return results
+
+    @error_handle_odm
+    def _run_query(self, query_string, **query_params):
+        """
+        Runs query only
+        @param query_string
+        @param query_params
+        """
+        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
+        cypher_query.run(**query_params)
+
+    def _init_model_name_images(self):
+        self._model_name_images.clear()
+        query_string = \
+            '''
+            START e=node(0)
+            MATCH (e)-[]->(t)
+            RETURN t.uuid, t
+            '''
+        query_results = self._execute_query(query_string, True)
+        for record in query_results:
+            key = record[1]['model_name']
+            value = record[0]
+            self._model_name_images[key] = value
+
+    def _init_uuid_images(self):
+        self._uuid_images.clear()
+        query_string = \
+            '''
+            START e=node(*)
+            WHERE id(e) <> 0
+            RETURN id(e), e
+            '''
+        query_results = self._execute_query(query_string, True)
+        for record in query_results:
+            key = record[1]['uuid']
+            value = record[0]
+            self._uuid_images[key] = value
+
+    def _str(self, dictionary, element='e', separator=','):
+        string = ''
+        for (key, value) in dictionary.iteritems():
+            string += str(separator) + ' ' + str(element) + '.' \
+                      + str(key) + '=' + json.dumps(value) + ' '
+        return str(string[(len(separator) + 1):])
 
 
 class Connection():

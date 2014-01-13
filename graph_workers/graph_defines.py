@@ -3,6 +3,14 @@ This file defines constants used in graph operations
 """
 
 
+### Default dictionaries for all models in the graph ###
+#TODO: add all fields
+CONTENT_MODEL = {"loved": 0, "last_updated": 0}
+GRAPH_MODELS = {"Content":CONTENT_MODEL}
+
+
+
+
 CONTENT_SOURCE_LAST_UPDATE = "last_updated"
 CONTENT_SOURCE_LINK = "link"
 CONTENT_SOURCE_RSS_TYPE = "source_type"

@@ -123,7 +123,7 @@ class NeoUser(neo4j_models.NodeModel):
         related_name="subscribed"
     )
     loves_it = neo4j_models.Relationship(
-        "News",
+        "Content",
         rel_type=LOVES_IT_RELATION,
         related_name="loved"
     )

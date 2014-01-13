@@ -103,7 +103,8 @@ import sys
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 @utils.timed
 def graph_view_all_subscribed(graph_display):
-    """ @param graph_display now represented as dictionary. We have to design it more carefully
+    """
+        @param graph_display now represented as dictionary. We have to design it more carefully
     """
     print "call to graph_view_all_subscribed"
     #TODO: dziala dosyc niestabilnie i w ogole nie ma lapania wyjatkow...
@@ -115,7 +116,7 @@ def graph_view_all_subscribed(graph_display):
 
         user.refresh()
         loved = [news.link for news in user.loves_it.all()]
-        print loved
+
 
         colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
         # Get news for authenticated users.
@@ -124,11 +125,15 @@ def graph_view_all_subscribed(graph_display):
         odm_client.connect()
 
         for content_source in odm_client.get_children(user.uuid, "subscribes_to"):
+
             for content in odm_client.get_children(content_source['uuid'], "__produces__"):
 
                 #TODO: nie wiem czym jest pk ale nie ma tego w bazie, loved sie wywala: blad iteracji po int (?)
                 #content_dict['pk'] = content['pk']
-                content['loved'] = 0 #int(content['link'] in loved)
+
+
+
+                content['loved'] = int(content['link'] in loved)
 
                 content['color'] = colors[random.randint(0, 4)]
 
@@ -165,8 +170,10 @@ def graph_view_all_subscribed(graph_display):
 #TODO: move to ocean_master
 def get_graph(request, dict_update={}):
     """
+        This function returns graph that will be rendered by GraphDisplay
+
         @param dict_update this dict will update request.GET and form graph_display
-        @note: state variables are more important than dict_update !!
+        @note: state variables are more important than dict_update
     """
 
     #TODO: move authentication from here! (to middleware , see stackoverflow)
@@ -191,13 +198,21 @@ def get_graph(request, dict_update={}):
         if "graph_view" in temp_dict:
             if temp_dict["graph_view"] == "Subscribed":
                 return graph_view_all_subscribed(temp_dict)
+
+
             elif temp_dict["graph_view"] == "TrendingNews":
                 # Construct appriopriate GraphView (c urrently not generic :( )
+
+
+                # Setup options
                 option_dict = {}
                 for opt in temp_dict["options"]:
                     option_dict[opt["name"]] = opt["state"]
+
+                # Get GraphView (construct if not in cache) from Ocean Master
                 gv = OC.construct_graph_view((temp_dict["graph_view"], option_dict))
 
+                # Return data used by GraphDisplay
                 return {'signed_in': True,
                         'rss_items': gv.get_graph(temp_dict),
                         'categories': get_category_array(temp_dict)}
@@ -237,7 +252,9 @@ def trending_news(request):
 def index(request):
     data = get_graph(request, {"graph_view": "Subscribed"})
     if len(data) > 0:
+        # descriptor is a parametrization which is used by GraphDisplay (maybe change name to GraphDisplayName?)
         if "descriptor" not in data:
+            #Parameters that are checked by ListDisplay and used to render stuff
             data["descriptor"] = json.dumps("ListDisplay")
             data["graph_view"] = json.dumps("Subscribed")
             data["title"] = "SUBSCRIBED NEWS"
@@ -325,6 +342,7 @@ def add_content_source(request):
         user = NeoUser.objects.filter(username__exact=request.user.username)[0]
 
         is_subscribed = False
+        #TODO: Think about caching things like that?
         for content_source in odm_client.get_children(user.uuid, 'subscribes_to'):
             if content_source['link'] == request.GET["link"].encode("utf8").split("?ajax=ok")[0]:
                 is_subscribed = True
@@ -344,9 +362,14 @@ def add_content_source(request):
 
                 #TODO: Try to solve "?ajax=ok" problem another way.
                 response = urllib2.urlopen(request.GET["link"].split("?ajax=ok")[0])
+
                 html = response.read()
+
                 doc = xml.dom.minidom.parseString(html)
-                channel = doc.childNodes[0].getElementsByTagName("channel")[0]
+
+
+                channel = doc.getElementsByTagName("rss")[0].getElementsByTagName("channel")[0]
+
                 title = get_node_value(channel, "title")
                 description = get_node_value(channel, "description")
                 language = get_node_value(channel, "language")
