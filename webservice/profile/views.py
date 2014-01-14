@@ -5,6 +5,8 @@ from django.contrib.auth.models import User
 import django.contrib.auth
 
 from rss.models import NeoUser, NewsWebsite, News, UserProfile
+from odm_client import ODMClient
+from graph_defines import *
 
 def index(request):
     # Logged in
@@ -37,9 +39,20 @@ def index(request):
         user_email = "(email hidden by user)"
         if user_profile.show_email:
             user_email = user.email
+
+        odm_client = ODMClient()
+        odm_client.connect()
+
+        neouser = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=given_username)[0]
+
+        likes = len(odm_client.get_children(neouser["uuid"], LOVES_IT_RELATION))
+
+        odm_client.disconnect()
+
         return render(request, 'profile/index.html', {
             'message' : '',
             'username' : user.username,
+            'profile_image' : user_profile.profile_image,
             'first_name' : user.first_name,
             'last_name' : user.last_name,
             'email' : user_email,
@@ -47,6 +60,7 @@ def index(request):
             'is_staff' : user.is_staff,
             'is_online' : user.is_authenticated,
             'profile_description' : user_profile.description,
+            'likes' : likes,
             }
         )
     else:

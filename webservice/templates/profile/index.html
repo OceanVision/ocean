@@ -12,17 +12,18 @@
     <div id="profile" class="container" data-center_h="true" data-transit="true">
         <p class="header">
             {{ username }} <br>
+            <img src="{{ profile_image }}"/> <br>
         </p>
         <div class="item">
             <p class="description">
                 {{ first_name }} {{ last_name }} <br>
-                {{ email }}<br>
+                <b>&#x2709; e-mail:</b> {{ email }}<br>
                 {% ifequal is_staff 1 %}
-                    <i>STAFF</i> <br>
+                    <b><i>&#x272A; STAFF</i></b> <br>
                 {% endifequal %}
 
                 <br>
-                Joined: {{ date_joined }} <br><br>
+                <b>&#x273D; Joined:</b> {{ date_joined }} <br><br>
             <a 
                 id="privateMessage"
                 class="submit"
@@ -31,8 +32,9 @@
             </a>
                 <br>
                 <br>
-                {{ username }}'s personal description:<br>
-                <i>{{ profile_description }}</i> <br>
+                <b>&#x2764; {{ username }} loves {{ likes }} news!</b><br>
+                <b>&#x270D; {{ username }}'s personal description:</b><br>
+                {{ profile_description }} <br>
             </p>
         </div>
     </div>

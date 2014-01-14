@@ -1,9 +1,10 @@
-from ocean import utils
 from django import forms
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
+from django.core.files.images import get_image_dimensions
 
+from ocean import utils
 from rss.models import UserProfile
 
 def index(request):
@@ -14,10 +15,11 @@ def sign_in(request):
     return utils.render(request, 'base/sign_in.html')
 
 
-class ProfileEditForm(forms.Form):
-    description = forms.CharField(max_length=200)
-    show_email = forms.BooleanField(required=False)
-    profile_image = forms.ImageField()
+class ProfileEditForm(forms.ModelForm):
+
+    class Meta:
+        model = UserProfile
+        exclude = ('user', )
 
     def clean_avatar(self):
         avatar = self.cleaned_data['profile_image']
@@ -80,6 +82,7 @@ def edit_profile(request):
         # This is a common request
         # Show form to the user
         form = ProfileEditForm()
+        print form.fields
         form.fields['description'].initial = current_description
         form.fields['show_email'].initial = current_show_email
     return render(

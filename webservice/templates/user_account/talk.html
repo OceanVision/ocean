@@ -2,7 +2,7 @@
 {% block body %}
 
 <div id="rssItems" class="container" data-center_h="true" data-transit="true">
-    <p class="header">TALKING WITH: {{ contact }}</p>
+    <p class="header">TALKING WITH: <a href="../user?n={{ contact }}">{{ contact }}</a></p>
     <input id="search" type="text" value="search in messages" data-value="search in messages"></input>
     <br><br><br>
     <form action="/account/talk?user={{ contact }}" method="post">
@@ -14,7 +14,7 @@
     <div class="item" >
         <span class="no"></span>
         <p class="title" data-color={{ message.color }}>
-            <i>{{ message.author }}</i>: {{ message.private_message|safe }}
+            <b><i>{{ message.author }}</i></b>: {{ message.private_message|safe }}
         </p>
         <p class="description">
             <span style="font-size:small;">{{ message.date }}</span>

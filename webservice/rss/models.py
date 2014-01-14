@@ -18,7 +18,7 @@ class UserProfile(models.Model):
     profile_image = models.ImageField(
         upload_to=get_image_path,
         blank=True,
-        null=True
+        null=False
     )
     show_email = models.BooleanField()
 
