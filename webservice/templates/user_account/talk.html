@@ -2,8 +2,7 @@
 {% block body %}
 
 <div id="rssItems" class="container" data-center_h="true" data-transit="true">
-    <!-- Fancy envelope utf8 symbol -->
-    <p class="header">&#x2709; INBOX</p>
+    <p class="header">TALKING WITH: {{ contact }}</p>
     <input id="search" type="text" value="search in messages" data-value="search in messages"></input>
     <br><br><br>
     <form action="/account/talk?user={{ contact }}" method="post">
@@ -12,22 +11,14 @@
     </form>
     <br><br><br>
     {% for message in messages %}
-    <div>
     <div class="item" >
         <span class="no"></span>
         <p class="title" data-color={{ message.color }}>
-            <b><i>{{ message.author }}</i></b>: {{ message.private_message|safe }}, 
-            <p class="description">
-                <span style="font-size:small;">RECEIVED: {{ message.date }},
-                <a id='talkPage' href="javascript:main.load('account/talk?user={{ message.author }}')">
-                <font color='ocean'><b>GO TO TALK PAGE</b></font>
-                </a>
-                </span>
-            </p>
+            <i>{{ message.author }}</i>: {{ message.private_message|safe }}
         </p>
-    </div>
-    <div>
-    </div>
+        <p class="description">
+            <span style="font-size:small;">{{ message.date }}</span>
+        </p>
     </div>
     {% endfor %}
 </div>

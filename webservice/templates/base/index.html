@@ -26,12 +26,13 @@
     </nav>
     {% else %}
     <nav id="regularMenu" class="menu container">
-        <a id="myProfile" class="item" href="javascript:main.load('user/?n={{ user.username }}')">profile</a>
-        <a id="myOcean" class="item highlighted" href="javascript:main.load('rss')">my ocean</a>
-        <a id="discover" class="item" href="javascript:main.load('rss/trending_news')">discover</a>
-        <a id="manageRSS" class="item" href="javascript:main.load('rss/manage')">channels</a>
-        <a id="accountSettings" class="item" href="javascript:main.load('edit_profile')">account</a>
-        <a id="signOut" class="item" href="javascript:main.signOut()">sign out</a>
+        <a id="myProfile" class="item" href="javascript:main.load('user/?n={{ user.username }}')">&#x265E; profile</a>
+        <a id="inbox" class="item" href="javascript:main.load('account/inbox')">&#x2709; inbox</a>
+        <a id="myOcean" class="item highlighted" href="javascript:main.load('rss')">&#x2693; my ocean</a>
+        <a id="discover" class="item" href="javascript:main.load('rss/trending_news')">&#x2739; discover</a>
+        <a id="manageRSS" class="item" href="javascript:main.load('rss/manage')">&#x2730; channels</a>
+        <a id="accountSettings" class="item" href="javascript:main.load('edit_profile')">&#x2699; account</a>
+        <a id="signOut" class="item" href="javascript:main.signOut()">sign out &#x27B2;</a>
     </nav>
     {% endif %}
 

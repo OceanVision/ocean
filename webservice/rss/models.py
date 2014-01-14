@@ -31,6 +31,12 @@ class PrivateMessages(models.Model):
     receiver = models.ForeignKey(User, related_name='received')
     message = models.CharField(max_length=2000)
     date = models.DateTimeField(auto_now_add=True) #When created set to "now"
+    is_read = models.BooleanField()
+
+
+class Contacts(models.Model):
+    follower = models.ForeignKey(User, related_name='is_following')
+    followed = models.ForeignKey(User, related_name='is_followed')
 
 
 #TODO: remove after refactoring !!! - obsolete

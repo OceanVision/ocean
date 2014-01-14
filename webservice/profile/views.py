@@ -13,7 +13,9 @@ def index(request):
         user = User.objects.filter(username__exact=given_username)
         neouser = NeoUser.objects.filter(username__exact=given_username)
         if not user:
-            return render(request, 'profile/index.html', {'message': 'User does not exist.'})
+            return render(
+                request, 'profile/index.html', {'message': 'User does not exist.'}
+            )
         user = user[0]
 
         user_profile = UserProfile.objects.filter(user=user.pk)
@@ -25,6 +27,8 @@ def index(request):
                 profile_image=None,
                 show_email=True
             )
+            user_profile = UserProfile.objects.filter(user=user.pk)
+
         user_profile = user_profile[0]
 
         date_joined = str(user.date_joined.year) + '.' +\

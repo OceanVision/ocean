@@ -10,12 +10,19 @@ import random
 from rss.models import UserProfile, PrivateMessages
 
 
+colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
+
+
 def get_messages(request):
+    ''' Gets data used to present messages from conversation of two users '''
     if request.user.is_authenticated():
-        colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
         messages_array = []
-        user = User.objects.filter(username__exact=request.user.username)[0]
-        contact = User.objects.filter(username__exact=request.GET['user'].split("?ajax=ok")[0])[0]
+        user = User.objects.filter(
+            username__exact=request.user.username,
+        )[0]
+        contact = User.objects.filter(
+            username__exact=request.GET['user'].split("?ajax=ok")[0],
+        )[0]
 
         # Get all incoming messages
         private_messages = PrivateMessages.objects.filter(
@@ -28,7 +35,7 @@ def get_messages(request):
                     'author' : contact.username,
                     'date' : pm.date,
                     'private_message' : pm.message,
-                    'color': colors[random.randint(0, 4)]
+                    'color': colors[random.randint(0, 4)],
                 }
             ]
 
@@ -47,7 +54,7 @@ def get_messages(request):
                 }
             ]
 
-        # !!! !!! SORTOWANIE PO DACIE !!! !!!
+        # Sortowanie po dacie
         messages_array.sort(key=lambda item:item['date'], reverse=True)
 
         page = 0
@@ -66,24 +73,67 @@ def get_messages(request):
         else:
             messages_array = None
 
-        return {'signed_in': True,
-                'messages': messages_array,
-                'contact' : contact,
-                'message': ''}
+        return {
+            'signed_in': True,
+            'messages': messages_array,
+            'contact' : contact,
+            'message': ''
+        }
+
+    else:
+        return {}
+
+
+def get_conversations(request):
+    if request.user.is_authenticated():
+        user = User.objects.filter(
+            username__exact=request.user.username,
+        )[0]
+        conversations_list = []
+        # Get all DISTINCT messages
+        conversations = PrivateMessages.objects.filter(
+            receiver__exact=request.user.pk
+        ).distinct('sender')
+
+        for conversation in conversations:
+            conversations_list += [
+                {
+                    'author' : conversation.sender,
+                    'date' : conversation.date,
+                    'private_message' : conversation.message,
+                    'color' : colors[random.randint(0, 4)]
+                }
+            ]
+
+        return {
+            'signed_in': True,
+            'messages': conversations_list,
+            'contact' : 'asd',
+            'message': ''
+        }
 
     else:
         return {}
 
 
 class PrivateMessageForm(forms.Form):
-    text = forms.CharField(max_length=2000)
+    text = forms.CharField(
+        widget=forms.TextInput(
+            attrs={
+                'class':'special',
+                'autocomplete' : 'off',
+            }
+        ),
+        max_length=2000)
 
 
-def inbox(request):
-    """ @param message - additional web message f.e. error."""
+def talk(request):
+    """ View of conversation with an user specified in the @param request """
     # Get messages from database
     user = User.objects.filter(username__exact=request.user.username)[0]
-    contact = User.objects.filter(username__exact=request.GET['user'].split("?ajax=ok")[0])[0]
+    contact = User.objects.filter(
+        username__exact=request.GET['user'].split("?ajax=ok")[0]
+    )[0]
 
     if request.method == 'POST':
         # This is POST
@@ -106,9 +156,15 @@ def inbox(request):
     data['form'] = form
 
     if len(data) > 0:
-        return render(request, 'user_account/inbox.html', data)
+        return render(request, 'user_account/talk.html', data)
     else:
         return HttpResponse(content='fail', content_type='text/plain')
+
+
+def inbox(request):
+    #TODO: enhance.
+    data = get_conversations(request)
+    return render(request, 'user_account/inbox.html', data)
 
 
 def sign_in(request):
@@ -125,6 +181,7 @@ def sign_in(request):
             show_email=True,
             profile_image=None
         )
+        user_profile = UserProfile.objects.filter(user=user)
 
     if user is not None:
         # TODO: is_active flag checking
