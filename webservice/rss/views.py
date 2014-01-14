@@ -55,17 +55,17 @@ def loved_it(request):
     odm_client = ODMClient()
     odm_client.connect()
 
-
     user = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=request.user.username)[0]
     news = odm_client.get_by_uuid(node_uuid=request.GET['uuid'])
 
     #TODO: it is just unbelivabely naive way to do it, rewrite in next iteration
     #idea : bloomfilters in odm_server (related_bloomfilter)
     #cool idea btw
-    loved = [news["link"] for news in odm_client.get_children(user["uuid"], LOVES_IT_RELATION)]
+    loved = [n["link"] for n in odm_client.get_children(user["uuid"], LOVES_IT_RELATION)]
 
-    if user["username"] in loved:
-        return
+
+    if news["link"] in loved:
+        return HttpResponse(json.dumps({}))
 
     odm_client.set(node_uuid=news["uuid"], node_params={"loved_counter": news["loved_counter"] + 1})
     odm_client.add_rel(start_node_uuid=user["uuid"], end_node_uuid=news["uuid"], rel_type=LOVES_IT_RELATION)
@@ -99,10 +99,8 @@ def graph_view_all_subscribed(graph_view_descriptor):
     """
         @param graph_view_descriptor now represented as dictionary. We have to design it more carefully
     """
-    print "call to graph_view_all_subscribed"
     #TODO: dziala dosyc niestabilnie i w ogole nie ma lapania wyjatkow...
     try:
-        print "username:", graph_view_descriptor["username"]
         odm_client = ODMClient()
         odm_client.connect()
 
@@ -115,10 +113,7 @@ def graph_view_all_subscribed(graph_view_descriptor):
 
         #TODO: pick only most recent loved it
         #TODO: it is very heavily prototyped, move to separate graph view
-        loved = [news for news in odm_client.get_children(user["uuid"], LOVES_IT_RELATION)]
-        print "Found loved"
-        print loved
-
+        loved = [news["link"] for news in odm_client.get_children(user["uuid"], LOVES_IT_RELATION)]
 
         colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
         # Get news for authenticated users.
@@ -130,6 +125,7 @@ def graph_view_all_subscribed(graph_view_descriptor):
             for content in odm_client.get_children(content_source['uuid'], PRODUCES_RELATION):
                 content['loved'] = int(content['link'] in loved)
                 content['color'] = colors[random.randint(0, 4)]
+
                 content_items_array.append(content)
 
 
