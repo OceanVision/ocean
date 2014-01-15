@@ -2,9 +2,9 @@ from django import forms
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
-from django.core.files.images import get_image_dimensions
 
 from ocean import utils
+from user_account.forms import EditProfileForm
 from rss.models import UserProfile
 
 def index(request):
@@ -13,47 +13,6 @@ def index(request):
 
 def sign_in(request):
     return utils.render(request, 'base/sign_in.html')
-
-
-class ProfileEditForm(forms.ModelForm):
-
-    class Meta:
-        model = UserProfile
-        exclude = ('user','profile_image' )
-
-    def clean_avatar(self):
-        avatar = self.cleaned_data['profile_image']
-
-        try:
-            w, h = get_image_dimensions(avatar)
-
-            #validate dimensions
-            max_width = max_height = 100
-            if w != max_width or h != max_height:
-                raise forms.ValidationError(
-                    u'Please use an image that is '
-                     '%s x %s pixels.' % (max_width, max_height))
-
-            #validate content type
-            main, sub = avatar.content_type.split('/')
-            if not (main == 'image' and sub in ['jpeg', 'pjpeg', 'gif', 'png']):
-                raise forms.ValidationError(u'Please use a JPEG, '
-                    'GIF or PNG image.')
-
-            #validate file size
-            if len(avatar) > (20 * 1024):
-                raise forms.ValidationError(
-                    u'Avatar file size may not exceed 20k.')
-
-        except AttributeError:
-            """
-            Handles case when we are updating the user profile
-            and do not supply a new avatar
-            """
-            pass
-
-        return avatar
-
 
 def edit_profile(request):
     # Read current user profile data
@@ -64,7 +23,7 @@ def edit_profile(request):
 
     if request.method == 'POST':
         # This is POST
-        form = ProfileEditForm(request.POST)
+        form = EditProfileForm(request.POST)
         if form.is_valid():
             # Process valid data
             description = form.cleaned_data['description']
@@ -81,8 +40,7 @@ def edit_profile(request):
     else:
         # This is a common request
         # Show form to the user
-        form = ProfileEditForm()
-        print form.fields
+        form = EditProfileForm()
         form.fields['description'].initial = current_description
         form.fields['show_email'].initial = current_show_email
     return render(

@@ -1,27 +1,34 @@
 {% extends 'base/index.html' %}
 {% block body %}
 
-<div id="editProfileForm" class="container form" data-center_h="true" data-center_v="true" data-transit="true">
+<div id="editProfileForm" class="container form" data-center_h="true" data-transit="true">
 
     <div class="leaflet"><p class="header">EDIT PROFILE</p></div>
     <form action="/edit_profile" method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <input type="submit" value="Submit" />
+        {% load widget_tweaks %}
+        {% ifequal form.description.value "description" %}
+            {% render_field form.description type="text" data-value="description" %}
+        {% else %}
+            {% render_field form.description type="text" data-value="description" class="focus"%}
+        {% endifequal %}
+        <label>show email:</label> {% render_field form.show_email type="checkbox" class="checkbox" %}
+        <button class="submit" type="submit">submit</button>
     </form>
 
     <div class="leaflet"><p class="header">CHANGE PASSWORD</p></div>
-    <input id="currentPassword" type="text" value="current password" 
-        data-value="current password" data-type="password"><br>
-    <input id="newPassword" type="text" value="new password"
-        data-value="new password" data-type="password"><br>
-    <input id="retypedPassword" type="text" value="retype password" 
-        data-value="retype password" data-type="password"><br>
-    <a class="submit" href="javascript:changePassword()">submit</a>
+    <form action="/change_password" method="post">
+        <input id="currentPassword" type="text" value="current password"
+            data-value="current password" data-type="password"><br>
+        <input id="newPassword" type="text" value="new password"
+            data-value="new password" data-type="password"><br>
+        <input id="retypedPassword" type="text" value="retype password"
+            data-value="retype password" data-type="password"><br>
+        <button class="submit" type="submit">submit</button>
+    </form>
 </div>
 
 <script type="text/javascript">
-
     //TODO: make synchronous
     var changePassword = function() {
         $("#editProfileForm a.submit").addClass("disabled");
