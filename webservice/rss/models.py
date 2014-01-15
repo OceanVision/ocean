@@ -17,8 +17,9 @@ class UserProfile(models.Model):
     description = models.CharField(max_length=200)
     profile_image = models.ImageField(
         upload_to=get_image_path,
-        blank=True,
-        null=False
+        #bug workaround
+        #blank=True,
+        #null=False
     )
     show_email = models.BooleanField()
 

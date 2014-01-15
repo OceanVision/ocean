@@ -19,7 +19,7 @@ class ProfileEditForm(forms.ModelForm):
 
     class Meta:
         model = UserProfile
-        exclude = ('user', )
+        exclude = ('user','profile_image' )
 
     def clean_avatar(self):
         avatar = self.cleaned_data['profile_image']
@@ -69,10 +69,10 @@ def edit_profile(request):
             # Process valid data
             description = form.cleaned_data['description']
             show_email = form.cleaned_data['show_email']
-            profile_image = form.clean_avatar()
+            #profile_image = form.clean_avatar()
             user_profile.description = description
             user_profile.show_email = show_email
-            user_profile.profile_image = profile_image
+            #user_profile.profile_image = profile_image
             user_profile.save()
             # Show result to the user
             return HttpResponseRedirect(
