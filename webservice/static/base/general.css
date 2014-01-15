@@ -241,7 +241,7 @@ nav#navigator p.category {
 
 .container div.item p.description a {
     font-family: "Lucida Sans Unicode";
-    color: #d4d4d4;
+    color: #707070;
 }
 
 div#rssItems {
@@ -478,7 +478,7 @@ form label {
 
 /* ========== M I S S I O N   P A G E ========== */
 
-div#mission {
+div#mission, div#news-preview {
     width: 65%;
     padding-top: 63px;
     position: absolute;
@@ -487,6 +487,18 @@ div#mission {
 
 div#mission img {
     width: 100%;
+}
+
+div#news-preview {
+    width: 100%;
+    padding: 0px;
+    top: 63px;
+}
+
+div#news-preview object {
+    border-top: 5px solid #ddd;
+    width: 100%;
+    overflow: hidden;
 }
 
 /* ========== F O O T E R ========== */

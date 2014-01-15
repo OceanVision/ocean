@@ -11,11 +11,14 @@ function Ajax() {
             "sign_in" : "/sign_in",
             "edit_profile" : "/edit_profile",
             "rss" : "/rss",
-            "mission" : "/mission"
+            "mission" : "/mission",
+            "rss/news_preview" : "/rss/news_preview"
         }
     };
 
     Ajax.prototype.request = function(path, attType, attData, onSuccess, onError) {
+        var pathParts = path.split('?');
+        pathParts[1] = pathParts[1] != '' ? pathParts[1] + '&ajax=ok' : 'ajax=ok';
         onError = typeof onError !== 'undefined' ? onError :
                 function(xhr, status, error) {
                     console.log(JSON.stringify(error));
@@ -39,7 +42,7 @@ function Ajax() {
         }
 
         $.ajax({
-            url : "http://" + location.host + "/" + path + "?ajax=ok",
+            url : "http://" + location.host + "/" + pathParts[0] + "?" + pathParts[1],
             global : false,
             type : attType,
             data : attData,
@@ -47,11 +50,11 @@ function Ajax() {
             async : false,
             success : function(response) {
                 onSuccess(response);
-                if (response != "fail" && ajax.pathsMap[path] != undefined) {
+                if (response != "fail" && ajax.pathsMap[pathParts[0]] != undefined) {
                     window.history.replaceState(
                         {page : path},
                         "Title",
-                        ajax.pathsMap[path]
+                        ajax.pathsMap[pathParts[0]]
                     );
                 }
             },
