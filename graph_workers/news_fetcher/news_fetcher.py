@@ -202,12 +202,14 @@ class NewsFetcher(GraphWorker):
 
         # Count exisiting nodes
         #TODO: problem with multiple adding nodes (TVN) - coding problem?
+        print nodes_to_add[newest_id]["title"].decode("utf-8")
+        print type(nodes_to_add[newest_id]["title"].decode("utf-8"))
         existing_nodes_title = len(self.odm_client.get_children\
-                (news_website["uuid"], HAS_INSTANCE_RELATION,
-                 title=nodes_to_add[newest_id]["title"]))
+                (news_website["uuid"], PRODUCES_RELATION,
+                 title=nodes_to_add[newest_id]["title"].decode("utf-8")))
         existing_nodes_desc = len(self.odm_client.get_children\
-                (news_website["uuid"], HAS_INSTANCE_RELATION,
-                 description=nodes_to_add[newest_id]["description"]))
+                (news_website["uuid"], PRODUCES_RELATION,
+                 description=nodes_to_add[newest_id]["description"].decode("utf-8")))
 
 
 
@@ -228,7 +230,8 @@ class NewsFetcher(GraphWorker):
 
 
         logger.log(MY_INFO_LEVEL, "Updating NewsWebsite "+unicode(news_website))
-        logger.log(MY_INFO_LEVEL, "Added for instance "+nodes_to_add[0]["title"]+str(nodes_to_add[0]))
+        logger.log(MY_INFO_LEVEL, "Added for instance "+nodes_to_add[0]["title"])
+        logger.log(MY_INFO_LEVEL, str(nodes_to_add[0]))
         return len(nodes_to_add)
 
 

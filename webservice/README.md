@@ -41,11 +41,21 @@ an error in neo4django you have to have at least one node in graph).
 
         sudo pip install psycopg2
 
-
 * ***pillow***
+
 	(For user pictures):
 
         sudo pip install pillow
+
+* ***south***
+
+        sudo pip install south
+
+* ***django-widget-tweaks***
+
+	(Managing response data in templates):
+
+        sudo pip install django-widget-tweaks
 
 
 ## Running webservice

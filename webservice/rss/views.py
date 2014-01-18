@@ -451,3 +451,7 @@ def delete_content_source(request):
         # Redirect anonymous users to login page.
         return render(request, 'rss/message.html', {'message': 'You are not logged in'})
 
+
+def news_preview(request):
+    url = request.GET['url']
+    return utils.render(request, 'base/news_preview.html', {'url': url})

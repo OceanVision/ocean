@@ -10,7 +10,7 @@
         </p>
         <p class="description">
             {{ item.description|safe|removetags:"a div" }}
-
+            <a href="javascript:main.load('rss/news_preview?url={{ item.link }}')">Read more</a>
             <br>
 
             <span style="font-size:small;">{{ item.pubdate }}</span>

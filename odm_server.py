@@ -177,6 +177,9 @@ class DatabaseManager:
         children_params = params['children_params'] \
             if 'children_params' in params else {}
         rel_type = params['rel_type']
+
+        print "Encoded ",self._str(children_params, 'a', 'AND')
+
         cypher_query = \
             '''
             START e=node({node_id})
@@ -186,8 +189,16 @@ class DatabaseManager:
             if len(children_params) > 0 else '') + '''
             RETURN a
             '''
+
+#         print type(cypher_query)
+#         print cypher_query.decode("utf-8")
+
+        print cypher_query
+        print type(cypher_query)
+        print cypher_query.encode("utf-8")
+
         # There is a problem with node_params if they are given to _run_query
-        return self._execute_query(cypher_query, node_id=node_id)
+        return self._execute_query(cypher_query.encode("utf-8"), node_id=node_id)
 
     @error_handle_odm
     def get_instances(self, **params):
@@ -400,11 +411,11 @@ class DatabaseManager:
             self._uuid_images[key] = value
 
     def _str(self, dictionary, element='e', separator=','):
-        string = ''
+        string = unicode('')
         for (key, value) in dictionary.iteritems():
-            string += str(separator) + ' ' + str(element) + '.' \
-                      + str(key) + '=' + json.dumps(value) + ' '
-        return str(string[(len(separator) + 1):])
+            string += unicode(separator) + unicode(' ') + unicode(element) + unicode('.') \
+                      +unicode(key) + unicode('=') + unicode(json.dumps(value, ensure_ascii=False)) + ' '
+        return unicode(string[(len(separator) + 1):])
 
 
 class Connection():

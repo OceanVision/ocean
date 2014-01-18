@@ -17,8 +17,8 @@ from odm_client import ODMClient
 def massing_add_delete():
     pass  #asserts
 
-if __name__ == "__main__":
-    
+
+def basic_tests():    
     ### Create Objects ###
     db = DatabaseManager()
     cs = db.get_instances(model_name="ContentSource", children_params={})
@@ -119,3 +119,39 @@ if __name__ == "__main__":
     assert (res1 == res3[0])
     assert (res2 == res3[1])
     print 'OK'
+
+
+def test_utf():
+    db = DatabaseManager()
+    
+    cl = ODMClient()
+    cl.connect()
+
+    website = cl.get_instances(model_name="ContentSource")[1]
+
+    print website
+
+    contents = cl.get_children(website["uuid"], "__produces__")
+    
+    print len(contents)
+
+    news = contents[0]
+
+    print type(news["title"])
+    print "Checking ",news["title"]
+    print type(news["title"].encode("utf-8"))
+
+    existing_nodes_title = len(cl.get_children\
+                (node_uuid=website["uuid"], rel_type="__produces__" , 
+                title=unicode(news["title"])))
+        
+
+    print existing_nodes_title
+    assert(existing_nodes_title == 1)
+
+
+
+if __name__ == "__main__":
+    test_utf()
+    basic_tests()
+

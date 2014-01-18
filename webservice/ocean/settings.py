@@ -138,6 +138,7 @@ INSTALLED_APPS = (
     'user_account',
     'rss',
     'south',
+    'widget_tweaks',
 )
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
