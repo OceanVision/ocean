@@ -89,10 +89,9 @@ class OceanMaster(object):
 
         # There is a bit of magic here. Deep eq wrapper allows for
         # deep comparison. It keeps its object in .v
-
-        # TODO: rewrite to object GraphViewExpression..
-
         graph_view_expression = list(graph_view_expression)
+
+
 
         if isinstance(graph_view_expression[0], basestring):
             if hasattr(graph_view, graph_view_expression[0]):

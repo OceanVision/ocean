@@ -95,21 +95,17 @@ import sys
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 @utils.timed
 @utils.error_writing
-def graph_view_all_subscribed(graph_view_descriptor):
+def graph_view_all_subscribed(graph_view_descriptor, graph_display_descriptor):
     """
         @param graph_view_descriptor now represented as dictionary. We have to design it more carefully
     """
-    #TODO: dziala dosyc niestabilnie i w ogole nie ma lapania wyjatkow...
     try:
         odm_client = ODMClient()
         odm_client.connect()
 
-
-
         content_items_array = []  # building news to be rendered (isn't very efficient..)
 
-        user = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=graph_view_descriptor["username"])[0]
-
+        user = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=graph_display_descriptor["username"])[0]
 
         #TODO: pick only most recent loved it
         #TODO: it is very heavily prototyped, move to separate graph view
@@ -121,14 +117,11 @@ def graph_view_all_subscribed(graph_view_descriptor):
 
         print "Getting content sources"
         for content_source in odm_client.get_children(user["uuid"], SUBSCRIBES_TO_RELATION):
-            print "Content source~!"
             for content in odm_client.get_children(content_source['uuid'], PRODUCES_RELATION):
                 content['loved'] = int(content['link'] in loved)
                 content['color'] = colors[random.randint(0, 4)]
 
                 content_items_array.append(content)
-
-
 
 
         category_array = get_category_array(graph_view_descriptor)
@@ -137,9 +130,9 @@ def graph_view_all_subscribed(graph_view_descriptor):
 
         page = 0
         page_size = 20
-        if 'page' in graph_view_descriptor:
-            page = int(graph_view_descriptor['page'])
-            page_size = int(graph_view_descriptor['page_size'])
+        if 'page' in graph_display_descriptor:
+            page = int(graph_display_descriptor['page'])
+            page_size = int(graph_display_descriptor['page_size'])
 
         a = page * page_size
         if a < len(content_items_array):
@@ -155,81 +148,49 @@ def graph_view_all_subscribed(graph_view_descriptor):
         print "Exception in graph_view_all_subscribed : ", e
         return {}
 
-    return {'signed_in': True,
-            'rss_items': content_items_array,
-            'categories': category_array}
+
+    return content_items_array
 
 
 #TODO: move to ocean_master
 @utils.error_writing
-def get_graph(request, graph_view_descriptor_in={}):
+def get_graph(graph_view_descriptor, graph_display_descriptor, start, end):
     """
         This function returns graph that will be rendered by GraphDisplay
+        (old rss_items)
 
-        @param graph_view_descriptor_in this dict will update request.GET and form graph_display
-        @note: state variables are more important than dict_update
+        @param graph_view_descriptor Descriptor specyfing GraphView to be fetched
+        @param graph_display_descriptor Descriptor specyfing GraphDisplay that is fetching
+        @param start integer
+
     """
 
-    #TODO: move authentication from here! (to middleware , see stackoverflow)
-    if request.user.is_authenticated():
-        graph_view_descriptor = dict()
-        graph_view_descriptor["username"] = request.user.username # each graph_display should have username..
-        graph_view_descriptor.update(graph_view_descriptor_in)
+    # Construct appropriate graph_view (@note: will be moved to OceanMaster)
+    if "name" in graph_view_descriptor:
 
+        print "HERE"
+        print graph_view_descriptor
+        print type(graph_view_descriptor)
+        if graph_view_descriptor["name"] == "Subscribed":
+            return  graph_view_all_subscribed(graph_view_descriptor, graph_display_descriptor)
+        elif graph_view_descriptor["name"] == "TrendingNews":
+            # Get GraphView (construct if not in cache) from Ocean Master
+            print "HERE"
+            gv = OC.construct_graph_view((graph_view_descriptor["name"],
+                                          graph_view_descriptor["options"]))
 
-        # Ultimately override all the variables
-
-        # TODO: missing default list display
-        if "state" in request.GET:
-            graph_view_descriptor.update(json.loads(request.GET["state"]))
+            print "HERE getting"
+            return gv.get_graph(start, end, graph_display_descriptor)
         else:
-            print "WARNING: no state in request.GET"
-            graph_view_descriptor.update(dict(request.GET))
-
-
-        # @note: this function will be moved to OceanMaster
-        if "graph_view" in graph_view_descriptor:
-            if graph_view_descriptor["graph_view"] == "Subscribed":
-                data = graph_view_all_subscribed(graph_view_descriptor)
-                data.update(graph_view_descriptor)
-                return data
-
-            elif graph_view_descriptor["graph_view"] == "TrendingNews":
-                # Construct appriopriate GraphView (c urrently not generic :( )
-
-
-
-                # Setup options
-                option_dict = {}
-                for opt in graph_view_descriptor["options"]:
-                    option_dict[opt["name"]] = opt["state"]
-
-                # Get GraphView (construct if not in cache) from Ocean Master
-                gv = OC.construct_graph_view((graph_view_descriptor["graph_view"], option_dict))
-
-
-
-                # Return data used by GraphDisplay
-                data = {'signed_in': True,
-                        'rss_items': gv.get_graph(graph_view_descriptor),
-                        'categories': get_category_array(graph_view_descriptor)}
-
-
-                data.update(graph_view_descriptor)
-
-                return data
-            else:
-                raise Exception("Not recognized graph_view")
-        else:
-            raise Exception("No graph_view in request")
-
+            raise Exception("Not recognized graph_view")
     else:
-        return {}
+        raise Exception("No name in request")
+
 
 
 @utils.view_error_writing
 def trending_news(request):
-    # Options on display
+    # Options displayed in GraphDisplay
     options = [
         {"name": "period",
          "list": ["Top week", "Top day", "Top hour!"],
@@ -237,15 +198,44 @@ def trending_news(request):
          "action": "rewrite_display"}
     ]
 
-    data = get_graph(request, {"graph_view": "TrendingNews", "options": options, "page": 0, "page_size": 20})
-    if len(data) > 0:
-        if "descriptor" not in data:
-            data["options"] = json.dumps(options)
-            data["descriptor"] = json.dumps("ListDisplay")
-            data["graph_view"] = json.dumps("TrendingNews")
-            data["title"] = "TRENDING NEWS"
-            data["likeable"] = 0
+    graph_display_descriptor = {}
+    graph_display_descriptor["name"] = "ListDisplay"
+    graph_display_descriptor["options"] = options
+    graph_display_descriptor["title"] = "TRENDING NEWS"
+    graph_display_descriptor["likeable"] = 0
+    graph_display_descriptor["page"] = 0
+    graph_display_descriptor["page_size"] = 20
+    graph_display_descriptor["username"] = request.user.username
 
+    # Setup options
+    option_dict = {}
+    for opt in options:
+        option_dict[opt["name"]] = opt["state"]
+
+    # Get graph using default graph_view_descriptor
+    graph_view_descriptor = {"name": "TrendingNews",
+                               "options": option_dict}
+
+    rss_items = get_graph(graph_view_descriptor, graph_display_descriptor, \
+                          graph_display_descriptor["page"],\
+                          graph_display_descriptor["page_size"]
+                          )
+
+    if len(rss_items) > 0:
+        # Construct List Display Descripor
+        data = {}
+
+
+
+        data["graph_view_descriptor"] = json.dumps(graph_view_descriptor)
+        data["graph_display_descriptor"] = json.dumps(graph_display_descriptor)
+        data["signed_in"] = True
+        data["categories"] = get_category_array(graph_view_descriptor)
+
+
+        print "Passing ",data
+
+        data["rss_items"] = rss_items
         return utils.render(request, 'rss/index.html', data)
     else:
         return HttpResponse(content="fail", content_type="text/plain")
@@ -253,40 +243,52 @@ def trending_news(request):
 
 @utils.view_error_writing
 def index(request):
-    data = get_graph(request, {"graph_view": "Subscribed"})
-    if len(data) > 0:
-        # descriptor is a parametrization which is used by GraphDisplay (maybe change name to GraphDisplayName?)
-        if "descriptor" not in data:
-            #Parameters that are checked by ListDisplay and used to render stuff
-            #We assume index is ListDisplay btw.
-            #TODO: Code this
-            data["descriptor"] = json.dumps("ListDisplay")
-            data["graph_view"] = json.dumps("Subscribed")
-            data["title"] = "SUBSCRIBED NEWS"
-            data["sortable"] = 1
-            data["likeable"] = 1
+    graph_display_descriptor = {}
+    graph_display_descriptor["name"] = "ListDisplay"
+    graph_display_descriptor["options"] = {}
+    graph_display_descriptor["title"] = "TRENDING NEWS"
+    graph_display_descriptor["likeable"] = 1
+    graph_display_descriptor["sortable"] = 1
+    graph_display_descriptor["page"] = 0
+    graph_display_descriptor["page_size"] = 20
+    graph_display_descriptor["username"] = request.user.username
+
+
+    # Get graph using default graph_view_descriptor
+    graph_view_descriptor = {"name": "Subscribed",
+                               "options": {}}
+
+    rss_items = get_graph(graph_view_descriptor, graph_display_descriptor, \
+                          graph_display_descriptor["page"],\
+                          graph_display_descriptor["page_size"]
+                          )
+
+    if len(rss_items) > 0:
+        # Construct List Display Descripor
+        data = {}
+        data["graph_view_descriptor"] = json.dumps(graph_view_descriptor)
+        data["graph_display_descriptor"] = json.dumps(graph_display_descriptor)
+        data["signed_in"] = True
+        data["categories"] = get_category_array(graph_view_descriptor)
+        data["rss_items"] = rss_items
         return utils.render(request, 'rss/index.html', data)
     else:
         return HttpResponse(content="fail", content_type="text/plain")
+
+
+
+
+
 
 
 def get_rss_channels(request):
     """Get subscribed RSS channels list from databasa."""
     if request.user.is_authenticated():
         content_items_array = []  # building news to be rendered (isn't very efficient..)
-
         odm_client = ODMClient()
         odm_client.connect()
-
         user = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=request.user.username)[0]
-
-
         colors = ['ffbd0c', '00c6c4', '74899c', '976833', '999999']
-        # Get news for authenticated users.
-
-
-
-
         for content_source in odm_client.get_children(user["uuid"], "subscribes_to"):
             content_source['category'] = 2
             content_source['color'] = colors[random.randint(0, 4)]
@@ -295,7 +297,6 @@ def get_rss_channels(request):
         odm_client.disconnect()
 
         category_array = get_category_array(request)
-
         page = 0
         page_size = 20
         if 'page' in request.GET:
@@ -312,14 +313,11 @@ def get_rss_channels(request):
         else:
             content_items_array = None
 
-
         odm_client.disconnect()
-
         return {'signed_in': True,
                 'rss_channels': content_items_array,
                 'categories': category_array,
                 'message': ''}
-
     else:
         return {}
 
@@ -338,10 +336,16 @@ def manage(request, message=''):
 
 @utils.view_error_writing
 def get_news(request):
-    data = get_graph(request)
-    print "LIKEABLE RETURNED=", data["likeable"]
-    if len(data) > 0:
-        return utils.render(request, 'rss/list_display_renderer.html', data)
+    rss_items = get_graph(json.loads(request.GET['graph_view_descriptor']),
+                     json.loads(request.GET['graph_display_descriptor']
+                     ),
+                     start=int(request.GET['start']),
+                     end=int(request.GET['end']))
+
+
+    render_dict = {"rss_items":rss_items}
+    if len(rss_items) > 0:
+        return utils.render(request, 'rss/list_display_renderer.html', render_dict)
     else:
         return HttpResponse(content="fail", content_type="text/plain")
 

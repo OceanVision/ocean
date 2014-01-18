@@ -25,52 +25,56 @@
 </footer>
 
 <script type="text/javascript">
+    /* ==== Descriptor for graph_view <-> graph_display communication ==== */
 
+    //Dual graph view descriptor. Every django function is called with
+    //this dictionary passed in request
+    graph_view_descriptor = {{ graph_view_descriptor|safe }}
 
-    //ListDisplay variables
-    descriptor = {{ descriptor|safe }}
-    options = {{ options|safe }} //array of arrays. For now only 2-optional are possible
-    page_size = 20
-    state = {"descriptor": descriptor, "options": options, "page": 0, "page_size": 20, "graph_view": {{ graph_view|safe }}}
-    state["likeable"] = {{ likeable|safe }}
-    state["sortable"] = {{ sortable|safe }}
+    //Graph display descriptor, passed to get_news
+    graph_display_descriptor = {{ graph_display_descriptor|safe }}
+    graph_display_descriptor["page"] = 0
+    graph_display_descriptor["page_size"] = 20 //TODO: calculate dynamically?
 
-    //TODO: shouldnt be public
     heart = "{% static 'base/img/heart.png' %}"
     grayheart = "{% static 'base/img/grayheart.png' %}"
 
 
+    /* ===== Scrolling ===== */
     var scrollFunction = function() {
         $(window).unbind("scroll");
-        
         buffer = 40 // # of pixels from bottom of scroll to fire your function. Minimum 40 (should work for 0
         if ($("#rssItems").prop('scrollHeight') - $(window).scrollTop() <= $(window).height() + buffer) {
-            state["page"] += 1;
+            graph_display_descriptor["page"] += 1;
             update_display();
         }
-        
         $(window).scroll(scrollFunction);
     }
-
     //TODO: Czemu to jest tutaj? Przeciez nie kazda strona jest scrollowalna w ten sposob jak ListDisplay ;p
     $(window).scroll(scrollFunction);
 
 
-    //Sends current state to main view (TODO: replace this with calling OceanMaster..)
+
+
+
+    /* ===== Graph display functions ===== */
     var update_display = function(){
         data={
-        'state':JSON.stringify(state)
-        };
+            'graph_view_descriptor':JSON.stringify(graph_view_descriptor),
+            'graph_display_descriptor':JSON.stringify(graph_display_descriptor),
+            'start':graph_display_descriptor['page_size']*(graph_display_descriptor['page']),
+            'end': graph_display_descriptor['page_size']*(graph_display_descriptor['page']+1)-1
+             };
         rendered_news = main.fetch_from_server("rss/get_news", data);
         $(rendered_news).appendTo("#rssItems");
         visualization.updateEventHandlers();
     }
-
-
-
     var rewrite_display = function(){
         data={
-        'state':JSON.stringify(state)
+            'graph_view_descriptor':JSON.stringify(graph_view_descriptor),
+            'graph_display_descriptor':JSON.stringify(graph_display_descriptor),
+            'start':graph_display_descriptor['page_size']*(graph_display_descriptor['page']),
+            'end': graph_display_descriptor['page_size']*(graph_display_descriptor['page']+1)-1
         };
         rendered_news = main.fetch_from_server("rss/get_news", data);
         $("#rssItems .item").remove();
@@ -81,8 +85,11 @@
 
 
 
+    /* ==== Render options ====*/
     var option_click = function(e){
         var id = parseInt($(this).attr("id"))
+        options = graph_display_descriptor["options"]
+
         options[id]["state"] = (options[id]["state"]+1)%options[id]["list"].length;
         $(this).text(options[id]["list"][options[id]["state"]]);
         window[options[id]["action"]]() //hack .. not sure if the best way
@@ -90,6 +97,8 @@
         e.preventDefault();
     }
     for (var i=0;i < options.length; i++){
+        options = graph_display_descriptor["options"]
+
         //assume each has length 2
         var option_div = $(
         "<a id='"+i+"' class='toggled' href='#'>"+options[i]["list"][0]+"</a>"
@@ -121,7 +130,6 @@
                 .addClass(itemsOrder)
                 .text(itemsOrder);
     };
-
     $("div#rssItems input#search")
         .off("keyup")
         .on("keyup", function (e) {
@@ -131,14 +139,6 @@
             }
         });
 
-
-
-
-
-$(document).on("ready", function() {
-    //update_display();
-
-});
 </script>
 
 {% endblock %}

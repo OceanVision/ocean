@@ -331,7 +331,6 @@ class DatabaseManager:
     def execute_query(self, **params):
 
         query_string = params['query_string']
-        print "Executing ",query_string
         query_params = params['query_params']
 
         return self._execute_query(query_string, True, **query_params)
