@@ -5,7 +5,7 @@ This file defines constants used in graph operations
 
 ### Default dictionaries for all models in the graph ###
 #TODO: add all fields
-CONTENT_MODEL = {"loved_counter": 0, "last_updated": 0}
+CONTENT_MODEL = {"loved_counter": 0, "last_updated": 0, "pubdate_timestamp": 0}
 GRAPH_MODELS = {"Content":CONTENT_MODEL}
 
 
