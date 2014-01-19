@@ -36,6 +36,8 @@
     graph_display_descriptor["page"] = 0
     graph_display_descriptor["page_size"] = 20 //TODO: calculate dynamically?
 
+
+
     heart = "{% static 'base/img/heart.png' %}"
     grayheart = "{% static 'base/img/grayheart.png' %}"
 
@@ -96,8 +98,9 @@
         //$(this).css({"background-color":"#"+utils.getRandomColor()});
         e.preventDefault();
     }
+    options = graph_display_descriptor["options"]
     for (var i=0;i < options.length; i++){
-        options = graph_display_descriptor["options"]
+
 
         //assume each has length 2
         var option_div = $(

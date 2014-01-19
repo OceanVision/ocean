@@ -128,11 +128,16 @@ def graph_view_all_subscribed(graph_view_descriptor, graph_display_descriptor):
 
         odm_client.disconnect()
 
+        print "Disconnecting"
+        print content_items_array
+
         page = 0
         page_size = 20
         if 'page' in graph_display_descriptor:
             page = int(graph_display_descriptor['page'])
             page_size = int(graph_display_descriptor['page_size'])
+
+
 
         a = page * page_size
         if a < len(content_items_array):
@@ -142,11 +147,13 @@ def graph_view_all_subscribed(graph_view_descriptor, graph_display_descriptor):
             else:
                 content_items_array = content_items_array[a:]
         else:
-            content_items_array = None
+            content_items_array = []
+
 
     except Exception, e:
         print "Exception in graph_view_all_subscribed : ", e
         return {}
+
 
 
     return content_items_array
@@ -220,32 +227,27 @@ def trending_news(request):
                           graph_display_descriptor["page"],\
                           graph_display_descriptor["page_size"]
                           )
-
-    if len(rss_items) > 0:
-        # Construct List Display Descripor
-        data = {}
+    # Construct List Display Descripor
+    data = {}
 
 
 
-        data["graph_view_descriptor"] = json.dumps(graph_view_descriptor)
-        data["graph_display_descriptor"] = json.dumps(graph_display_descriptor)
-        data["signed_in"] = True
-        data["categories"] = get_category_array(graph_view_descriptor)
+    data["graph_view_descriptor"] = json.dumps(graph_view_descriptor)
+    data["graph_display_descriptor"] = json.dumps(graph_display_descriptor)
+    data["signed_in"] = True
+    data["categories"] = get_category_array(graph_view_descriptor)
 
-
-        print "Passing ",data
-
-        data["rss_items"] = rss_items
-        return utils.render(request, 'rss/index.html', data)
-    else:
-        return HttpResponse(content="fail", content_type="text/plain")
+    data["likeable"] = graph_display_descriptor["likeable"]
+    #TODO: why I cannot do graph_display_descriptor.likeable?
+    data["rss_items"] = rss_items
+    return utils.render(request, 'rss/index.html', data)
 
 
 @utils.view_error_writing
 def index(request):
     graph_display_descriptor = {}
     graph_display_descriptor["name"] = "ListDisplay"
-    graph_display_descriptor["options"] = {}
+    graph_display_descriptor["options"] = []
     graph_display_descriptor["title"] = "TRENDING NEWS"
     graph_display_descriptor["likeable"] = 1
     graph_display_descriptor["sortable"] = 1
@@ -263,17 +265,17 @@ def index(request):
                           graph_display_descriptor["page_size"]
                           )
 
-    if len(rss_items) > 0:
-        # Construct List Display Descripor
-        data = {}
-        data["graph_view_descriptor"] = json.dumps(graph_view_descriptor)
-        data["graph_display_descriptor"] = json.dumps(graph_display_descriptor)
-        data["signed_in"] = True
-        data["categories"] = get_category_array(graph_view_descriptor)
-        data["rss_items"] = rss_items
-        return utils.render(request, 'rss/index.html', data)
-    else:
-        return HttpResponse(content="fail", content_type="text/plain")
+    # Construct List Display Descripor
+    data = {}
+    data["graph_view_descriptor"] = json.dumps(graph_view_descriptor)
+    data["graph_display_descriptor"] = json.dumps(graph_display_descriptor)
+    data["signed_in"] = True
+    data["categories"] = get_category_array(graph_view_descriptor)
+    data["rss_items"] = rss_items
+
+    data["likeable"] = graph_display_descriptor["likeable"]
+    #TODO: why I cannot do graph_display_descriptor.likeable?
+    return utils.render(request, 'rss/index.html', data)
 
 
 
@@ -343,7 +345,12 @@ def get_news(request):
                      end=int(request.GET['end']))
 
 
-    render_dict = {"rss_items":rss_items}
+    render_dict = {
+        "rss_items" : rss_items,
+        "graph_display_descriptor" : json.loads(request.GET['graph_display_descriptor']),
+        "likeable" : json.loads(request.GET['graph_display_descriptor']["likeable"])
+    }
+
     if len(rss_items) > 0:
         return utils.render(request, 'rss/list_display_renderer.html', render_dict)
     else:
