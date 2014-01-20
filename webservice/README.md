@@ -145,22 +145,55 @@ an error in neo4django you have to have at least one node in graph).
 * rss - temporary application handling rss requests (show_news)
 
 
-## Side notes and issues
+---
 
-* Neo4j database restarting
+## Development issues
 
-    Sometimes database gets corrupted. You can erase all nodes using ocean_exemplary_data.py. If you want to purge database it can be done by (check neo4j home by dpkg -L neo4j)
+Please refer to this section in case of any questions. Feel free to add your own essential Q&A.
 
-        sudo rm /var/lib/neo4j/data/graph.db/* -r -f
 
-* Django models attribute changes
+### 1. Neo4j database restarting
 
-    When working on webservice, rarely models definitions would change. If so, confilcts could happen like:
+Sometimes database gets corrupted. You can erase all nodes using ocean_exemplary_data.py. If you want to purge database it can be done by (check neo4j home by dpkg -L neo4j)
 
-        DatabaseError: column rss_userprofile.show_email does not exist
+    sudo rm /var/lib/neo4j/data/graph.db/* -r -f
+
+### 2. Django models attribute changed issue
+
+When working on webservice, rarely models definitions would change. If so, confilcts could happen like:
+
+    DatabaseError: column rss_userprofile.show_email does not exist
 
     (in below case a column named `show_email` has been added to model `UserProfile`.)
     (This error appears when dealing with old models instances using new definitions)
 
-    Current *risky* **workaround** is to `drop table rss_userprofile;` from within PostgreSQL console.
+Current *temporary* workaround (unless we start to use South) is to `drop database`:
 
+Get root rights:
+
+    $ su
+
+Get postgres user rights:
+
+    # su -- postgres
+
+Run PostgreSQL console:
+
+    # psql
+
+Inside console execute following commands:
+
+    postgres=# drop database oceanpostgres;
+    postgres=# create database oceanpostgres;
+    postgres=# \q
+
+Exit root:
+
+    # exit
+    # exit
+
+Enter `webservice` directory and perform:
+
+    $ python2 manage.py syncdb
+
+Crete Django user with the same login as before `drop` (don't forget to enter e-mail adress).
