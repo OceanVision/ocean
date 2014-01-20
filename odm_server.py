@@ -178,7 +178,6 @@ class DatabaseManager:
             if 'children_params' in params else {}
         rel_type = params['rel_type']
 
-        print "Encoded ",self._str(children_params, 'a', 'AND')
 
         cypher_query = \
             '''
@@ -189,14 +188,6 @@ class DatabaseManager:
             if len(children_params) > 0 else '') + '''
             RETURN a
             '''
-
-#         print type(cypher_query)
-#         print cypher_query.decode("utf-8")
-
-        print cypher_query
-        print type(cypher_query)
-        print cypher_query.encode("utf-8")
-
         # There is a problem with node_params if they are given to _run_query
         return self._execute_query(cypher_query.encode("utf-8"), node_id=node_id)
 

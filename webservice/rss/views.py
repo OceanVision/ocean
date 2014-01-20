@@ -115,7 +115,6 @@ def graph_view_all_subscribed(graph_view_descriptor, graph_display_descriptor):
         # Get news for authenticated users.
 
 
-        print "Getting content sources"
         for content_source in odm_client.get_children(user["uuid"], SUBSCRIBES_TO_RELATION):
             for content in odm_client.get_children(content_source['uuid'], PRODUCES_RELATION):
                 content['loved'] = int(content['link'] in loved)
@@ -128,10 +127,6 @@ def graph_view_all_subscribed(graph_view_descriptor, graph_display_descriptor):
 
         odm_client.disconnect()
 
-        print "Disconnecting"
-        print content_items_array
-
-        page = 0
         page_size = 20
         if 'page' in graph_display_descriptor:
             page = int(graph_display_descriptor['page'])
@@ -175,18 +170,13 @@ def get_graph(graph_view_descriptor, graph_display_descriptor, start, end):
     # Construct appropriate graph_view (@note: will be moved to OceanMaster)
     if "name" in graph_view_descriptor:
 
-        print "HERE"
-        print graph_view_descriptor
-        print type(graph_view_descriptor)
         if graph_view_descriptor["name"] == "Subscribed":
             return  graph_view_all_subscribed(graph_view_descriptor, graph_display_descriptor)
         elif graph_view_descriptor["name"] == "TrendingNews":
             # Get GraphView (construct if not in cache) from Ocean Master
-            print "HERE"
             gv = OC.construct_graph_view((graph_view_descriptor["name"],
                                           graph_view_descriptor["options"]))
 
-            print "HERE getting"
             return gv.get_graph(start, end, graph_display_descriptor)
         else:
             raise Exception("Not recognized graph_view")
@@ -366,7 +356,6 @@ def add_content_source(request):
 
         user = odm_client.get_instances(NEOUSER_TYPE_MODEL_NAME, username=request.user.username)[0]
 
-        print user
 
         is_subscribed = False
         #TODO: Think about caching things like that?
