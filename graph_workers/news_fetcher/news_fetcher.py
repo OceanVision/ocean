@@ -201,9 +201,6 @@ class NewsFetcher(GraphWorker):
         )
 
         # Count exisiting nodes
-        #TODO: problem with multiple adding nodes (TVN) - coding problem?
-        print nodes_to_add[newest_id]["title"].decode("utf-8")
-        print type(nodes_to_add[newest_id]["title"].decode("utf-8"))
         existing_nodes_title = len(self.odm_client.get_children\
                 (news_website["uuid"], PRODUCES_RELATION,
                  title=nodes_to_add[newest_id]["title"].decode("utf-8")))

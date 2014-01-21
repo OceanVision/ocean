@@ -19,7 +19,7 @@ class GraphView(object):
     def update(self):
         pass
 
-    def get_graph(self, graph_display):
+    def get_graph(self, start=0, end=None, graph_display=None):
         """
         Constructs graph that will be displayed
         @param graph_display Object representing graph_display (agile currently, like string or sth)
@@ -52,26 +52,21 @@ class TrendingNews(GraphView):
 
     period_options = ["Week", "Day", "Hour"]
 
-    def get_graph(self, graph_display):
-        if "page_size" in graph_display:
-
-            if 'page' in graph_display:
-                page = int(graph_display['page'])
-                page_size = int(graph_display['page_size'])
-
-            print "TrendingNews required to post ",page,"with page_size=",page_size
-
-            a = page * page_size
-            if a < len(self.prepared_view):
-                b = (page + 1) * page_size
-                if b <= len(self.prepared_view):
-                    return self.prepared_view[a:b]
-                else:
-                    return self.prepared_view[a:]
-
+    def get_graph(self, start=0, end=None, graph_display=None):
+        """
+        Return subgraph for graph_display
+        @param start Starting index
+        @param end Ending index
+        @param graph_display requesting graph_display
+        """
+        if end is None: end = len(self.prepared_view) - 1
+        if end > len(self.prepared_view):
+            end = len(self.prepared_view) - 1
+        if start > len(self.prepared_view) or start > end:
             return []
-        else:
-            return self.prepared_view
+
+
+        return self.prepared_view[start:end]
 
     def update(self):
         dt_threshold = None

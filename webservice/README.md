@@ -3,59 +3,12 @@ Ocean Webservice
 
 ## Depedencies
 
-In order to run Ocean webservice you need to install:
+In order to run Ocean webservice you need to install necessary python modules:
 
+	`pip install -r requirements.txt`
+	
+In case of dependency problems it is better to use virtualenv (see wiki page on Deployment).
 
-
-* ***neo4j***
-
-    Install neo4j 1.9 not 2.0! (Gremlin plugin issues)
-
-    *WARNING*: Everything fails if you do not have initialized database (it is
-an error in neo4django you have to have at least one node in graph).
-
-    Run
-
-        python scripts/ocean_exemplary_data.py
-
-    and press enter. It will populate graph database with exemplary data
-
-* ***neo4django***
-
-	(For neo4j-django integration):
-
-		pip install neo4django
-        pip install py2neo
-
-	*WARNING:* During the installation your django might get downgraded.
-	* Django >= 1.3, <1.5 (1.4.9, as for 2013-10-30)
-
-* ***postgresql***
-
-    	sudo apt-get install postgresql
-
-* ***psycopg***
-    Package for postgres
-
-    Ubuntu:
-
-        sudo pip install psycopg2
-
-* ***pillow***
-
-	(For user pictures):
-
-        sudo pip install pillow
-
-* ***south***
-
-        sudo pip install south
-
-* ***django-widget-tweaks***
-
-	(Managing response data in templates):
-
-        sudo pip install django-widget-tweaks
 
 
 ## Running webservice
@@ -145,22 +98,55 @@ an error in neo4django you have to have at least one node in graph).
 * rss - temporary application handling rss requests (show_news)
 
 
-## Side notes and issues
+---
 
-* Neo4j database restarting
+## Development issues
 
-    Sometimes database gets corrupted. You can erase all nodes using ocean_exemplary_data.py. If you want to purge database it can be done by (check neo4j home by dpkg -L neo4j)
+Please refer to this section in case of any questions. Feel free to add your own essential Q&A.
 
-        sudo rm /var/lib/neo4j/data/graph.db/* -r -f
 
-* Django models attribute changes
+### 1. Neo4j database restarting
 
-    When working on webservice, rarely models definitions would change. If so, confilcts could happen like:
+Sometimes database gets corrupted. You can erase all nodes using ocean_exemplary_data.py. If you want to purge database it can be done by (check neo4j home by dpkg -L neo4j)
 
-        DatabaseError: column rss_userprofile.show_email does not exist
+    sudo rm /var/lib/neo4j/data/graph.db/* -r -f
+
+### 2. Django models attribute changed issue
+
+When working on webservice, rarely models definitions would change. If so, confilcts could happen like:
+
+    DatabaseError: column rss_userprofile.show_email does not exist
 
     (in below case a column named `show_email` has been added to model `UserProfile`.)
     (This error appears when dealing with old models instances using new definitions)
 
-    Current *risky* **workaround** is to `drop table rss_userprofile;` from within PostgreSQL console.
+Current *temporary* workaround (unless we start to use South) is to `drop database`:
 
+Get root rights:
+
+    $ su
+
+Get postgres user rights:
+
+    # su -- postgres
+
+Run PostgreSQL console:
+
+    # psql
+
+Inside console execute following commands:
+
+    postgres=# drop database oceanpostgres;
+    postgres=# create database oceanpostgres;
+    postgres=# \q
+
+Exit root:
+
+    # exit
+    # exit
+
+Enter `webservice` directory and perform:
+
+    $ python2 manage.py syncdb
+
+Crete Django user with the same login as before `drop` (don't forget to enter e-mail adress).
