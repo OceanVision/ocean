@@ -3,59 +3,12 @@ Ocean Webservice
 
 ## Depedencies
 
-In order to run Ocean webservice you need to install:
+In order to run Ocean webservice you need to install necessary python modules:
 
+	`pip install -r requirements.txt`
+	
+In case of dependency problems it is better to use virtualenv (see wiki page on Deployment).
 
-
-* ***neo4j***
-
-    Install neo4j 1.9 not 2.0! (Gremlin plugin issues)
-
-    *WARNING*: Everything fails if you do not have initialized database (it is
-an error in neo4django you have to have at least one node in graph).
-
-    Run
-
-        python scripts/ocean_exemplary_data.py
-
-    and press enter. It will populate graph database with exemplary data
-
-* ***neo4django***
-
-	(For neo4j-django integration):
-
-		pip install neo4django
-        pip install py2neo
-
-	*WARNING:* During the installation your django might get downgraded.
-	* Django >= 1.3, <1.5 (1.4.9, as for 2013-10-30)
-
-* ***postgresql***
-
-    	sudo apt-get install postgresql
-
-* ***psycopg***
-    Package for postgres
-
-    Ubuntu:
-
-        sudo pip install psycopg2
-
-* ***pillow***
-
-	(For user pictures):
-
-        sudo pip install pillow
-
-* ***south***
-
-        sudo pip install south
-
-* ***django-widget-tweaks***
-
-	(Managing response data in templates):
-
-        sudo pip install django-widget-tweaks
 
 
 ## Running webservice
