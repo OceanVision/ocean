@@ -238,7 +238,7 @@ class DatabaseManager:
         node_params.update(params['node_params'])
         node_params['uuid'] = str(uuid.uuid1())
         query_string = \
-            u'''
+            '''
             CREATE e=({node_params})
             RETURN id(e)
             '''

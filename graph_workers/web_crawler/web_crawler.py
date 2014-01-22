@@ -309,7 +309,7 @@ class WebCrawler(GraphWorker):
             # Take job
             my_job = self.master.job_list.pop()
             if self._visited(my_job.url):
-                print "Already visited", my_job.url
+                logger.info("Already visited" + str(my_job.url))
                 continue
 
             logger.info ("Jobs: " + str(self.master.jobs()+1) )
@@ -545,7 +545,6 @@ class WebCrawler(GraphWorker):
             CONTENT_SOURCE_TYPE_MODEL_NAME,
             site_url
         )
-        print '[odm]', response, '\n'
         return response
 
 
