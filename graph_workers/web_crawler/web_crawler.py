@@ -36,6 +36,8 @@ from privileges import construct_full_privilege, privileges_bigger_or_equal
 from graph_defines import *
 #from utils import logger
 
+from odm_client import ODMClient
+
 # Workaround replacement class for logger from utils package
 #TODO: Find out how to mute logger from within another modules
 #      (f.e. mute py2neo from WebCrawler class)
@@ -160,6 +162,8 @@ class WebCrawler(GraphWorker):
     terminate_event = multiprocessing.Event()
     parser = WebCrawlerHTMLParser()
 
+    odm_client = ODMClient()
+
 
     @staticmethod
     def create_master(**params):
@@ -185,17 +189,31 @@ class WebCrawler(GraphWorker):
         start_url=None,
         master=None,
         neo4j_url="http://localhost:7474/db/data/",
-        max_internal_expansion=50,              # max number of pages of every website to explore
-        max_external_expansion=50,              # max number of external links to check from every website
-        max_rss_expansion=float('inf'),         # max number of rss feeds to extract from every website
-        max_crawling_depth=2,                   # max (external) distance from start_url
-        max_database_updates=500,               # max number of rss feeds to insert into a database
+        max_internal_expansion=50,
+        max_external_expansion=50,
+        max_rss_expansion=float('inf'),
+        max_crawling_depth=2,
+        max_database_updates=500,
         verbose=False
     ):
         """
             Construct WebCrawler.
-            Every max_* argument can be set to float('inf') which means none limitations.
+            Every max_* argument can be set to float('inf') which means
+            none limitations.
+
+            @param max_internal_expansion sets a max number of pages of every
+                website to explore
+            @param max_external_expansion sets a max number of external Links
+                that will be checked from every website
+            @param max_rss_expansion sets a max number of rss feeds to extract
+                from every website
+            @param max_crawling_depth sets a max (external) distance
+                from start_url
+            @param max_database_updates sets a max number of rss feeds that
+                will be inserted into a database
         """
+        logger.info('Connecting to ODM...')
+        self.odm_client.connect()
 
         self.max_internal_expansion = max_internal_expansion
         self.max_external_expansion = max_external_expansion
@@ -215,8 +233,10 @@ class WebCrawler(GraphWorker):
             self.master = self
             # Init first job
             if start_url == None:
-                start_url = self._get_random_newsfeed()[CONTENT_SOURCE_LINK]
-                logger.info("No start_url provided - selected " + str(start_url) + " !")
+                logger.info('No start_url provided - exiting.')
+                pass
+                #start_url = self._get_random_newsfeed()[CONTENT_SOURCE_LINK]
+                #logger.info("No start_url provided - selected " + str(start_url) + " !")
             start_url_node_id = self._get_url_db_node_id(start_url)
             self.job_list = WebCrawlerJobList()
             self.job_list.enqueue( WebCrawlerJob ( start_url, None, 0 ) )
@@ -254,6 +274,7 @@ class WebCrawler(GraphWorker):
     def run(self):
         """
             Start crawling.
+
         """
 
         # Tasks for master level web_crawler
@@ -301,7 +322,7 @@ class WebCrawler(GraphWorker):
             # While exploring the website we have a "local" jobs to do
             # We start from a page given by master job
             website_jobs = WebCrawlerJobList (
-                [ 
+                [
                     WebCrawlerJob ( my_job.url, None, my_job.distance )
                 ]
             )
@@ -454,71 +475,63 @@ class WebCrawler(GraphWorker):
 
     def _get_url_db_node_id(self, site_url):
         """
-            @returns db node id of given url
+            @returns db node uuid of given url
         """
         site_node = self._get_url_db_node(site_url)
         if site_node:
-            return site_node._id
-        else:
-            return None
-
-
-    def _get_url_db_node(self, site_url):
-        """
-            @returns db node (only one!) object of given url
-        """
-        result = self._get_url_db_nodes(site_url)
-        if result[0]:
-            return result[0]
+            return site_node['uuid']
         else:
             return None
 
 
     def _update_feed(self, feed_url):
         """
-           Updates graph database with new feeds.
+           Updates graph database with new feed
         """
 
+        # Prepare data
         feed_url = feed_url.encode("utf8")
-        root = self.graph_db.node(0)
-        #print self.graph_db.relationship(rels[0]._id)
+        #root = self.graph_db.node(0)
+
         if not self._get_url_db_node(feed_url):
-            read_batch = neo4j.ReadBatch(self.graph_db)
-            # Find NewsWebsite type nodes root
-            read_batch.append_cypher (
-                u'''
-                start n=node(0)
-                match (n)-[r:`'''
-                + unicode(HAS_TYPE_RELATION)
-                + u'''`]->(m)
-                where m.name = "rss:NewsWebsite" return m;
-                '''
-            )
-            result = read_batch.submit()
-            news_websites_root = result[0]
-            write_batch = neo4j.WriteBatch(self.graph_db)
-            # Get properties
+
+            # Get properties (graph_utils.py)
             properties = get_rss_properties(feed_url)
-            # Prepare metadata
+            #TODO: Prepare metadata
             #metadata = { "last_updated" : int(time.time()) }
-            # Create new node
-            node_properties = node (
-                title = properties["title"].encode("utf8"),
-                description = properties["description"].encode("utf8"),
-                link = feed_url,
-                source_type = "rss".encode("utf8"),
-                language = properties["language"].encode("utf8"),
-                #web_crawler_metadata = metadata
+
+            # Add new node to database
+            logger.info('Adding node...')
+            logger.info(unicode(properties))
+            response = self.odm_client.add_node(
+                CONTENT_SOURCE_TYPE_MODEL_NAME,
+                {
+                    'title': properties['title'].encode('utf8'),
+                    'description': properties['description'].encode('utf8'),
+                    'link': feed_url,
+                    'source_type': 'rss',
+                    'language': properties['language'].encode('utf8'),
+                    #'web_crawler_metadata' = metadata,
+                }
             )
-            rss_node, = self.graph_db.create(node_properties)
-            logger.info( rss_node )
-            # Create relationship
-            self.graph_db.create (
-                rel(news_websites_root, HAS_INSTANCE_RELATION, rss_node)
-            )
+            #logger.info('odm response: ' + str(response))
+
+            # Added
             return True
+
+        # Not added
         return False
 
+
+    def _get_url_db_node(self, site_url):
+        """
+            @returns db node object of given url
+        """
+        result = self._get_url_db_nodes(site_url)
+        if len(result) > 0:
+            return result
+        else:
+            return None
 
 
     def _get_url_db_nodes(self, site_url):
@@ -528,49 +541,11 @@ class WebCrawler(GraphWorker):
         """
 
         site_url = site_url.encode("utf8")
-        read_batch = neo4j.ReadBatch(self.graph_db)
-        read_batch.append_cypher (
-            u'''
-            start n = node(*)
-            where HAS(n.label) and n.label = "__news_website__" and n.link = \"''' +
-            unicode (site_url) + u'''\"
-            return n;
-            '''
-        ) #TODO: Better search
-        result = read_batch.submit()
-        return result
+        response = self.odm_client.get_by_link(
+            CONTENT_SOURCE_TYPE_MODEL_NAME,
+            site_url
+        )
+        print '[odm]', response, '\n'
+        return response
 
-
-    def _get_random_newsfeed(self):
-        #TODO: Think about moving this method to GraphWorker class
-        # and improve _get_all_newsfeeds() or use another method.
-        """
-            @returns random news feed from database as py2neo.node
-        """
-        all_feeds = self._get_all_newsfeeds()
-        selection = random.randint( 0, len(all_feeds)-1 )
-        return all_feeds[selection]
-
-
-    def _get_all_newsfeeds(self):
-        """
-            @returns lists of all news feeds in the system (as py2neo.node,
-                note: you can refer to properties by node["property"] and
-                to id by node._id :)
-        """
-
-        read_batch = neo4j.ReadBatch(self.graph_db)
-        read_batch.append_cypher( # will return list of records :)
-            """
-            start n=node(*)
-            where HAS(n.label) and n.label = "__news_website__"
-            return n;
-            """
-        ) #TODO: inefficient.
-        news_websites = []
-        logger.info("Submiting query!")
-        result = read_batch.submit()
-        for record in result[0]:
-            news_websites.append(record.n)
-        return news_websites
 

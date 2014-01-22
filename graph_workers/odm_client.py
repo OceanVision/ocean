@@ -222,6 +222,7 @@ class ODMClient:
     def add_node(self, model_name, node_params):
         """
         Adds a node with node_params to the model given by model_name
+        (with the associated relationship of <<INSTANCE>>)
         @param type string
         @param node_params dictionary
         """
