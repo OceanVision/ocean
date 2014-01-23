@@ -7,10 +7,14 @@ from ocean import utils
 from user_account.forms import EditProfileForm
 from rss.models import UserProfile
 
+
+from django.views.decorators.csrf import ensure_csrf_cookie
+
+@ensure_csrf_cookie
 def index(request):
     return utils.render(request, 'base/welcome.html')
 
-
+@ensure_csrf_cookie
 def sign_in(request):
     return utils.render(request, 'base/sign_in.html')
 
