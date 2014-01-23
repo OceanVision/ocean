@@ -41,6 +41,8 @@ from odm_client import ODMClient
 # Workaround replacement class for logger from utils package
 #TODO: Find out how to mute logger from within another modules
 #      (f.e. mute py2neo from WebCrawler class)
+_print_logger_ = True
+
 class LoggerReplacement():
 
 
@@ -52,7 +54,8 @@ class LoggerReplacement():
 
 
     def info(self, string):
-        print u"[I]", unicode(self.date()), u'\t', unicode(string)
+        if _print_logger_:
+            print u"[I]", unicode(self.date()), u'\t', unicode(string)
 
 
 logger = LoggerReplacement()
@@ -76,12 +79,6 @@ class WebCrawlerHTMLParser(HTMLParser):
 
     """
 
-    # Links belonging to this current domain
-    found_internal_hrefs = []
-    # Links to pages from another domains
-    found_external_hrefs = []
-    # Links to another domains
-    found_domains_hrefs = []
     # Links to rss feeds of this site
     found_rss_feeds = []
 
@@ -90,29 +87,43 @@ class WebCrawlerHTMLParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         is_rss = False
         is_http = False
+        probably_rss = False
 
         for attr in attrs:
 
             if attr[0] == "type" and attr[1] == "application/rss+xml":
                 is_rss = True
-            if attr[0] == "href" and (
-                    urlparse.urlsplit( attr[1] )[0] == "http" or
-                    urlparse.urlsplit( attr[1] )[0] == "https"
-            ):
-                is_http = True
-                http_url = attr[1]
 
-        # Collect explicit RSS feeds
-        if is_rss and is_http:
-            self.found_rss_feeds.append( unify_url(http_url) )
+            if attr[0] == "href":
+                href_url = attr[1]
+                if len(href_url) > 0 and href_url[0] == '/':
+                    href_url = self.domain_url + attr[1]
+
+                if (
+                    urlparse.urlsplit( href_url )[0] == "http" or
+                    urlparse.urlsplit( href_url )[0] == "https"
+                ):
+                    is_http = True
+                    http_url = href_url
+                if (
+                    'rss' in href_url or
+                    'RSS' in href_url or 
+                    'Rss' in href_url
+                ):
+                    probably_rss = True
+
+        if is_http:
+            # Collect explicit RSS feeds
+            if is_rss:
+                self.found_rss_feeds.append(http_url)
+            # Collect expected to be RSS feeds
+            elif probably_rss:
+                self.found_rss_feeds.append(http_url)
 
     def clear(self, current_url):
         """
             Use this method to prepare to work a new set of data
         """
-        self.found_internal_hrefs = []
-        self.found_external_hrefs = []
-        self.found_domains_hrefs = []
         self.found_rss_feeds = []
         self.domain_url = get_domain_url( current_url )
 
@@ -162,12 +173,12 @@ class WebCrawler(GraphWorker):
     terminate_event = multiprocessing.Event()
     parser = WebCrawlerHTMLParser()
 
-    odm_client = ODMClient()
+    odm_client = None
 
 
     @staticmethod
     def create_master(**params):
-        if len(params) > 2:
+        if len(params) > 3:
             raise Exception("Wrong param list")
 
         return WebCrawler(**params)
@@ -189,17 +200,19 @@ class WebCrawler(GraphWorker):
         start_url=None,
         master=None,
         neo4j_url="http://localhost:7474/db/data/",
-        max_internal_expansion=50,
+        max_internal_expansion=5,
         max_external_expansion=50,
         max_rss_expansion=float('inf'),
         max_crawling_depth=2,
         max_database_updates=500,
+        list_export=False,
+        export_file='rss_feeds',
         verbose=False
     ):
         """
             Construct WebCrawler.
             Every max_* argument can be set to float('inf') which means
-            none limitations.
+            no limitations.
 
             @param max_internal_expansion sets a max number of pages of every
                 website to explore
@@ -211,8 +224,15 @@ class WebCrawler(GraphWorker):
                 from start_url
             @param max_database_updates sets a max number of rss feeds that
                 will be inserted into a database
+            @param list_export flag tells that instead of updating a database
+                a list of rss_feeds links will be exported (APPENDED to
+                export_file)
+            @param export_file is a list_export destination file name
+
         """
+
         logger.info('Connecting to ODM...')
+        self.odm_client = ODMClient()
         self.odm_client.connect()
 
         self.max_internal_expansion = max_internal_expansion
@@ -220,6 +240,8 @@ class WebCrawler(GraphWorker):
         self.max_rss_expansion = max_rss_expansion
         self.max_crawling_depth = max_crawling_depth
         self.max_database_updates = max_database_updates
+        self.list_export = list_export
+        self.export_file = export_file
         self.verbose = verbose
 
         if not privileges_bigger_or_equal(privileges, self.required_privileges):
@@ -376,7 +398,7 @@ class WebCrawler(GraphWorker):
                 # Find ANY existing urls
                 found_hrefs = find_urls(html)
 
-                # 1.3. Clean up founded data
+                # 1.3. Collect up founded data
 
                 # Divide hrefs to internal, external and domains
                 current_url_domain = get_domain_url(current_url)
@@ -429,12 +451,17 @@ class WebCrawler(GraphWorker):
             # End of website pages exploration (1.)
 
             # 2. Update database with new rss feeds
-            logger.info("Updating database...")
+            if len(rss_feeds) > 0:
+                logger.info("Updating database...")
             for feed in rss_feeds:
                 if self.db_updates_counter < self.max_database_updates:
                     if not self._visited(feed):
+                            self.visited.append(feed) #TODO: Database solution
                         if has_xml(feed):
-                            if self._update_feed(feed):
+                            if self.list_export:
+                                self._list_export(feed)
+                                self.db_updates_counter += 1
+                            elif self._update_feed(feed):
                                 self.db_updates_counter += 1
                         else:
                             logger.info(
@@ -521,6 +548,23 @@ class WebCrawler(GraphWorker):
 
         # Not added
         return False
+
+
+    def _list_export(self, feed_url):
+
+        # List export case
+        if self.list_export:
+            try:
+                f = open(self.export_file, 'a')
+                try:
+                    f.write(feed_url + '\n')
+                finally:
+                    f.close()
+            except IOError as e:
+                print e
+                pass
+            return True
+
 
 
     def _get_url_db_node(self, site_url):
