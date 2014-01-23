@@ -456,7 +456,7 @@ class WebCrawler(GraphWorker):
             for feed in rss_feeds:
                 if self.db_updates_counter < self.max_database_updates:
                     if not self._visited(feed):
-                            self.visited.append(feed) #TODO: Database solution
+                        self.visited.append(feed) #TODO: Database solution
                         if has_xml(feed):
                             if self.list_export:
                                 self._list_export(feed)
