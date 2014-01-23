@@ -4,6 +4,7 @@
 # Temporary files
 *.~lock*
 *.swp
+*.swo
 *.vim
 
 # Local configurations
