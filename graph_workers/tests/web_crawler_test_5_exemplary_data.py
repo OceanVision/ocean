@@ -15,17 +15,19 @@ from privileges import construct_full_privilege, privileges_bigger_or_equal
 
 master_crawler = WebCrawler.create_master (
     privileges = construct_full_privilege(),
-    start_url = "http://news.google.com/",
+    start_url = 'http://news.google.com/',
 )
 
 
 WebCrawler.create_worker (
     privileges = construct_full_privilege(),
     master = master_crawler,
-    max_internal_expansion = 2,
+    max_external_expansion = 200,
+    max_internal_expansion = 5,
     max_crawling_depth = 3,
     max_database_updates = 5000,
     list_export = True,
+    export_file = 'rss_feeds'
 )
 
 master_crawler.run()

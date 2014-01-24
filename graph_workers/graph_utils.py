@@ -109,7 +109,7 @@ def open_url(site_url):
             placed under site_url.
     """
     try:
-        request = urllib2.Request(site_url)
+        request = urllib2.Request(site_url.encode('ascii'))
         request.add_header("User-Agent", "My Python Crawler")
         opener = urllib2.build_opener()
         response = opener.open(request, timeout=5)
