@@ -1,0 +1,5 @@
+# Ignore big data
+data/*
+
+# ... except README
+!data/README.md
