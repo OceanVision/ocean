@@ -77,6 +77,8 @@ function Main() {
 	        'password' : password //$("Crypto.SHA256($("#password").val())
 	    };
 
+
+
 	    ajax.request("account/sign_in", "POST", data, function(response) {
             if (response != "fail") {
 	            window.location.replace("rss");
