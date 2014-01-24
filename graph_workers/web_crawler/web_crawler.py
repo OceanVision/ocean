@@ -200,14 +200,15 @@ class WebCrawler(GraphWorker):
         start_url=None,
         master=None,
         neo4j_url="http://localhost:7474/db/data/",
-        max_internal_expansion=5,
+        max_internal_expansion=10,
         max_external_expansion=50,
         max_rss_expansion=float('inf'),
         max_crawling_depth=2,
-        max_database_updates=500,
+        max_database_updates=float('inf'),
         list_export=False,
         export_file='rss_feeds',
-        verbose=False
+        export_dicts=False,
+        verbose=False,
     ):
         """
             Construct WebCrawler.
@@ -242,12 +243,14 @@ class WebCrawler(GraphWorker):
         self.max_database_updates = max_database_updates
         self.list_export = list_export
         self.export_file = export_file
+        self.export_dicts = export_dicts
         self.verbose = verbose
 
         if not privileges_bigger_or_equal(privileges, self.required_privileges):
             raise Exception("Not enough privileges")
 
         self.graph_db = neo4j.GraphDatabaseService(neo4j_url)
+        self.free = True
 
         if master == None:
             self.level = "master"
@@ -293,6 +296,20 @@ class WebCrawler(GraphWorker):
         return len(self.job_list)
 
 
+    def is_free(self):
+        return self.free
+
+
+    def is_working(self):
+        if self.level == 'master':
+            for worker in self.workers:
+                if worker.is_working:
+                    return True
+            return False
+        elif self.level == 'worker':
+            return not self.is_free()
+
+
     def run(self):
         """
             Start crawling.
@@ -311,9 +328,6 @@ class WebCrawler(GraphWorker):
 
             return
 
-        elif self.level != "worker":
-            pass
-
         # Here self.level == "worker"
         self.visited = [] #TODO: Database solution
         self.db_updates_counter = 0
@@ -322,16 +336,22 @@ class WebCrawler(GraphWorker):
 
             # No job = sleep ^__^
             if self.master.jobs() == 0:
-                logger.info ("No jobs... Waiting...")
-                time.sleep(4)
+                logger.info ('No jobs... Waiting...')
+                self.free = True
+                time.sleep(1)
                 while self.master.jobs() == 0:
+                    if self.terminate_event.is_set():
+                        logger.info('Master terminated. Quiting...')
+                        return
                     time.sleep(5)
                 continue
+
+            self.free = False
 
             # Take job
             my_job = self.master.job_list.pop()
             if self._visited(my_job.url):
-                logger.info("Already visited" + str(my_job.url))
+                logger.info("Already visited " + str(my_job.url))
                 continue
 
             logger.info ("Jobs: " + str(self.master.jobs()+1) )
@@ -393,7 +413,11 @@ class WebCrawler(GraphWorker):
 
                 # Parse explicit rss feeds
                 self.parser.clear(current_url)
-                self.parser.feed(html)
+                try:
+                    self.parser.feed(html)
+                except Exception as error:
+                    logger.info(str(error))
+                    continue
 
                 # Find ANY existing urls
                 found_hrefs = find_urls(html)
@@ -421,7 +445,7 @@ class WebCrawler(GraphWorker):
                 # Collect rss_feeds
                 for href in self.parser.found_rss_feeds:
                     if len(rss_feeds) < self.max_rss_expansion:
-                        if not href in rss_feeds:
+                        if not href in rss_feeds and not self._visited(href) :
                             logger.info("Found new feed! - " + href + " :)")
                             rss_feeds.append(href)
                     else:
@@ -453,21 +477,21 @@ class WebCrawler(GraphWorker):
             # 2. Update database with new rss feeds
             if len(rss_feeds) > 0:
                 logger.info("Updating database...")
+
             for feed in rss_feeds:
                 if self.db_updates_counter < self.max_database_updates:
                     if not self._visited(feed):
                         self.visited.append(feed) #TODO: Database solution
                         if has_xml(feed):
-                            if self.list_export:
-                                self._list_export(feed)
-                                self.db_updates_counter += 1
-                            elif self._update_feed(feed):
+                            if self._update_feed(feed):
                                 self.db_updates_counter += 1
                         else:
                             logger.info(
                                 str(feed)
                                 + " doesn't have XML data."
                             )
+                    else:
+                        logger.info('Already added ' + feed)
                 else:
                     self.terminate_event.set()
                     break
@@ -530,18 +554,25 @@ class WebCrawler(GraphWorker):
             # Add new node to database
             logger.info('Adding node...')
             logger.info(unicode(properties))
-            response = self.odm_client.add_node(
-                CONTENT_SOURCE_TYPE_MODEL_NAME,
-                {
-                    'title': properties['title'].encode('utf8'),
-                    'description': properties['description'].encode('utf8'),
-                    'link': feed_url,
-                    'source_type': 'rss',
-                    'language': properties['language'].encode('utf8'),
-                    #'web_crawler_metadata' = metadata,
-                }
-            )
-            #logger.info('odm response: ' + str(response))
+            node_dict = {
+                'title': properties['title'].encode('utf8'),
+                'description': properties['description'].encode('utf8'),
+                'link': feed_url,
+                'source_type': 'rss',
+                'language': properties['language'].encode('utf8'),
+                #'web_crawler_metadata' = metadata,
+            }
+
+            if (self.list_export):
+                if (self.export_dicts):
+                    self._export_line(str(node_dict))
+                else:
+                    self._export_line(feed_url)
+            else:
+                response = self.odm_client.add_node(
+                    CONTENT_SOURCE_TYPE_MODEL_NAME,
+                    node_dict,
+                )
 
             # Added
             return True
@@ -550,14 +581,15 @@ class WebCrawler(GraphWorker):
         return False
 
 
-    def _list_export(self, feed_url):
+    def _export_line(self, line):
+        ''' Export line to file '''
 
         # List export case
         if self.list_export:
             try:
                 f = open(self.export_file, 'a')
                 try:
-                    f.write(feed_url + '\n')
+                    f.write(line + '\n')
                 finally:
                     f.close()
             except IOError as e:

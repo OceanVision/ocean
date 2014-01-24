@@ -128,6 +128,9 @@ def open_url(site_url):
     except UnicodeEncodeError as error:
         logger.info(unicode(site_url) + " - " + unicode(error))
         return None
+    except Exception as error:
+        logger.info(unicode(site_url) + ' - ' + unicode(error))
+        return None
     return response
 
 
@@ -142,7 +145,8 @@ def get_contents(site_url):
 
     try:
         contents = response.read()
-    except LookupError as error:
+    #except LookupError as error:
+    except Exception as error:
         logger.info(unicode(site_url) + " - " + unicode(error))
         return None
     return contents
@@ -174,7 +178,7 @@ def get_html(site_url):
     except UnicodeDecodeError as error:
         html = response.read().decode('ascii')
         return html
-    except LookupError as error:
+    except Exception as error:
         logger.info(unicode(site_url) + " - " + unicode(error))
         return None
     return html
@@ -231,15 +235,15 @@ def get_rss_properties(url_string):
     """
         @returns a dict with rss properties (used in graph database).
     """
-    #TODO: Encoding
-    contents = get_contents(url_string)
-    doc = xml.dom.minidom.parseString(contents)
     result = {
         "title": "None",
         "description": "None",
         "language": "None"
     }
+    #TODO: Encoding
     try:
+        contents = get_contents(url_string)
+        doc = xml.dom.minidom.parseString(contents)
         child_nodes = doc.childNodes
         if len(child_nodes) == 0:
             return result
