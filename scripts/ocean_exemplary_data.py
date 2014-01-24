@@ -10,19 +10,37 @@ import time
 import sys
 import uuid
 import os
+import urllib2
+import xml.dom.minidom
+
 sys.path.append('../graph_workers/')
 lib_path = os.path.abspath('./graph_workers')
 sys.path.append(lib_path)
 from graph_defines import *
+from odm_client import ODMClient
 
 APP_LABEL = 'rss'
+SOURCE_FILE = 'data/rss_feeds'
+
+
+def get_node_value(node, value):
+    searched_nodes = node.getElementsByTagName(value)
+    if searched_nodes:
+        childs = searched_nodes[0].childNodes
+        if childs:
+            return childs[0].nodeValue.strip()
+    return ""
+
 
 if __name__ == "__main__":
     # Create connection
     graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
 
-    print "This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*\
-, press enter to proceed"
+    print 'With this script rss urls from', SOURCE_FILE, 'file will be added.'
+    print 'NOTE: See data/README.md for details before running this script!!!'
+    print 'WARINING: This script will *ERASE ALL NODES AND RELATIONS IN NEO4J\
+DATABASE*'
+    print '\nPlease turn *OFF* the ODM. Press Enter to proceed, Ctrl+C to abort.'
     enter = raw_input()
 
     my_batch = neo4j.ReadBatch(graph_db)
@@ -44,7 +62,6 @@ if __name__ == "__main__":
     if result[0] != 1:
         raise Exception("Not erased graph properly")
         exit(1)
-
 
     root = graph_db.node(0)
 
@@ -120,159 +137,85 @@ if __name__ == "__main__":
         rel(types[1], HAS_INSTANCE_RELATION, users[3])
     )
 
-    # 1.9 doesnt support labels!
-    #map(lambda u: u.add_labels(USER_LABEL),users) # Add labels
-    #print [x for x in  graph_db.find(USER_LABEL)] # Sanity check,
+    print '\nPlease turn *ON* the ODM now and press Enter.'
+    print '(You are permitted to run whole system too during this process)'
+    enter = raw_input()
 
-    ### Add websites ###
-    websites = [
-        node(
-            uuid=str(uuid.uuid1()),
-            link='http://www.gry-online.pl/',
-            title='GRY-OnLine',
-            language='pl',
-        ),
-        node(
-            uuid=str(uuid.uuid1()),
-            link='http://www.wp.pl/',
-            title='Wirtualna Polska',
-            language='pl',
-        ),
-        node(
-            uuid=str(uuid.uuid1()),
-            link='http://www.tvn24.pl/',
-            title='TVN24.pl - Wiadomosci z kraju i ze swiata',
-            language='pl',
-        ),
-    ]
-    websites = graph_db.create(*websites)
-    # Create instance relations
-    graph_db.create(
-         rel(types[0], HAS_INSTANCE_RELATION, websites[0]),
-         rel(types[0], HAS_INSTANCE_RELATION, websites[1]),
-         rel(types[0], HAS_INSTANCE_RELATION, websites[2])
-    )
+    odm_client = ODMClient()
+    odm_client.connect()
+
+    # Read file contents
+    content_sources_list = []
+
+    print 'Reading source file', SOURCE_FILE, '...'
+
+    try:
+        f = open(SOURCE_FILE, 'r')
+        try:
+            content_sources_list = f.readlines()
+        finally:
+            f.close()
+    except IOError as e:
+        print e
+        exit()
+
+    print 'Populating database...'
 
     # Create nodes
-    content_sources_list = [
-        node(
-            uuid=str(uuid.uuid1()),
-            link="http://www.gry-online.pl/rss/news.xml",
-            title="GRY-OnLine Wiadomosci",
-            description="Najnowsze Wiadomosci",
-            image_width="144",
-            image_height="18",
-            image_link="http://www.gry-online.pl/S012.asp",
-            image_url="http://www.gry-online.pl/rss/rss_logo.gif",
-            language="pl",
-            last_updated=int(time.time() - 100000),
-            source_type="rss"
-        ),
-        node(
-            uuid=str(uuid.uuid1()),
-            link="http://wiadomosci.wp.pl/kat,1329,ver,rss,rss.xml",
-            title="Wiadomosci WP - Wiadomosci - Wirtualna Polska",
-            description="Wiadomosci.wp.pl to serwis, dzieki ktoremu mozna \
-zapoznac sie z biezaca sytuacja w kraju i na swiecie.",
-            image_width="70",
-            image_height="28",
-            image_link="http://wiadomosci.wp.pl",
-            image_url="http://i.wp.pl/a/i/finanse/logozr/WP.gif",
-            language="pl",
-            last_updated=int(time.time() - 1000000),
-            source_type="rss"
-        ),
-        node(
-            uuid=str(uuid.uuid1()),
-            link="http://www.tvn24.pl/najwazniejsze.xml",
-            title="TVN24.pl - Wiadomosci z kraju i ze swiata - najnowsze \
-informacje w TVN24",
-            description="Czytaj najnowsze informacje i ogladaj wideo w portalu \
-informacyjnym TVN24! U nas zawsze aktualne wiadomosci z kraju, ze swiata, \
-relacje na zywo i wiele wiecej.",
-            language="pl",
-            last_updated=int(time.time() - 100000),
-            source_type="rss"
-        )
-    ]
+    i = 0
+    for cs in content_sources_list:
+        i += 1
+        print 'Add', str(i)+'/'+str(len(content_sources_list)), cs[:-1], '...'
+        # TODO: Gather metadata with web_crawler and read from file
+        try:
+            response = urllib2.urlopen(cs)
+            code = response.read()
+            obj = xml.dom.minidom.parseString(code)
 
-    # Create content sources
-    content_sources = graph_db.create(*content_sources_list)
+            channel = obj.getElementsByTagName(
+                'rss'
+            )[0].getElementsByTagName('channel')[0]
 
-    # Create ContentSources instance relations
-    graph_db.create(
-        rel(types[3], HAS_INSTANCE_RELATION, content_sources[0]),
-        rel(types[3], HAS_INSTANCE_RELATION, content_sources[1]),
-        rel(types[3], HAS_INSTANCE_RELATION, content_sources[2])
-    )
+            title = get_node_value(channel, 'title')
+            description = get_node_value(channel, 'description')
+            language = get_node_value(channel, 'language')
 
-    # Create Website __has__ ContentSource relations
-    graph_db.create(
-        rel(websites[0], HAS_RELATION, content_sources[0]),
-        rel(websites[1], HAS_RELATION, content_sources[1]),
-        rel(websites[2], HAS_RELATION, content_sources[2])
-    )
+            content_source_response = odm_client.add_node(
+                CONTENT_SOURCE_TYPE_MODEL_NAME,
+                {
+                    'link': cs,
+                    'source_type': 'rss',
+                    'title': title,
+                    'description': description,
+                    'last_updated': int(time.time() - 100000),
+                    'language': language,
+                }
+            )
 
-    ##TODO: Delete following code after system refactorization
-    ## Create old type websites
-    #old_websites = graph_db.create(*content_sources_list)
-    #
-    ## Create old type websites instance relations
-    #graph_db.create(
-    #    rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[0]),
-    #    rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[1]),
-    #    rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[2])
-    #)
-    ##NOTE: End of future deletion
-    #
-    ##map(lambda w: w.add_labels(NEWS_CHANNELS_LABEL),channels) # Add labels
-    ##print [x for x in  graph_db.find(NEWS_CHANNELS_LABEL)] # Sanity check
-    #
-    #
-    #graph_db.create(
-    #    rel(users[0], SUBSCRIBES_TO_RELATION, content_sources[2]),
-    #    rel(users[0], SUBSCRIBES_TO_RELATION, content_sources[1]),
-    #    rel(users[1], SUBSCRIBES_TO_RELATION, content_sources[1]),
-    #)
-#        rel(users[2], SUBSCRIBES_TO_RELATION, content_sources[0]),
-#        rel(users[3], SUBSCRIBES_TO_RELATION, content_sources[0]),
-#    )
+            ### Create Website __has__ ContentSource relations ###
 
-    # Adding news is working, so we do not need to populate graph with news
-    #news = [
-    #node(
-    #    label=NEWS_LABEL, link="http://konflikty.wp.pl/kat,106090,title,Nowe-smiglowce-USA-Wielki-projekt-"
-    #                           "zbrojeniowy-w-cieniu-budzetowych-ciec,wid,16116470,wiadomosc.html?ticaid=111908",
-    #    title="Wypadek busa w Egipcie. Rannych zostalo dwoch Polakow",
-    #    description="Szesciu cudzoziemcow, w tym dwoch Polakow, zostalo rannych w wypadku drogowym w Egipcie. "
-    #                "Do zdarzenia doszlo na drodze miedzy Kairem a Aleksandria - informuje serwis ruvr.ru.",
-    #    guuid="http://wiadomosci.wp.pl/kat,1329,title,Wypadek-busa-w-Egipcie-Rannych-zostalo-dwoch-Polakow,wid,"
-    #         "16151839,wiadomosc.html"
-    #)
-    #, node(
-    #    label=NEWS_LABEL, link="http://www.tvn24.pl/naukowcy-slady-polonu-w-ciele-arafata-sugeruja-udzial-osob-"
-    #                           "trzecich,369594,s.html",
-    #    title="Naukowcy: slady polonu w ciele Arafata sugeruja udzial osob trzecich",
-    #    description="Palestynskiego lidera otruto w roku 2004.",
-    #    guuid="http://www.tvn24.pl/naukowcy-slady-polonu-w-ciele-arafata-sugeruja-udzial-osob-trzecich,369594,s.html"
-    #)
-    #]
-    #
-    #news = graph_db.create(*news)  # Create nodes in graph database
-    ##map(lambda w: w.add_labels(NEWS_LABEL),news) # Add labels
-    #
-    #graph_db.create(
-    #rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),
-    #rel(users[0], SUBSCRIBES_TO_RELATION, websites[1]),
-    #rel(users[1], SUBSCRIBES_TO_RELATION, websites[1]),
-    #rel(websites[1], PRODUDES_RELATION, news[0]),
-    #rel(websites[2], PRODUDES_RELATION, news[1])
-    #)
-    #
-    #graph_db.create(
-    #rel(types[2], HAS_INSTANCE_RELATION, news[0]),
-    #rel(types[2], HAS_INSTANCE_RELATION, news[1])
-    #)
+            website_response = odm_client.add_node(
+                WEBSITE_TYPE_MODEL_NAME,
+                {
+                    'link': cs,
+                    'title': title,
+                    'language': language,
+                }
+            )
 
-    print "Graph populated successfully"
+            # TODO: Gather and read data that will contain actual metadata
+            odm_client.add_rel(
+                website_response['uuid'],
+                content_source_response['uuid'],
+                HAS_RELATION
+            )
+
+        except Exception as e:
+            print '... Error occurred with `', cs[:-1], '`:'
+            print e
+            print 'Continuing...\n'
+
+    odm_client.disconnect()
+
+    print 'Graph populated successfully. GOODBYE AND GOOD LUCK!'
 
