@@ -334,11 +334,10 @@ def get_news(request):
                      start=int(request.GET['start']),
                      end=int(request.GET['end']))
 
-
     render_dict = {
         "rss_items" : rss_items,
         "graph_display_descriptor" : json.loads(request.GET['graph_display_descriptor']),
-        "likeable" : json.loads(request.GET['graph_display_descriptor']["likeable"])
+        "likeable" : json.loads(request.GET['graph_display_descriptor'])["likeable"]
     }
 
     if len(rss_items) > 0:
