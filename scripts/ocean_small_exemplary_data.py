@@ -19,8 +19,7 @@ APP_LABEL = 'rss'
 
 if __name__ == "__main__":
     # Create connection
-    neo4j.authenticate("http://127.0.0.1:7471", "kudkudak", "kudkudak") 
-    graph_db = neo4j.GraphDatabaseService("http://127.0.0.1:7471/db/data/")
+    graph_db = neo4j.GraphDatabaseService("http://127.0.0.1:7474/db/data/")
 
     print "This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*\
 , press enter to proceed"

@@ -37,7 +37,7 @@ if __name__ == "__main__":
     graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
 
     print 'With this script rss urls from', SOURCE_FILE, 'file will be added.'
-    print 'NOTE: See data/README.md for details before running this script!!!'
+    print 'NOTE: See README.md for details before running this script!!!'
     print 'WARINING: This script will *ERASE ALL NODES AND RELATIONS IN NEO4J\
 DATABASE*'
     print '\nPlease turn *OFF* the ODM. Press Enter to proceed, Ctrl+C to abort.'
@@ -168,47 +168,31 @@ DATABASE*'
         print 'Add', str(i)+'/'+str(len(content_sources_list)), cs[:-1], '...'
         # TODO: Gather metadata with web_crawler and read from file
         try:
-            response = urllib2.urlopen(cs)
-            code = response.read()
-            obj = xml.dom.minidom.parseString(code)
-
-            channel = obj.getElementsByTagName(
-                'rss'
-            )[0].getElementsByTagName('channel')[0]
-
-            title = get_node_value(channel, 'title')
-            description = get_node_value(channel, 'description')
-            language = get_node_value(channel, 'language')
+            cs_node = eval(cs)
+            cs_node['last_updated'] = int(time.time() - 100000)
 
             content_source_response = odm_client.add_node(
                 CONTENT_SOURCE_TYPE_MODEL_NAME,
-                {
-                    'link': cs,
-                    'source_type': 'rss',
-                    'title': title,
-                    'description': description,
-                    'last_updated': int(time.time() - 100000),
-                    'language': language,
-                }
+                cs_node,
             )
 
             ### Create Website __has__ ContentSource relations ###
 
-            website_response = odm_client.add_node(
+            '''website_response = odm_client.add_node(
                 WEBSITE_TYPE_MODEL_NAME,
                 {
-                    'link': cs,
-                    'title': title,
-                    'language': language,
+                    'link': cs_node['link'],
+                    'title': cs_node['title'],
+                    'language': cs_node['language'],
                 }
-            )
+            )'''
 
             # TODO: Gather and read data that will contain actual metadata
-            odm_client.add_rel(
+            '''odm_client.add_rel(
                 website_response['uuid'],
                 content_source_response['uuid'],
                 HAS_RELATION
-            )
+            )'''
 
         except Exception as e:
             print '... Error occurred with `', cs[:-1], '`:'
