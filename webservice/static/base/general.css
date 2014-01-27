@@ -401,7 +401,8 @@ div.form input, div.form textarea {
     outline: none;
 }
 
-div.form button.submit {
+div.form button.submit,
+div.form a.submit {
     background-color: #e5e5e5;
     border: 0px;
     display: inline-block;
@@ -447,13 +448,14 @@ div#signInForm {
     position: absolute;
 }
 
-/*div.form button.submit,
+div.form button.submit,
+div#signInForm a.submit,
 div#editProfileForm a.submit {
     padding: 6px 13px;
     font-size: 40px;
     border-radius: 10px;
     cursor: pointer;
-}*/
+}
 
 div#editProfileForm {
     width: 400px;
