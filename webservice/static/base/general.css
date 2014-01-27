@@ -530,3 +530,7 @@ footer a {
     right:-10px;
 
 }
+
+.scrollable #loading-animation {
+    position: absolute;
+}

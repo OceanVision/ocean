@@ -36,7 +36,7 @@ function Visualization() {
 	};
 
 	Visualization.prototype.centerHorizontally = function(element) {
-	    element.css("left", (($(window).width() - element.outerWidth()) / 2) + "px");
+	    element.css("left", ((element.parent().width() - element.outerWidth()) / 2) + "px");
 	    return this;
 	};
 
