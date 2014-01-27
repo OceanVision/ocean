@@ -401,6 +401,7 @@ div.form input, div.form textarea {
     outline: none;
 }
 
+div.form input[type='submit'],  /* django form submit button */
 div.form button.submit,
 div.form a.submit {
     background-color: #e5e5e5;
@@ -475,7 +476,12 @@ form label {
     width: 200px;
     margin: 5px 20px;
     font-size: 18px;
-    color: #d5d5d5;
+    color: #c0c0c0;
+}
+
+form span.helptext {
+    font-size: 16px;
+    color: #c0c0c0;
 }
 
 /* ========== M I S S I O N   P A G E ========== */

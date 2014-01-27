@@ -1,0 +1,14 @@
+{% extends 'base/index.html' %}
+{% block body %}
+
+<div id="signInForm" class="container form" data-center_h="true" data-center_v="true" data-transit="true">
+    <div class="leaflet"><p class="header">&#x270E; SIGN UP FOR OCEAN</p></div>
+    <form action="/register" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Create an account">
+    </form>
+</div>
+
+{% endblock %}
+

@@ -1,6 +1,7 @@
 from django import forms
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
 from ocean import utils
@@ -17,6 +18,21 @@ def index(request):
 @ensure_csrf_cookie
 def sign_in(request):
     return utils.render(request, 'base/sign_in.html')
+
+
+def register(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            new_user = form.save()
+            return HttpResponseRedirect("/sign_in")
+    else:
+        form = UserCreationForm()
+    return render(
+        request,
+        'base/register.html',
+        { 'form': form, }
+    )
 
 def edit_profile(request):
     # Read current user profile data
