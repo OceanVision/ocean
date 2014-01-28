@@ -6,12 +6,14 @@
 {% endblock %}
 
 <div id="rssItems" class="container" data-center_h="true" data-transit="true">
-    <p class="header">CHANNELS</p>
-    <a id="sort" href="javascript:toggleItemsOrder()">unsorted</a>
-    <input id="search" type="text" value="search in titles" data-value="search in titles">
-    <form action="javascript:addChannel()">
-    <input id="add" type="text" value="+ subscribe new channel" data-value="+ subscribe new channel">
-    </form>
+    <div id="header">
+        <p class="header">CHANNELS</p>
+        <a id="sort" href="javascript:toggleItemsOrder()">unsorted</a>
+        <input id="search" type="text" value="search in titles" data-value="search in titles">
+        <form action="javascript:addChannel()">
+        <input id="add" type="text" value="+ subscribe new channel" data-value="+ subscribe new channel">
+        </form>
+    </div>
     {% for item in rss_channels %}
     <div class="item" title="{{ items.category }}">
         <span class="no"></span>

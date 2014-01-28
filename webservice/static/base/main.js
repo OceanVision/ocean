@@ -28,6 +28,7 @@ function Main() {
 
 	    //TODO: not a good choice for every next case
 	    visualization.transit($("body").children().not("#regularMenu"), $(response));
+        visualization.init();
 	};
 
     Main.prototype.fetch_from_server = function(path, data) {

@@ -66,7 +66,7 @@ nav.menu a.item {
 }
 
 nav.menu a.item.highlighted {
-    background-color: #e5e5e5;
+    background-color: #74899d;
     color: #fff;
 }
 
@@ -264,7 +264,7 @@ div#rssItems input {
     width: 300px;
     display: inline-block;
     float: right;
-    margin-top: 10px;
+    margin: 10px 0px 0px 10px;
     padding: 1px 10px;
     font-family: "Roboto Slab";
     font-size: 17px;
@@ -289,12 +289,7 @@ div#rssItems input#add {
     outline: none;
 }
 
-div#rssItems input#add.focus {
-    color: #999;
-    font-style: normal;
-}
-
-div#rssItems input#search {
+div#rssItems input#search, div#rssItems input#add {
     background-color: transparent;
     border: 0px;
     border-bottom: 2px solid #e9e9e9;
@@ -310,7 +305,7 @@ div#rssItems input#search {
     outline: none;
 }
 
-div#rssItems input#search.focus {
+div#rssItems input#search.focus, div#rssItems input#add.focus {
     color: #999;
     font-style: normal;
 }
@@ -387,7 +382,13 @@ div.form {
     width: 340px;
 }
 
-div.form input, div.form textarea {
+form {
+    margin: 0px;
+}
+
+form input[type='text'],
+form input[type='password'],
+form textarea {
     background-color: transparent;
     border: 0px;
     border-bottom: 2px solid #e9e9e9;
@@ -401,41 +402,42 @@ div.form input, div.form textarea {
     outline: none;
 }
 
-div.form input[type='submit'],  /* django form submit button */
-div.form button.submit,
-div.form a.submit {
+form input[type='text'].focus,
+form input[type='password'].focus {
+    color: #888;
+    font-style: normal;
+}
+
+form input[type='submit'],
+form button.submit,
+form a.submit {
     background-color: #e5e5e5;
+    border-radius: 5px;
     border: 0px;
     display: inline-block;
     padding: 5px 10px;
     float: right;
     font-size: 20px;
     color: #fff;
-    border-radius: 5px;
+    cursor: pointer;
 }
 
-div.form button.submit.disabled,
-div#signInForm a.submit.disabled,
-div#editProfileForm a.submit.disabled {
+form input[type='submit'].big,
+form button.submit.big,
+form a.submit.big {
+    padding: 6px 13px;
+    font-size: 40px;
+    border-radius: 10px;
+}
+
+form button.submit.disabled,
+form input[type='submit'].disabled,
+form a.submit.disabled {
     background-color: #e5e5e5 !important;
 }
 
 form input.checkbox {
     width: auto !important;
-}
-
-div.form a.back {
-    background-color: transparent;
-    color: #888;
-}
-
-div.form input {
-    font-size: 18px;
-}
-
-div.form input.focus {
-    color: #888;
-    font-style: normal;
 }
 
 div.form p {
@@ -445,22 +447,14 @@ div.form p.header {
     color: #bbb;
 }
 
-div#signInForm {
+div#signInForm,
+div#signUpForm,
+div#editProfileForm {
     position: absolute;
-}
-
-div.form button.submit,
-div#signInForm a.submit,
-div#editProfileForm a.submit {
-    padding: 6px 13px;
-    font-size: 40px;
-    border-radius: 10px;
-    cursor: pointer;
 }
 
 div#editProfileForm {
     width: 400px;
-    position: absolute;
     top: 100px;
 }
 

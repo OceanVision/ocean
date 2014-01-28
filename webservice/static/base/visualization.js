@@ -15,8 +15,8 @@ function Visualization() {
     Visualization.prototype.init = function() {
         //sign in color
         var color = utils.getRandomColor();
-        this.addGlobalStyle(".menu .item.highlighted", "background-color", "#" + color);
         this.addGlobalStyle("#signInForm .submit", "background-color", "#" + color);
+        this.addGlobalStyle("#signUpForm input[type='submit']", "background-color", "#" + color);
         this.addGlobalStyle("#editProfileForm .submit", "background-color", "#" + color);
 		this.updateEventHandlers();
 	};
@@ -54,21 +54,23 @@ function Visualization() {
             visualization.centerVertically(element);
         }
 
-	    setTimeout(element.fadeIn.bind(element, 700), 500);
+	    setTimeout(element.fadeIn.bind(element, 500), 300);
 	    this.updateEventHandlers();
 	    return this;
 	};
 
     Visualization.prototype.transit = function(activeElements, newElements) {
-        var delta, newElementsLeft, activeElementsEffects, newElementsEffects;
+        var delta = 50, newElementsLeft, activeElementsEffects, newElementsEffects;
 
         newElements
             .appendTo("body")
             .css("opacity", 0)
             .show();
 
-        newElementsLeft = activeElements.filter("[data-transit='true']").first().position().left
-            + activeElements.filter("[data-transit='true']").first().width();
+//        newElementsLeft = activeElements.filter("[data-transit='true']").first().position().left
+//            + activeElements.filter("[data-transit='true']").first().width();
+
+        newElementsLeft = this.getCentralPosition(newElements.filter("[data-transit='true']")).left + delta;
 
         newElements
             .filter("[data-transit='true']")
@@ -93,18 +95,18 @@ function Visualization() {
         this.updateEventHandlers();
         activeElements
             .filter("[data-transit='true']")
-            .animate(activeElementsEffects, 300, function() {
+            .animate(activeElementsEffects, 400, function() {
                 $(this).detach();
             });
 
         activeElements
             .filter("[data-transit!='true']")
-            .animate({"opacity" : 0}, 300, function() {
+            .animate({"opacity" : 0}, 400, function() {
                 $(this).detach();
             });
 
-        newElements.filter("[data-transit='true']").animate(newElementsEffects, 650);
-        newElements.filter("[data-transit!='true']").animate({"opacity" : 1}, 650);
+        newElements.filter("[data-transit='true']").animate(newElementsEffects, 400);
+        newElements.filter("[data-transit!='true']").animate({"opacity" : 1}, 400);
         return this;
     };
 

@@ -262,6 +262,7 @@ def index(request):
     data["signed_in"] = True
     data["categories"] = get_category_array(graph_view_descriptor)
     data["rss_items"] = rss_items
+    data["sortable"] = 1
 
     data["likeable"] = graph_display_descriptor["likeable"]
     #TODO: why I cannot do graph_display_descriptor.likeable?

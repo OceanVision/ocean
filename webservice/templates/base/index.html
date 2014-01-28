@@ -21,7 +21,7 @@
 <body>
     {% if not user.is_authenticated %}
     <nav id="regularMenu" class="menu container">
-        <a id="signUp" class="item" href="javascript:main.load('register')">register</a>
+        <a id="signUp" class="item" href="javascript:main.load('sign_up')">sign up</a>
         <a id="signIn" class="item highlighted" href="javascript:main.load('sign_in')">sign in</a>
     </nav>
     {% else %}

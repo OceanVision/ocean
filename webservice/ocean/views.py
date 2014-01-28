@@ -20,7 +20,7 @@ def sign_in(request):
     return utils.render(request, 'base/sign_in.html')
 
 
-def register(request):
+def sign_up(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
@@ -28,11 +28,13 @@ def register(request):
             return HttpResponseRedirect("/sign_in")
     else:
         form = UserCreationForm()
-    return render(
-        request,
-        'base/register.html',
-        { 'form': form, }
-    )
+    form.fields['username'].initial = 'username'
+    form.fields['password1'].widget = forms.TextInput()
+    form.fields['password1'].initial = 'password'
+    form.fields['password2'].widget = forms.TextInput()
+    form.fields['password2'].initial = 'retype password'
+    return utils.render(request, 'base/sign_up.html', {'form': form})
+
 
 def edit_profile(request):
     # Read current user profile data
@@ -61,7 +63,7 @@ def edit_profile(request):
         # This is a common request
         # Show form to the user
         form = EditProfileForm()
-        form.fields['description'].initial = current_description
+        form.fields['description'].initial = current_description if len(current_description) == 0 else 'description'
         form.fields['show_email'].initial = current_show_email
     return render(
         request,

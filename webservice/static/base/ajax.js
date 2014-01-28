@@ -9,10 +9,13 @@ function Ajax() {
         pathsMap : {
             "" : "/",
             "sign_in" : "/sign_in",
+            "sign_up" : "/sign_up",
             "edit_profile" : "/edit_profile",
             "rss" : "/rss",
             "mission" : "/mission",
-            "rss/news_preview" : "/rss/news_preview"
+            "rss/news_preview" : "/rss/news_preview",
+            "rss/trending_news" : "/rss/trending_news",
+            "rss/manage" : "/rss/manage"
         }
     };
 

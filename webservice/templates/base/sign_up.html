@@ -1,0 +1,17 @@
+{% extends 'base/index.html' %}
+{% block body %}
+
+<div id="signUpForm" class="container form" data-center_h="true" data-center_v="true" data-transit="true">
+    <div class="leaflet"><p class="header">&#x270E; SIGN UP FOR OCEAN</p></div>
+    <form action="/sign_up" method="post">
+        {% load widget_tweaks %}
+        {% csrf_token %}
+        {% render_field form.username type="text" data-value="username" %}
+        {% render_field form.password1 type="text" data-value="password" data-type="password" %}
+        {% render_field form.password2 type="text" data-value="retype password" data-type="password" %}
+        <input type="submit" value="Sign up">
+    </form>
+</div>
+
+{% endblock %}
+
