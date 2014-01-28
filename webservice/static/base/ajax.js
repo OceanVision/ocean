@@ -21,7 +21,7 @@ function Ajax() {
 
     Ajax.prototype.request = function(path, attType, attData, onSuccess, onError) {
         var pathParts = path.split('?');
-        pathParts[1] = typeof pathParts[1] !== 'undefined' ? pathParts[1] + '&ajax=ok' : 'ajax=ok';
+        var args = pathParts.length == 2 ? pathParts[1] + '&ajax=ok' : 'ajax=ok';
         onError = typeof onError !== 'undefined' ? onError :
                 function(xhr, status, error) {
                     console.log(JSON.stringify(error));
@@ -45,7 +45,7 @@ function Ajax() {
         }
 
         $.ajax({
-            url : "http://" + location.host + "/" + pathParts[0] + "?" + pathParts[1],
+            url : "http://" + location.host + "/" + pathParts[0] + "?" + args,
             global : false,
             type : attType,
             data : attData,
@@ -57,7 +57,7 @@ function Ajax() {
                     window.history.replaceState(
                         {page : path},
                         "Title",
-                        ajax.pathsMap[pathParts[0]]
+                        ajax.pathsMap[pathParts[0]] + (pathParts.length == 2 ? '?' + pathParts[1] : '')
                     );
                 }
             },
