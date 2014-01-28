@@ -329,9 +329,14 @@ def manage(request, message=''):
 
 @utils.view_error_writing
 def get_news(request):
-    rss_items = get_graph(json.loads(request.GET['graph_view_descriptor']),
-                     json.loads(request.GET['graph_display_descriptor']
-                     ),
+
+    gd = json.loads(request.GET['graph_display_descriptor'])
+    gv = json.loads(request.GET['graph_view_descriptor'])
+
+
+    rss_items = get_graph(gv,
+                     gd
+                     ,
                      start=int(request.GET['start']),
                      end=int(request.GET['end']))
 

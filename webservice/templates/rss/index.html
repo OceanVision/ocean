@@ -72,6 +72,16 @@
         options = graph_display_descriptor["options"]
 
         options[id]["state"] = (options[id]["state"]+1)%options[id]["list"].length;
+
+        // Reconstruct options for graph view descriptor from options selected in graph list descriptor
+        options_gv = {};
+
+        for(var id in options){
+            options_gv[options[id]["name"]] = options[id]["state"];
+        }
+
+        graph_view_descriptor["options"] = options_gv;
+
         $(this).text(options[id]["list"][options[id]["state"]]);
         window[options[id]["action"]]() //hack .. not sure if the best way
         //$(this).css({"background-color":"#"+utils.getRandomColor()});
