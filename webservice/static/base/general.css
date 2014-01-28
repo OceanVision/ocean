@@ -401,7 +401,9 @@ div.form input, div.form textarea {
     outline: none;
 }
 
-div.form button.submit {
+div.form input[type='submit'],  /* django form submit button */
+div.form button.submit,
+div.form a.submit {
     background-color: #e5e5e5;
     border: 0px;
     display: inline-block;
@@ -447,13 +449,14 @@ div#signInForm {
     position: absolute;
 }
 
-/*div.form button.submit,
+div.form button.submit,
+div#signInForm a.submit,
 div#editProfileForm a.submit {
     padding: 6px 13px;
     font-size: 40px;
     border-radius: 10px;
     cursor: pointer;
-}*/
+}
 
 div#editProfileForm {
     width: 400px;
@@ -473,7 +476,12 @@ form label {
     width: 200px;
     margin: 5px 20px;
     font-size: 18px;
-    color: #d5d5d5;
+    color: #c0c0c0;
+}
+
+form span.helptext {
+    font-size: 16px;
+    color: #c0c0c0;
 }
 
 /* ========== M I S S I O N   P A G E ========== */
@@ -529,4 +537,8 @@ footer a {
     position: relative;
     right:-10px;
 
+}
+
+.scrollable #loading-animation {
+    position: absolute;
 }

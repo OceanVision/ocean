@@ -1,0 +1,38 @@
+{% extends 'base/index.html' %}
+{% load static %}
+{% get_static_prefix as STATIC_URL %}
+
+{% block scroll %}
+
+<script type="text/javascript">
+    $(document).on("ready", function() {
+        /* ===== Scrolling ===== */
+        var scrollFunction = function() {
+            $(window).unbind("scroll");
+            console.log(($(".scrollable").prop('scrollHeight') - $(window).scrollTop() + " == " + ($(window).height())))
+            if ($(".scrollable").prop('scrollHeight') - $(window).scrollTop() == $(window).height()) {       
+                var loadingAnimation = $("<img>"),
+                    currentHeight = $(".scrollable").height();
+                loadingAnimation
+                    .attr("id", "loading-animation")
+                    .attr("src", "{% static 'base/img/ajax-loader.gif' %}")
+                    .attr("alt", "Loading...")
+                    .css("top", (currentHeight - 32) + "px")
+                    .appendTo(".scrollable");
+                visualization.centerHorizontally(loadingAnimation);
+                
+                graph_display_descriptor["page"] += 1;
+                setTimeout(function() {
+                    update_display();
+                    loadingAnimation.detach();
+                }, 0);
+            }
+            $(window).scroll(scrollFunction);
+        };
+
+        $(window).scroll(scrollFunction);
+    });
+
+</script>
+
+{% endblock %}

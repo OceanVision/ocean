@@ -21,7 +21,7 @@
 <body>
     {% if not user.is_authenticated %}
     <nav id="regularMenu" class="menu container">
-        <a id="signUp" class="item" href="javascript:void(0)">register</a>
+        <a id="signUp" class="item" href="javascript:main.load('register')">register</a>
         <a id="signIn" class="item highlighted" href="javascript:main.load('sign_in')">sign in</a>
     </nav>
     {% else %}
@@ -37,5 +37,6 @@
     {% endif %}
 
     {% block body %} {% endblock %}
+    {% block scroll %} {% endblock %}
 </body>
 </html>

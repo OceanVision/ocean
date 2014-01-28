@@ -1,4 +1,4 @@
-{% extends 'base/index.html' %}
+{% extends 'base/scrollable_index.html' %}
 {% load static %}
 {% get_static_prefix as STATIC_URL %}
 {% block body %}
@@ -7,7 +7,7 @@
     {% include "base/navigator.html" %}
 {% endblock %}
 
-<div id="rssItems" class="container" data-center_h="true" data-transit="true">
+<div id="rssItems" class="container scrollable" data-center_h="true" data-transit="true">
 
     <div id="header">
     <p class="header">{{ title }}</p>
@@ -37,26 +37,8 @@
     graph_display_descriptor["page_size"] = 20 //TODO: calculate dynamically?
 
 
-
     heart = "{% static 'base/img/heart.png' %}"
     grayheart = "{% static 'base/img/grayheart.png' %}"
-
-
-    /* ===== Scrolling ===== */
-    var scrollFunction = function() {
-        $(window).unbind("scroll");
-        buffer = 40 // # of pixels from bottom of scroll to fire your function. Minimum 40 (should work for 0
-        if ($("#rssItems").prop('scrollHeight') - $(window).scrollTop() <= $(window).height() + buffer) {
-            graph_display_descriptor["page"] += 1;
-            update_display();
-        }
-        $(window).scroll(scrollFunction);
-    }
-    //TODO: Czemu to jest tutaj? Przeciez nie kazda strona jest scrollowalna w ten sposob jak ListDisplay ;p
-    $(window).scroll(scrollFunction);
-
-
-
 
 
     /* ===== Graph display functions ===== */
@@ -83,9 +65,6 @@
         $(rendered_news).appendTo("#rssItems");
         visualization.updateEventHandlers();
     }
-
-
-
 
     /* ==== Render options ====*/
     var option_click = function(e){
