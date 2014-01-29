@@ -118,6 +118,10 @@ function Visualization() {
 				opacity : "1"
 			}, animationSpeed);
 
+            $("#navigator .item").animate({
+				opacity : "1"
+			}, animationSpeed);
+
 			$("#navigatorSwitcher").animate({
 				width : "30px",
 				height : "30px",
@@ -129,6 +133,10 @@ function Visualization() {
 		} else {
 			$("#navigator").animate({
 				left : "-130px",
+				opacity : "0"
+			}, animationSpeed);
+
+            $("#navigator .item").animate({
 				opacity : "0"
 			}, animationSpeed);
 

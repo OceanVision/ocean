@@ -157,6 +157,7 @@ nav#navigator p.header {
 
 nav#navigator a.item {
     display: block;
+    opacity: 0;
     padding: 10px 15px;
     font-size: 14px;
     text-shadow: 1px 1px 0px #eee;
@@ -508,6 +509,7 @@ a#news-preview-close {
 }
 
 div#news-preview object {
+    background-color: #fff;
     border-top: 5px solid #ddd;
     width: 100%;
     overflow: hidden;
