@@ -13,13 +13,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../graph_views"))
 
 #
 #
-import ocean_master
+import ocean_graph_view_manager
 #
 
 
 def clean(*args):
     print "Terminating OceanMaster..."
-    ocean_master.OC.terminate()
+    ocean_graph_view_manager.OC.terminate()
     os.remove('REMOVE_ME_BEFORE_RUNSERVER')
     exit(0)
 
@@ -34,10 +34,10 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2 and sys.argv[1] == "runserver":
         #TODO: that's just a giagiantic (:p) workaround, see github issue
         if os.path.isfile('REMOVE_ME_BEFORE_RUNSERVER'):
-            ocean_master.OC = ocean_master.OceanMaster()
-            ocean_master.OC.run()
-            import ocean_master
-            print ocean_master.OC
+            ocean_graph_view_manager.OC = ocean_graph_view_manager.OceanGraphViewManager()
+            ocean_graph_view_manager.OC.run()
+            import ocean_graph_view_manager
+            print ocean_graph_view_manager.OC
         if not os.path.isfile('REMOVE_ME_BEFORE_RUNSERVER'):
             open('REMOVE_ME_BEFORE_RUNSERVER','w').write('first time')
 

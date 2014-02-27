@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__))))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "webservice")))
-
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "graph_views")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "graph_workers")))
 
 
@@ -23,11 +23,11 @@ execfile(activate_env, dict(__file__=activate_env))
 
 
 
-import ocean_master
+import ocean_graph_view_manager
 #TODO: rewrite OM as a service
-ocean_master.OC = ocean_master.OceanMaster()
-ocean_master.OC.run()
-print ocean_master.OC
+ocean_graph_view_manager.OC = ocean_graph_view_manager.OceanGraphViewManager()
+ocean_graph_view_manager.OC.run()
+print ocean_graph_view_manager.OC
 
 
 import django.core.handlers.wsgi

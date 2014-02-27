@@ -1,0 +1,6 @@
+{
+
+"master":"ocean-db.no-ip.biz",
+"node_responsibilities":["neo4j","news_fetcher","webservice"],
+"home":"/home/moje/Projekty/ocean/ocean"
+}

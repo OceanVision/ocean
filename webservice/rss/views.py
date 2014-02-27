@@ -1,23 +1,16 @@
-from ocean_master import OC
-from django.shortcuts import render
-from django.contrib.auth.models import User
-from models import NeoUser, NewsWebsite, News, ContentSource
-from django.http import HttpResponse
-from rss import models
-from py2neo import neo4j
-from py2neo import node, rel
-from django.contrib.auth.decorators import login_required
-from django.views.generic.detail import DetailView
-from django.template import loader
-from ocean import utils
-from graph_defines import *
 import urllib2
 import xml.dom.minidom
-import py2neo
 import json
 import random
-from odm_client import ODMClient
 
+from django.shortcuts import render
+from django.http import HttpResponse
+
+from ocean_graph_view_manager import OC
+from models import NeoUser
+from ocean import utils
+from graph_defines import *
+from odm_client import ODMClient
 
 
 def get_category_array(graph_display):
@@ -91,7 +84,6 @@ def unloved_it(request):
     return HttpResponse(json.dumps({}))
 
 
-import sys
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 @utils.timed
 @utils.error_writing

@@ -2,7 +2,7 @@ import socket
 import json
 import inspect
 
-HOST = 'localhost'#'ocean-db.no-ip.biz'
+HOST = 'ocean-db.no-ip.biz'
 PORT = 7777
 import struct
 """ Utils for  prefix length TCP """

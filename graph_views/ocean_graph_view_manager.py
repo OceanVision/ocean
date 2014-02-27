@@ -29,14 +29,14 @@ formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(levelname)s - %(me
 ch.setFormatter(formatter)
 ologger.addHandler(ch)
 ologger.propagate = False
-ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),"logs/ocean_master.log"), )
+ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),"../logs/ocean_master.log"), )
 ch_file.setFormatter(formatter)
 ch_file.setLevel(MY_IMPORTANT_LEVEL)
 ologger.addHandler(ch_file)
 
 
 
-class OceanMaster(object):
+class OceanGraphViewManager(object):
     """ Ocean master - every important call should go through this object
 
     """
