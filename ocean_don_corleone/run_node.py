@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     if config[MASTER]:
         if config[MASTER] == LOCAL:
-            os.system("python ocean_admin.py")
+            os.system("python ocean_don_corleone.py")
         else:
-            os.system("gunicorn -c gunicorn_config.py ocean_admin:app")
+            os.system("gunicorn -c gunicorn_config.py ocean_don_corleone:app")
 

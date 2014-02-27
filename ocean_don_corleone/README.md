@@ -21,17 +21,17 @@ You have to specify following items:
 
     * news_fetcher_master (not implemented, pending)
 
-    * news_fetcher_slave (not implemented, pending)
+    * news_fetcher_slave (not implemented, pending, can specify many slaves)
 
     * web_crawler_master (implemented, but not as a service)
 
-    * web_crawler_slave (implemented, but not as a service)
+    * web_crawler_slave (implemented, but not as a service, can specify many slaves)
 
     * web_service
 
     * odm
 
-    * fatfish (not implemented, main backend service running jobs on hadoop, etc.)
+    * puffer (not implemented, main backend service running jobs on hadoop, etc.)
 
     * hadoop_cluster_master (not implemented)
 

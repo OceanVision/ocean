@@ -2,5 +2,9 @@
 
 "master":"ocean-db.no-ip.biz",
 "node_responsibilities":["neo4j","news_fetcher","webservice"],
-"home":"/home/moje/Projekty/ocean/ocean"
+
+"home":"/home/moje/Projekty/ocean/ocean",
+
+"address":"192.168.0.15,
+"ssh-port":22
 }
