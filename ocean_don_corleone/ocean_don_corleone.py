@@ -37,8 +37,11 @@ SERVICE_ADDRESS = "address"
 SERVICE_PORT = "port"
 SERVICE_HOME = "home"
 SERVICE_RUN_CMD = "run_cmd"
+SERVICE_USER = "user"
 
-COMMAND_DEFAULT = "default"
+DEFAULT_COMMAND = "default"
+DEFAULT_PORT = 22
+DEFAULT_USER = "ocean"
 
 STATUS_NOTREGISTERED = "not_registered"
 STATUS_TERMINATED = "terminated"
@@ -51,26 +54,22 @@ services = []
 
 service_tmp = {"service":"odm",
                "name":"odm", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
-               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: COMMAND_DEFAULT
+               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
                }
 service_tmp2 = {"service":"neo4j",
                "name":"neo4j", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
-               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: COMMAND_DEFAULT
+               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
                }
 
-services.append(service_tmp)
-services.append(service_tmp2)
+service_tmp3 = {"service":"odm",
+               "name":"odm", "status":STATUS_TERMINATED, "address":"localhost", "port":DEFAULT_PORT,
+               "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek"
+               }
 
-### Setup service check commands ###
-service_check_commands = {}
-service_check_commands[SERVICE_ODM] = "ps ax|grep odm_server.py$"
-service_check_commands[SERVICE_NEO4J] = """echo `ps ax | grep neo4j | wc -l`"""
+#services.append(service_tmp)
+#services.append(service_tmp2)
+services.append(service_tmp3)
 
-#(( `ps ax | grep neo4j | wc -l` > 1 ))
-
-service_run_commands = {}
-service_run_commands[SERVICE_ODM] = "python odm_server.py &"
-service_run_commands[SERVICE_NEO4J] = "echo {sudo_pass} | sudo -S service neo4j-service start"
 """
 Each module is represented as a dictionary with fields:
 
@@ -96,10 +95,15 @@ def status_checker_job():
     """ Check status of the jobs """
     logger.info("Running status checking daemon")
     while True:
-        time.sleep(10)
+        time.sleep(1)
         for id, m in enumerate(services):
-            prog = subprocess.Popen(["ssh ocean@{0} -p{1} ls".
-                                     format(m[SERVICE_ADDRESS],m[SERVICE_PORT])], stdout=subprocess.PIPE, shell=True)
+            prog = subprocess.Popen(["ssh {user}@{0} -p{1} ls".
+                                     format(
+
+                m[SERVICE_ADDRESS],m[SERVICE_PORT],
+                 user=m.get(SERVICE_USER, DEFAULT_USER)
+                )], stdout=subprocess.PIPE, shell=True)
+
             prog.communicate()
 
             logger.info(("Checking ssh (reachability) for ",m[SERVICE_NAME], "result ", prog.returncode))
@@ -109,15 +113,13 @@ def status_checker_job():
                 logger.info("Service not reachable")
                 continue
 
-            prog = subprocess.Popen(["ssh ocean@{0} -p{1} \"cd {2} && ({3})\"".
+            prog = subprocess.Popen(["ssh {user}@{0} -p{1} \"(cd {2}/ocean_don_corleone && {3})\"".
                                      format(m[SERVICE_ADDRESS],
                                             m[SERVICE_PORT],
                                             m[SERVICE_HOME],
-
-                                            service_check_commands[m[SERVICE]].format(sudo_pass=open("ocean_password","r").read())
-
-
-                                    )
+                                            "./scripts/{0}_test.sh".format(m[SERVICE]),
+                                            user=m.get(SERVICE_USER, DEFAULT_USER)
+                                        )
                                     ],
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             output = prog.communicate()[1]
@@ -182,7 +184,7 @@ def run_service():
 
 
                                     service_check_commands[m[SERVICE]].format(sudo_pass=open("ocean_password","r").read())
-                                    if m[SERVICE_RUN_CMD] == COMMAND_DEFAULT
+                                    if m[SERVICE_RUN_CMD] == DEFAULT_COMMAND
                                     else m[SERVICE_RUN_CMD].format(sudo_pass=open("ocean_password","r").read())
 
                             )
