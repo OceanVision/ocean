@@ -125,7 +125,10 @@ def test_utf():
     db = DatabaseManager()
     
     cl = ODMClient()
+    print "Connecting"
     cl.connect()
+
+    print "Fetching"
 
     website = cl.get_instances(model_name="ContentSource")[1]
 

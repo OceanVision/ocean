@@ -1,6 +1,7 @@
 #!/bin/bash
 
 function run_bg_job {
-    echo $1
-    (nohup $1 > foo.out 2> foo.err < /dev/null) &
+    echo Running $1 $2
+    nohup $2 &
+#    screen -dmSL $1 $2
 }
