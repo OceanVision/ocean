@@ -95,7 +95,7 @@ def status_checker_job():
     """ Check status of the jobs """
     logger.info("Running status checking daemon")
     while True:
-        time.sleep(1)
+        time.sleep(10)
         for id, m in enumerate(services):
             prog = subprocess.Popen(["ssh {user}@{0} -p{1} ls".
                                      format(
@@ -163,31 +163,31 @@ def run_service():
     """ Check status of the jobs """
 
     if not filter(lambda x: x[SERVICE_NAME] == service_name, services):
-        return ERROR_NOT_REGISTERED_SERVICE
+        return json.dumps(ERROR_NOT_REGISTERED_SERVICE)
 
     m = filter(lambda x: x[SERVICE_NAME] == service_name, services)[0]
 
+    prog = subprocess.Popen(["ssh {user}@{0} -p{1} ls".
+                             format(
 
-    prog = subprocess.Popen(["ssh ocean@{0} -p{1} ls".
-                             format(m[SERVICE_ADDRESS],m[SERVICE_PORT])], stdout=subprocess.PIPE, shell=True)
+        m[SERVICE_ADDRESS],m[SERVICE_PORT],
+         user=m.get(SERVICE_USER, DEFAULT_USER)
+        )], stdout=subprocess.PIPE, shell=True)
+
     prog.communicate()
 
-    logger.info(("Checking ssh (reachability) for ",m[SERVICE_NAME], "result ", prog.returncode))
+    logger.info(("Checking ssh (reachability) for running ",m[SERVICE_NAME], "result ", prog.returncode))
 
     if prog.returncode != 0:
         return json.dumps(ERROR_NOT_REACHABLE_SERVICE)
 
-    prog = subprocess.Popen(["ssh ocean@{0} -p{1} \"cd {2} && ({3})\"".
+    prog = subprocess.Popen(["ssh {user}@{0} -p{1} \"(cd {2}/ocean_don_corleone && {3})\"".
                              format(m[SERVICE_ADDRESS],
                                     m[SERVICE_PORT],
                                     m[SERVICE_HOME],
-
-
-                                    service_check_commands[m[SERVICE]].format(sudo_pass=open("ocean_password","r").read())
-                                    if m[SERVICE_RUN_CMD] == DEFAULT_COMMAND
-                                    else m[SERVICE_RUN_CMD].format(sudo_pass=open("ocean_password","r").read())
-
-                            )
+                                    "./scripts/{0}_run.sh".format(m[SERVICE]),
+                                    user=m.get(SERVICE_USER, DEFAULT_USER)
+                                )
                             ],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output = prog.communicate()[1]

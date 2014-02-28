@@ -1,4 +1,3 @@
 #!/bin/bash
-
-./init.sh
+source ./init.sh
 echo `cat ocean_password` | sudo -S service neo4j-service start
