@@ -1,5 +1,4 @@
 #!/bin/bash
-screen -q
 source ./init.sh
-python ../odm_server.py &
-screen -d
+source ./run_bg_job.sh
+run_bg_job "python ../odm_server.py"
