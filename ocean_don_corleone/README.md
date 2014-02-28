@@ -19,6 +19,8 @@ You have to specify following items:
 
     * neo4j
 
+    * **temporary**: news_fetcher
+
     * news_fetcher_master (not implemented, pending)
 
     * news_fetcher_slave (not implemented, pending, can specify many slaves)

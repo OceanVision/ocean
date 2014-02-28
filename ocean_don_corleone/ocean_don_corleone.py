@@ -17,12 +17,16 @@ logger.addHandler(ch)
 logger.propagate = False
 
 
-ERROR_NOT_RUNNING_SERVICE = "not_running_service_error"
-ERROR_ALREADY_EXISTING_SERVICE = "already_existing_service"
-ERROR_NOT_REGISTERED_SERVICE = "not_registered_service_error"
-ERROR_NOT_RECOGNIZED_CONFIGURATION = "not_recognized_configuration"
-ERROR_NOT_REACHABLE_SERVICE = "not_reachable_service"
-ERROR_FAILED_SERVICE_RUN = "failed_service_run"
+ERROR_NOT_RUNNING_SERVICE = "error_not_running_service_error"
+
+ERROR_ALREADY_EXISTING_SERVICE = "error_already_existing_service"
+ERROR_NOT_REGISTERED_SERVICE = "error_not_registered_service_error"
+ERROR_NOT_RECOGNIZED_CONFIGURATION = "error_not_recognized_configuration"
+ERROR_NOT_REACHABLE_SERVICE = "error_not_reachable_service"
+ERROR_FAILED_SERVICE_RUN = "error_failed_service_run"
+ERROR_FAILED_SSH_CMD = "error_failed_ssh_cmd"
+ERROR_SERVICE_ALREADY_RUNNING = "error_service_already_running"
+ERROR_SERVICE_ALREADY_TERMINATED= "error_service_already_terminated"
 OK = "ok"
 
 SERVICE_ODM = "odm"
@@ -31,7 +35,7 @@ SERVICE_NEWS_FETCHER_MASTER = "news_fetcher_master"
 
 
 SERVICE = "service"
-SERVICE_NAME = "name"
+SERVICE_ID = "id"
 SERVICE_STATUS = "status"
 SERVICE_ADDRESS = "address"
 SERVICE_PORT = "port"
@@ -53,22 +57,27 @@ services = []
 
 
 service_tmp = {"service":"odm",
-               "name":"odm", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
+               SERVICE_ID:"odm", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
                "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
                }
 service_tmp2 = {"service":"neo4j",
-               "name":"neo4j", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
+               SERVICE_ID:"neo4j", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
+               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
+               }
+
+service_tmp4 = {"service":"news_fetcher",
+               SERVICE_ID:"news_fetcher", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
                "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
                }
 
 service_tmp3 = {"service":"odm",
-               "name":"odm", "status":STATUS_TERMINATED, "address":"localhost", "port":DEFAULT_PORT,
+              SERVICE_ID:"odm", "status":STATUS_TERMINATED, "address":"localhost", "port":DEFAULT_PORT,
                "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek"
                }
 
 services.append(service_tmp)
 services.append(service_tmp2)
-#services.append(service_tmp3)
+services.append(service_tmp4)
 
 """
 Each module is represented as a dictionary with fields:
@@ -90,6 +99,39 @@ slave_index = 0
 
 
 
+def cautious_run_cmd_over_ssh(user, port, cmd, address):
+    """ Returns appropriate errors if encounters problems """
+
+    prog = subprocess.Popen(["ssh {user}@{0} -p{1} ls".
+                             format(
+         address,
+         port,
+         user=user
+        )], stdout=subprocess.PIPE, shell=True)
+
+    prog.communicate()
+
+    if prog.returncode != 0:
+        return (ERROR_NOT_REACHABLE_SERVICE, "")
+
+
+    prog = subprocess.Popen(["ssh {user}@{0} -p{1} {2}".
+                             format(address,
+                                    port,
+                                    cmd,
+                                    user=user
+                                )
+                            ],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    output = prog.communicate()[1]
+
+
+    if prog.returncode != 0:
+        return (ERROR_FAILED_SSH_CMD, output)
+
+    return (OK, output)
+
+
 def status_checker_job():
     global services
     """ Check status of the jobs """
@@ -97,38 +139,23 @@ def status_checker_job():
     while True:
         time.sleep(10)
         for id, m in enumerate(services):
-            prog = subprocess.Popen(["ssh {user}@{0} -p{1} ls".
-                                     format(
+            cmd = "\"(cd {0} && {1})\"".format(
+                                            os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
+                                            "./scripts/{0}_test.sh".format(m[SERVICE]))
 
-                m[SERVICE_ADDRESS],m[SERVICE_PORT],
-                 user=m.get(SERVICE_USER, DEFAULT_USER)
-                )], stdout=subprocess.PIPE, shell=True)
+            status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
 
-            prog.communicate()
+            logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", status))
 
-            logger.info(("Checking ssh (reachability) for ",m[SERVICE_NAME], "result ", prog.returncode))
-
-            if prog.returncode != 0:
+            if status == ERROR_NOT_REACHABLE_SERVICE:
                 services.remove(id)
                 logger.info("Service not reachable")
                 continue
 
-            prog = subprocess.Popen(["ssh {user}@{0} -p{1} \"(cd {2}/ocean_don_corleone && {3})\"".
-                                     format(m[SERVICE_ADDRESS],
-                                            m[SERVICE_PORT],
-                                            m[SERVICE_HOME],
-                                            "./scripts/{0}_test.sh".format(m[SERVICE]),
-                                            user=m.get(SERVICE_USER, DEFAULT_USER)
-                                        )
-                                    ],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            output = prog.communicate()[1]
-
-            logger.info(("Checking server availability for ",m[SERVICE_NAME], "result ", prog.returncode))
-
+            logger.info(("Checking server availability for ",m[SERVICE_ID], "result ", status))
             logger.info(output)
 
-            if prog.returncode != 0:
+            if status == ERROR_FAILED_SSH_CMD:
                 logger.error("Service terminated")
                 logger.error(output)
                 m[SERVICE_STATUS] = STATUS_TERMINATED
@@ -156,63 +183,72 @@ def hello():
     return "Hello world!"
 
 
-@app.route('/run_service')
-def run_service():
-    service_name = request.args.get('service_name')
+@app.route('/terminate_service')
+def terminate_service():
+    service_id = request.args.get('service_id')
     global services
     """ Check status of the jobs """
 
-    if not filter(lambda x: x[SERVICE_NAME] == service_name, services):
+    if not filter(lambda x: x[SERVICE_ID] == service_id, services):
         return json.dumps(ERROR_NOT_REGISTERED_SERVICE)
 
-    m = filter(lambda x: x[SERVICE_NAME] == service_name, services)[0]
+    m = filter(lambda x: x[SERVICE_ID] == service_id, services)[0]
 
-    prog = subprocess.Popen(["ssh {user}@{0} -p{1} ls".
-                             format(
+    if m[SERVICE_STATUS] == STATUS_TERMINATED:
+        return json.dumps(ERROR_SERVICE_ALREADY_TERMINATED)
 
-        m[SERVICE_ADDRESS],m[SERVICE_PORT],
-         user=m.get(SERVICE_USER, DEFAULT_USER)
-        )], stdout=subprocess.PIPE, shell=True)
+    if m[SERVICE_STATUS] != STATUS_RUNNING:
+        logger.error("Wrong service status")
+        exit(1)
 
-    prog.communicate()
 
-    logger.info(("Checking ssh (reachability) for running ",m[SERVICE_NAME], "result ", prog.returncode))
+    cmd = "\"(cd {0} && {1})\"".format(
+                                    os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
+                                    "./scripts/{0}_terminate.sh".format(m[SERVICE]))
 
-    if prog.returncode != 0:
-        return json.dumps(ERROR_NOT_REACHABLE_SERVICE)
+    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
 
-    prog = subprocess.Popen(["ssh {user}@{0} -p{1} \"(cd {2}/ocean_don_corleone && {3})\"".
-                             format(m[SERVICE_ADDRESS],
-                                    m[SERVICE_PORT],
-                                    m[SERVICE_HOME],
-                                    "./scripts/{0}_run.sh".format(m[SERVICE]),
-                                    user=m.get(SERVICE_USER, DEFAULT_USER)
-                                )
-                            ],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    output = prog.communicate()[1]
+    logger.info(("Running service ",service_id, "output", output, "status ",status))
 
-    logger.info(("Running service ",m[SERVICE_NAME], "result ", prog.returncode))
+    return json.dumps(status)
 
-    logger.info(output)
+@app.route('/run_service')
+def run_service():
+    service_id = request.args.get('service_id')
+    global services
+    """ Check status of the jobs """
 
-    if prog.returncode != 0:
-        return json.dumps(ERROR_FAILED_SERVICE_RUN)
+    if not filter(lambda x: x[SERVICE_ID] == service_id, services):
+        return json.dumps(ERROR_NOT_REGISTERED_SERVICE)
 
-    m[SERVICE_STATUS] = STATUS_RUNNING
+    m = filter(lambda x: x[SERVICE_ID] == service_id, services)[0]
 
-    return json.dumps(OK)
+    if m[SERVICE_STATUS] == STATUS_RUNNING:
+        return json.dumps(ERROR_SERVICE_ALREADY_RUNNING)
 
+    if m[SERVICE_STATUS] != STATUS_TERMINATED:
+        logger.error("Wrong service status")
+        exit(1)
+
+
+    cmd = "\"(cd {0} && {1})\"".format(
+                                    os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
+                                    "./scripts/{0}_run.sh".format(m[SERVICE]))
+
+    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
+
+    logger.info(("Running service ",service_id, "output", output, "status ",status))
+
+    return json.dumps(status)
 
 @app.route('/get_configuration', methods=["GET"])
 def get_configuraiton():
     name = request.args.get('name')
-    return "Hello world!"
     tmp = name.split("_")
     if len(tmp) == 2:
         #Typical service_feature configuration
-        if filter(lambda x: x[SERVICE_NAME] == tmp[0], services):
-            return json.dumps(filter(lambda x: x[SERVICE_NAME] == tmp[0], services)[0][tmp[1]])
+        if filter(lambda x: x[SERVICE_ID] == tmp[0], services):
+            return json.dumps(filter(lambda x: x[SERVICE_ID] == tmp[0], services)[0].get(tmp[1], ERROR_NOT_RECOGNIZED_CONFIGURATION))
         else:
             return json.dumps(ERROR_NOT_REGISTERED_SERVICE)
     else:
@@ -226,10 +262,10 @@ def get_modules():
 
 @app.route('/get_status', methods=['GET'])
 def get_status():
-    service_name = request.args.get('service_name')
-    print filter(lambda x: x[SERVICE_NAME] == service_name, services)
-    if filter(lambda x: x[SERVICE_NAME] == service_name, services):
-        return filter(lambda x: x[SERVICE_NAME] == service_name, services)[0][SERVICE_STATUS]
+    service_name = request.args.get('service_id')
+    print filter(lambda x: x[SERVICE_ID] == service_name, services)
+    if filter(lambda x: x[SERVICE_ID] == service_name, services):
+        return filter(lambda x: x[SERVICE_ID] == service_name, services)[0][SERVICE_STATUS]
     else:
         return STATUS_NOTREGISTERED
 
