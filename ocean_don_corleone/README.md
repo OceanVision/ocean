@@ -39,6 +39,9 @@ You have to specify following items:
 
     * kafka (not implemented)
 
+Each responsibility is a list of name and running command (or just name, if default
+running command is sufficient)
+
 * home: path to your ocean directory
 
 ### Running
@@ -55,15 +58,15 @@ is defined in ocean_admin/utils.py
 
 Usage: fetch_configuration(name), where name is a string, one of the following:
 
-* neo4j_ipdomain (will fetch ip or domain)
+* neo4j_address (will fetch ip or domain)
 
 * neo4j_port
 
-* odm_ipdomain
+* odm_address
 
 * odm_port
 
-* news_fetcher_master_ipdomain
+* news_fetcher_master_address
 
 Function returns a JSON, in our case it will be in most cases a string.
 
