@@ -66,9 +66,9 @@ service_tmp3 = {"service":"odm",
                "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek"
                }
 
-#services.append(service_tmp)
-#services.append(service_tmp2)
-services.append(service_tmp3)
+services.append(service_tmp)
+services.append(service_tmp2)
+#services.append(service_tmp3)
 
 """
 Each module is represented as a dictionary with fields:
