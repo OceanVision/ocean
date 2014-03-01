@@ -17,8 +17,9 @@ logger.addHandler(ch)
 logger.propagate = False
 
 
-ERROR_NOT_RUNNING_SERVICE = "error_not_running_service_error"
 
+ERROR_NOT_RUNNING_SERVICE = "error_not_running_service_error"
+ERROR_ALREADY_REGISTERED_SERVICE = "error_already_registered_service"
 ERROR_ALREADY_EXISTING_SERVICE = "error_already_existing_service"
 ERROR_NOT_REGISTERED_SERVICE = "error_not_registered_service_error"
 ERROR_NOT_RECOGNIZED_CONFIGURATION = "error_not_recognized_configuration"
@@ -27,12 +28,21 @@ ERROR_FAILED_SERVICE_RUN = "error_failed_service_run"
 ERROR_FAILED_SSH_CMD = "error_failed_ssh_cmd"
 ERROR_SERVICE_ALREADY_RUNNING = "error_service_already_running"
 ERROR_SERVICE_ALREADY_TERMINATED= "error_service_already_terminated"
+ERROR_NOT_RECOGNIZED_SERVICE = "error_not_recognized_service"
+ERROR_SERVICE_ID_REGISTERED = "error_service_id_registered"
+ERROR_WRONG_METHOD_PARAMETERS = "error_wrong_method_parameters"
 OK = "ok"
+
+CONFIG_PORT = "ssh-port"
+CONFIG_HOME = "home"
+CONFIG_USER = "ssh-user"
 
 SERVICE_ODM = "odm"
 SERVICE_NEO4J = "neo4j"
-SERVICE_NEWS_FETCHER_MASTER = "news_fetcher_master"
-
+#SERVICE_NEWS_FETCHER_MASTER = "news_fetcher_master"
+SERVICE_NEWS_FETCHER = "news_fetcher"
+UNARY_SERVICES = set([SERVICE_ODM, SERVICE_NEO4J, SERVICE_NEWS_FETCHER])
+KNOWN_SERVICES = set([SERVICE_ODM, SERVICE_NEO4J, SERVICE_NEWS_FETCHER])
 
 SERVICE = "service"
 SERVICE_ID = "id"
@@ -52,7 +62,7 @@ STATUS_TERMINATED = "terminated"
 STATUS_RUNNING = "running"
 
 
-
+services_lock = threading.RLock()
 services = []
 
 
@@ -77,7 +87,7 @@ service_tmp3 = {"service":"odm",
 
 services.append(service_tmp)
 services.append(service_tmp2)
-services.append(service_tmp4)
+#services.append(service_tmp4)
 
 """
 Each module is represented as a dictionary with fields:
@@ -131,6 +141,31 @@ def cautious_run_cmd_over_ssh(user, port, cmd, address):
 
     return (OK, output)
 
+def update_status(id, m):
+    with services_lock:
+        cmd = "\"(cd {0} && {1})\"".format(
+                                        os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
+                                        "./scripts/{0}_test.sh".format(m[SERVICE]))
+
+        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
+
+        logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", status))
+
+        if status == ERROR_NOT_REACHABLE_SERVICE:
+            if id: services.remove(id)
+            logger.info("Service not reachable")
+            return
+
+        logger.info(("Checking server availability for ",m[SERVICE_ID], "result ", status))
+        logger.info(output)
+
+        if status == ERROR_FAILED_SSH_CMD:
+            logger.error("Service terminated")
+            logger.error(output)
+            m[SERVICE_STATUS] = STATUS_TERMINATED
+            return
+
+        m[SERVICE_STATUS] = STATUS_RUNNING
 
 def status_checker_job():
     global services
@@ -139,29 +174,7 @@ def status_checker_job():
     while True:
         time.sleep(10)
         for id, m in enumerate(services):
-            cmd = "\"(cd {0} && {1})\"".format(
-                                            os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
-                                            "./scripts/{0}_test.sh".format(m[SERVICE]))
-
-            status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
-
-            logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", status))
-
-            if status == ERROR_NOT_REACHABLE_SERVICE:
-                services.remove(id)
-                logger.info("Service not reachable")
-                continue
-
-            logger.info(("Checking server availability for ",m[SERVICE_ID], "result ", status))
-            logger.info(output)
-
-            if status == ERROR_FAILED_SSH_CMD:
-                logger.error("Service terminated")
-                logger.error(output)
-                m[SERVICE_STATUS] = STATUS_TERMINATED
-                continue
-
-            m[SERVICE_STATUS] = STATUS_RUNNING
+            update_status(id, m)
 
 
 ### Flask module ###
@@ -183,34 +196,125 @@ def hello():
     return "Hello world!"
 
 
+@app.route('/register_service', methods=['POST'])
+def register_service():
+    output = json.dumps(OK)
+    with services_lock:
+        service_id = request.form['service_id']
+        service = request.form['service']
+
+
+        config = json.loads(request.form['config'])
+
+
+        if not service or not service_id or len(service)==0 or len(service_id)==0:
+            return json.dumps(ERROR_WRONG_METHOD_PARAMETERS)
+
+        if filter(lambda x: x[SERVICE_ID] == service_id, services):
+            return json.dumps(ERROR_SERVICE_ID_REGISTERED)
+
+        if filter(lambda x: x[SERVICE] == service, services) and service in UNARY_SERVICES:
+            return json.dumps(ERROR_ALREADY_REGISTERED_SERVICE)
+
+        if service not in KNOWN_SERVICES:
+            return json.dumps(ERROR_NOT_RECOGNIZED_SERVICE)
+
+        logger.info("Proceeding to registering {0} {1}".format(service, service_id))
+
+
+        service = {SERVICE:service,
+                   SERVICE_ID:service_id,
+                   SERVICE_USER:config.get(CONFIG_USER, DEFAULT_USER),
+                   SERVICE_STATUS:STATUS_TERMINATED,
+                   SERVICE_ADDRESS:request.remote_addr,
+                   SERVICE_RUN_CMD:DEFAULT_COMMAND,
+                   SERVICE_PORT:config.get(CONFIG_PORT, DEFAULT_PORT),
+                   SERVICE_HOME:config[CONFIG_HOME]
+                   }
+        services.append(service)
+
+        logger.info("Registering "+str(service))
+
+        logger.info("Running service "+service_id)
+
+        update_status(None, service)
+
+        output_run_service = _run_service(service[SERVICE_ID])
+
+
+
+        if output_run_service != json.dumps(OK):
+            logger.error("Failed starting service")
+            logger.info("Running service output = "+str(output))
+
+        if service[SERVICE_STATUS] != STATUS_RUNNING:
+            output = output_run_service
+        else:
+            output = OK
+
+
+
+    return OK
+
+
+def _terminate_service(service_id):
+    with services_lock:
+        if not filter(lambda x: x[SERVICE_ID] == service_id, services):
+            return json.dumps(ERROR_NOT_REGISTERED_SERVICE)
+
+        m = filter(lambda x: x[SERVICE_ID] == service_id, services)[0]
+
+        if m[SERVICE_STATUS] == STATUS_TERMINATED:
+            return json.dumps(ERROR_SERVICE_ALREADY_TERMINATED)
+
+        if m[SERVICE_STATUS] != STATUS_RUNNING:
+            logger.error("Wrong service status")
+            exit(1)
+
+
+        cmd = "\"(cd {0} && {1})\"".format(
+                                        os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
+                                        "./scripts/{0}_terminate.sh".format(m[SERVICE]))
+
+        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
+
+        logger.info(("Terminating service ",service_id, "output", output, "status ",status))
+
+        return json.dumps(status)
+
 @app.route('/terminate_service')
 def terminate_service():
     service_id = request.args.get('service_id')
     global services
     """ Check status of the jobs """
-
-    if not filter(lambda x: x[SERVICE_ID] == service_id, services):
-        return json.dumps(ERROR_NOT_REGISTERED_SERVICE)
-
-    m = filter(lambda x: x[SERVICE_ID] == service_id, services)[0]
-
-    if m[SERVICE_STATUS] == STATUS_TERMINATED:
-        return json.dumps(ERROR_SERVICE_ALREADY_TERMINATED)
-
-    if m[SERVICE_STATUS] != STATUS_RUNNING:
-        logger.error("Wrong service status")
-        exit(1)
+    return _terminate_service(service_id)
 
 
-    cmd = "\"(cd {0} && {1})\"".format(
-                                    os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
-                                    "./scripts/{0}_terminate.sh".format(m[SERVICE]))
 
-    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
+def _run_service(service_id):
+    with services_lock:
+        if not filter(lambda x: x[SERVICE_ID] == service_id, services):
+            return json.dumps(ERROR_NOT_REGISTERED_SERVICE)
 
-    logger.info(("Running service ",service_id, "output", output, "status ",status))
+        m = filter(lambda x: x[SERVICE_ID] == service_id, services)[0]
 
-    return json.dumps(status)
+        if m[SERVICE_STATUS] == STATUS_RUNNING:
+            return json.dumps(ERROR_SERVICE_ALREADY_RUNNING)
+
+        if m[SERVICE_STATUS] != STATUS_TERMINATED:
+            logger.error("Wrong service status")
+            exit(1)
+
+
+        cmd = "\"(cd {0} && {1})\"".format(
+                                        os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
+                                        "./scripts/{0}_run.sh".format(m[SERVICE]))
+
+        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
+
+        logger.info(("Running service ",service_id, "output", output, "status ",status))
+
+        return json.dumps(status)
 
 @app.route('/run_service')
 def run_service():
@@ -218,28 +322,7 @@ def run_service():
     global services
     """ Check status of the jobs """
 
-    if not filter(lambda x: x[SERVICE_ID] == service_id, services):
-        return json.dumps(ERROR_NOT_REGISTERED_SERVICE)
-
-    m = filter(lambda x: x[SERVICE_ID] == service_id, services)[0]
-
-    if m[SERVICE_STATUS] == STATUS_RUNNING:
-        return json.dumps(ERROR_SERVICE_ALREADY_RUNNING)
-
-    if m[SERVICE_STATUS] != STATUS_TERMINATED:
-        logger.error("Wrong service status")
-        exit(1)
-
-
-    cmd = "\"(cd {0} && {1})\"".format(
-                                    os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
-                                    "./scripts/{0}_run.sh".format(m[SERVICE]))
-
-    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
-
-    logger.info(("Running service ",service_id, "output", output, "status ",status))
-
-    return json.dumps(status)
+    return _run_service(service_id)
 
 @app.route('/get_configuration', methods=["GET"])
 def get_configuraiton():

@@ -13,7 +13,7 @@ Sidenote: For checking Hadoop cluster status we will use Hue service (included i
 
 You have to specify following items:
 
-* master: ip or domain of the master node, if you want to run locally everything just set it to "local"
+* master: ip or domain of the master node, if you want to run locally everything just set it to "localhost:8881"
 
 * responsibilties: what responsibilities is this node registering. Options:
 
