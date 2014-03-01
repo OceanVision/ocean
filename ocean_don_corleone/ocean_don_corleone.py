@@ -33,7 +33,8 @@ ERROR_SERVICE_ID_REGISTERED = "error_service_id_registered"
 ERROR_WRONG_METHOD_PARAMETERS = "error_wrong_method_parameters"
 OK = "ok"
 
-CONFIG_PORT = "ssh-port"
+CONFIG_SSH_PORT = "ssh-port"
+CONFIG_PORT = "port"
 CONFIG_HOME = "home"
 CONFIG_USER = "ssh-user"
 
@@ -48,13 +49,13 @@ SERVICE = "service"
 SERVICE_ID = "id"
 SERVICE_STATUS = "status"
 SERVICE_ADDRESS = "address"
-SERVICE_PORT = "port"
+SERVICE_SSH_PORT = "ssh-port"
 SERVICE_HOME = "home"
 SERVICE_RUN_CMD = "run_cmd"
 SERVICE_USER = "user"
 
 DEFAULT_COMMAND = "default"
-DEFAULT_PORT = 22
+DEFAULT_SSH_PORT = 22
 DEFAULT_USER = "ocean"
 
 STATUS_NOTREGISTERED = "not_registered"
@@ -66,26 +67,22 @@ services_lock = threading.RLock()
 services = []
 
 
-service_tmp = {"service":"odm",
+service_tmp = {"service":"odm",SERVICE_SSH_PORT:2231,
                SERVICE_ID:"odm", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
                "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
                }
-service_tmp2 = {"service":"neo4j",
+service_tmp2 = {"service":"neo4j",SERVICE_SSH_PORT:2231,
                SERVICE_ID:"neo4j", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
                "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
                }
 
-service_tmp4 = {"service":"news_fetcher",
-               SERVICE_ID:"news_fetcher", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
+service_tmp4 = {"service":"news_fetcher",SERVICE_SSH_PORT:22,
+               SERVICE_ID:"news_fetcher", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":7777,
                "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
                }
 
-service_tmp3 = {"service":"odm",
-              SERVICE_ID:"odm", "status":STATUS_TERMINATED, "address":"localhost", "port":DEFAULT_PORT,
-               "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek"
-               }
 
-services.append(service_tmp)
+#services.append(service_tmp)
 services.append(service_tmp2)
 #services.append(service_tmp4)
 
@@ -119,6 +116,13 @@ def cautious_run_cmd_over_ssh(user, port, cmd, address):
          user=user
         )], stdout=subprocess.PIPE, shell=True)
 
+    logger.info("SSH connection "+"ssh {user}@{0} -p{1} ls".
+                             format(
+         address,
+         port,
+         user=user
+        ))
+
     prog.communicate()
 
     if prog.returncode != 0:
@@ -147,7 +151,7 @@ def update_status(id, m):
                                         os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
                                         "./scripts/{0}_test.sh".format(m[SERVICE]))
 
-        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
+        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
 
         logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", status))
 
@@ -200,12 +204,26 @@ def hello():
 def register_service():
     output = json.dumps(OK)
     with services_lock:
+
+        print request.form
+
         service_id = request.form['service_id']
         service = request.form['service']
 
 
         config = json.loads(request.form['config'])
 
+
+        print "Proceeding"
+        additional_service_config = {}
+        try:
+            additional_service_config = json.loads(request.form['additional_config'])
+        except Exception, ex:
+            print request.form['additional_config']
+            print str(ex)+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+        print len(additional_service_config)
+        print "Proceeding"
 
         if not service or not service_id or len(service)==0 or len(service_id)==0:
             return json.dumps(ERROR_WRONG_METHOD_PARAMETERS)
@@ -228,9 +246,12 @@ def register_service():
                    SERVICE_STATUS:STATUS_TERMINATED,
                    SERVICE_ADDRESS:request.remote_addr,
                    SERVICE_RUN_CMD:DEFAULT_COMMAND,
-                   SERVICE_PORT:config.get(CONFIG_PORT, DEFAULT_PORT),
+                   SERVICE_SSH_PORT:config.get(CONFIG_SSH_PORT, DEFAULT_SSH_PORT),
                    SERVICE_HOME:config[CONFIG_HOME]
                    }
+
+        service.update(additional_service_config)
+
         services.append(service)
 
         logger.info("Registering "+str(service))
@@ -276,7 +297,7 @@ def _terminate_service(service_id):
                                         os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
                                         "./scripts/{0}_terminate.sh".format(m[SERVICE]))
 
-        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
+        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
 
         logger.info(("Terminating service ",service_id, "output", output, "status ",status))
 
@@ -310,7 +331,7 @@ def _run_service(service_id):
                                         os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
                                         "./scripts/{0}_run.sh".format(m[SERVICE]))
 
-        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_PORT], cmd, m[SERVICE_ADDRESS])
+        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
 
         logger.info(("Running service ",service_id, "output", output, "status ",status))
 

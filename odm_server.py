@@ -505,8 +505,12 @@ class ODMServer():
         print 'The server is listening on port {0}.'.format(str(self._port))
         self._handle_connections(server_socket)
 
-HOST = 'localhost'
-PORT = 7777
+
+from ocean_don_corleone.utils import get_configuration
+HOST = get_configuration("odm_address")
+PORT = int(get_configuration("odm_port"))
+
+print "Odmclient ",HOST,PORT
 
 if __name__ == '__main__':
     server = ODMServer(HOST, PORT)

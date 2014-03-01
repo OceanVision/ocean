@@ -2,8 +2,9 @@
 
 "master":"http://127.0.0.1:8881",
 "node_responsibilities":[
-    "news_fetcher",
-    "webservice"
+    ["news_fetcher",{}],
+    ["odm",{"port":7777}],
+    ["webservice",{}]
 ],
 
 "home":"/home/moje/Projekty/ocean/ocean",

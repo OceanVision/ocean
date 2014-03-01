@@ -30,11 +30,18 @@ def install_node(config):
     for id, responsibility in enumerate(config[RESPONSIBILITIES]):
         logger.info("Registering "+str(id)+" responsibility "+str(responsibility))
 
-        service, service_id = (responsibility[0], responsibility[1]) \
-            if responsibility is list else (responsibility, responsibility)
+
+
+        service, service_id = responsibility[0].split(":") if (len(responsibility[0].split(":"))>1)\
+            else (responsibility[0], responsibility[0])
+
+        additional_config = responsibility[1]
+
 
         params = urllib.urlencode\
-                ({"service":service, "service_id":service_id, "config":json.dumps(config)})
+                ({"service":service, "service_id":service_id, "config":json.dumps(config),
+                  "additional_config":json.dumps(additional_config)
+                  })
 
 
         response = urllib2.urlopen(config[MASTER]+"/register_service", params).read()
