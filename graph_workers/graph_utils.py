@@ -1,5 +1,6 @@
 """ Simple utility functions and objects """
 import time
+import os
 from pytz import timezone
 import logging
 import urlparse
@@ -10,6 +11,8 @@ import socket
 import httplib
 import xml.parsers.expat
 import xml.dom.minidom
+import struct
+import json
 from dateutil import parser
 import datetime
 
@@ -414,3 +417,75 @@ class deep_eq_wrapper(object):
         return str(self.v).__hash__()
     def __str__(self):
         return str(self.v)
+
+
+""" Utils for prefix length TCP """
+def socket_read_n(sock, n):
+    """ Read exactly n bytes from the socket.
+        Raise RuntimeError if the connection closed before
+        n bytes were read.
+    """
+    buf = ''
+    while n > 0:
+        data = sock.recv(n)
+        if data == '':
+            raise RuntimeError('unexpected connection close')
+        buf += data
+        n -= len(data)
+    return buf
+
+
+def get_message_raw(sock):
+    """
+        Returns raw message (using length prefix framing)
+    """
+    len_buf = socket_read_n(sock, 4) # Read exactly n bytes
+    msg_len = struct.unpack('>L', len_buf)[0]
+    msg_buf = socket_read_n(sock,msg_len)
+    return msg_buf
+
+
+def send_message_raw(sock, msg ):
+    """
+        Sends raw message (using length prefix framing)
+    """
+    print "Sending "+msg
+    packed_len = struct.pack('>L', len(msg)) # Number of bytes
+    sock.sendall(packed_len + msg)
+
+
+def send_message(sock, msg):
+    """
+        Sends message of class message_class (using length prefix framing)
+    """
+    s = json.dumps(msg)
+    packed_len = struct.pack('>L', len(s)) # Number of bytes
+    sock.sendall(packed_len + s)
+
+
+def get_message(sock):
+    """
+        Returns object deserialized by JSON (using length prefix framing)
+    """
+    len_buf = socket_read_n(sock, 4) # Read exactly n bytes
+    msg_len = struct.unpack('>L', len_buf)[0]
+    msg_buf = socket_read_n(sock,msg_len)
+    return json.loads(msg_buf)
+
+
+def error_handle_odm(func):
+    """
+    This decorator will return response to message.html with error if caught
+    """
+    def f(request, *args, **dict_args):
+        try:
+            return func(request, *args, **dict_args)
+        except Exception, e:
+            print '{0} failed: {1}.'.format(func.__name__, e)
+            return {}
+        except:
+            print '{0} failed with not registered error.'.format(func.__name__)
+            return {}
+
+    f.__name__ = func.__name__
+    return f

@@ -18,58 +18,43 @@ def massing_add_delete():
     pass  #asserts
 
 
-def basic_tests():    
-    ### Create Objects ###
-    db = DatabaseManager()
-    cs = db.get_instances(model_name="ContentSource", children_params={})
-    assert(len(cs) > 0) 
-    
+def basic_tests():
     ### Connect ###
     cl = ODMClient()
     cl.connect()
 
-    print "0. get instance by params"
-    
-    assert(cl.get_instances(model_name="NeoUser", username="kudkudak")[0]["username"]=="kudkudak")
+    model_nodes = cl.get_model_nodes()
+    neo_user_uuid = ''
+    content_source_uuid = ''
+    for item in model_nodes:
+        if item['model_name'] == 'NeoUser':
+            neo_user_uuid = item['uuid']
+        elif item['model_name'] == 'ContentSource':
+            content_source_uuid = item['uuid']
 
+    assert(neo_user_uuid != '' and content_source_uuid != '')
+    print 'get_model_nodes: OK'
 
-    print "1. Change one instance"
+    instances = cl.get_instances(model_name='ContentSource')
+    assert(len(instances) > 0)
+    assert(cl.get_children(node_uuid=content_source_uuid, rel_type='<<INSTANCE>>') == instances)
+    print 'get_instances: OK'
+    print 'get_children all: OK'
+
+    assert(cl.get_children(node_uuid=neo_user_uuid, rel_type='<<INSTANCE>>',
+                           username='brunokam')[0]['username'] == 'brunokam')
+    print 'get_children with params: OK'
+
     ### Change one instance and see if change has occured ### 
-    uuid_0 = cs[0]['uuid']
-    previous_image_height = cs[0]['image_height']
+    uuid_0 = instances[0]['uuid']
+    previous_image_height = instances[0]['image_height']
     cl.set(uuid_0, {'image_height': 100})
     assert(cl.get_by_uuid(uuid_0)['image_height'] == 100)
     cl.set(uuid_0, {'image_height': previous_image_height})
     assert(cl.get_by_uuid(uuid_0)['image_height'] == previous_image_height)
+    print 'set: OK'
     
-
-
-    ### Get type nodes and get all children of <<TYPE>> = "ContentSource"
-    print "2 and 3. Get model node and check get_children"
-    type_content_source = None
-    assert(len(cl.get_model_nodes()) >= 3)
-    print cl.get_model_nodes()
-
-    for t in cl.get_model_nodes():
-        if t["model_name"] == "ContentSource":
-            print "Found type ", t
-            type_content_source = t
-
-    ### Retrieve all instances by get_all_children and after that ###
-    ### recieve only the first one ###
-    assert(type_content_source is not None)
-    all_children = db.get_children(node_uuid=type_content_source["uuid"],
-                                       rel_type="<<INSTANCE>>")
-    assert(len(all_children) > 2)
-    
-
-    picked_child = all_children[0]
-    picked_child_queried = db.get_children(node_uuid=type_content_source["uuid"],
-        rel_type="<<INSTANCE>>", children_params={'link': picked_child["link"]})
-    assert(len(picked_child_queried) == 1 and \
-        picked_child_queried[0]["uuid"] == picked_child["uuid"])
-    
-
+    return
 
     print "4. Test adding nodes"
     ### Testing adding nodes ###
@@ -152,6 +137,6 @@ def test_utf():
 
 
 if __name__ == "__main__":
-    test_utf()
+    # test_utf()
     basic_tests()
 

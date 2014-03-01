@@ -1,5 +1,5 @@
 """
-Ocean Database Manager
+Lionfish (formerly Ocean Database Manager)
 
 general idea is as follows: ODM have many get procedures, however only one way
 to add or set node/rel (add_node, set, add_rel,  del_rel, del_node)
@@ -13,14 +13,12 @@ from py2neo import neo4j
 import uuid
 import os
 import socket
-from threading import Thread, Lock
-import json
-# Logging (TODO: move creation of logger to utils)
-import logging
+from threading import Thread
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__),"graph_workers"))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'graph_workers'))
 from graph_defines import *
+from graph_utils import *
 
 # Defining levels to get rid of other loggers
 info_level = 100
@@ -38,72 +36,6 @@ ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),
 ch_file.setLevel(info_level)
 logger.addHandler(ch_file)
 
-import struct
-#TODO: change file
-""" Utils for  prefix length TCP """
-def socket_read_n(sock, n):
-    """ Read exactly n bytes from the socket.
-        Raise RuntimeError if the connection closed before
-        n bytes were read.
-    """
-    buf = ''
-    while n > 0:
-        data = sock.recv(n)
-        if data == '':
-            raise RuntimeError('unexpected connection close')
-        buf += data
-        n -= len(data)
-    return buf
-def get_message_raw(sock):
-    """
-        Returns raw message (using length prefix framing)
-    """
-    len_buf = socket_read_n(sock, 4) # Read exactly n bytes
-    msg_len = struct.unpack('>L', len_buf)[0]
-    msg_buf = socket_read_n(sock,msg_len)
-    return msg_buf
-def send_message_raw(sock, msg ):
-    """
-        Sends raw message (using length prefix framing)
-    """
-    print "Sending "+msg
-    packed_len = struct.pack('>L', len(msg)) # Number of bytes
-    sock.sendall(packed_len + msg)
-def send_message(sock, msg):
-    """
-        Sends message of class message_class (using length prefix framing)
-    """
-    s = json.dumps(msg)
-    packed_len = struct.pack('>L', len(s)) # Number of bytes
-    sock.sendall(packed_len + s)
-def get_message(sock):
-    """
-        Returns object deserialized by JSON (using length prefix framing)
-    """
-    len_buf = socket_read_n(sock, 4) # Read exactly n bytes
-    msg_len = struct.unpack('>L', len_buf)[0]
-    msg_buf = socket_read_n(sock,msg_len)
-    return json.loads(msg_buf)
-
-
-#TODO: move to utils
-def error_handle_odm(func):
-    """
-    This decorator will return response to message.html with error if caught
-    """
-    def f(request, *args, **dict_args):
-        try:
-            return func(request, *args, **dict_args)
-        except Exception, e:
-            print '{0} failed: {1}.'.format(func.__name__, e)
-            return {}
-        except:
-            print '{0} failed with not registered error.'.format(func.__name__)
-            return {}
-
-    f.__name__ = func.__name__
-    return f
-
 
 class DatabaseManager:
     """ Driver for Neo4j database """
@@ -118,247 +50,54 @@ class DatabaseManager:
         self._init_uuid_images()
         self._init_model_name_images()
 
-
-    @error_handle_odm
-    def get_by_uuid(self, **params):
-        node_uuid = params['node_uuid']
-
-        #TODO: this code assumes that all uuid->id mapping is in memory,
-        # it is not a good assumption
-        # it should execute a query if asked for non exisiting uuid
-        if node_uuid not in self._uuid_images:
-            raise Exception('Unknown uuid')
-
-        node_id = self._uuid_images[params['node_uuid']]
+    def _init_model_name_images(self):
+        self._model_name_images.clear()
         query_string = \
             '''
-            START e=node({node_id})
-            RETURN e
+            MATCH (e)-[]->(t)
+            WHERE id(e) = 0
+            RETURN t.uuid, (t)
             '''
-        return self._execute_query(query_string, node_id=node_id)[0]
+        query_results = self._execute_query(query_string)
+        for record in query_results:
+            key = record[1]['model_name']
+            value = record[0]
+            self._model_name_images[key] = value
 
-    @error_handle_odm
-    def get_by_link(self, **params):
-        model_name = params['model_name']
-
-        if model_name not in self._model_name_images:
-            raise Exception('Unknown type')
-
-        mode_name_id = self._uuid_images[self._model_name_images[model_name]]
-        link = params['link']
+    def _init_uuid_images(self):
+        self._uuid_images.clear()
         query_string = \
             '''
-            START e=node({model_name_id})
-            MATCH (e)-[]->(a)
-            WHERE a.link={link}
-            RETURN a
+            MATCH (e)
+            WHERE id(e) <> 0
+            RETURN id(e), (e)
             '''
-        return self._execute_query(query_string, model_name_id=mode_name_id,
-                                   link=link)[0]
+        query_results = self._execute_query(query_string)
+        for record in query_results:
+            key = record[1]['uuid']
+            value = record[0]
+            self._uuid_images[key] = value
 
     @error_handle_odm
-    def get_model_nodes(self):
-        cypher_query = \
-            '''
-            START e=node(0)
-            MATCH (e)-[r:`<<TYPE>>`]->(a)
-            RETURN a
-            '''
-        return self._execute_query(cypher_query)
-
-    @error_handle_odm
-    def get_children(self, **params):
-        node_uuid = params['node_uuid']
-
-        if node_uuid not in self._uuid_images:
-            raise Exception('Unknown uuid')
-
-        node_id = self._uuid_images[node_uuid]
-        children_params = params['children_params'] \
-            if 'children_params' in params else {}
-        rel_type = params['rel_type']
-
-
-        cypher_query = \
-            '''
-            START e=node({node_id})
-            MATCH (e)-[r:`''' + rel_type + '''`]->(a)
-            ''' \
-            + (('WHERE ' + self._str(children_params, 'a', 'AND'))
-            if len(children_params) > 0 else '') + '''
-            RETURN a
-            '''
-        # There is a problem with node_params if they are given to _run_query
-        return self._execute_query(cypher_query.encode("utf-8"), node_id=node_id)
-
-    @error_handle_odm
-    def get_instances(self, **params):
-        children_params = params['children_params'] \
-            if 'children_params' in params else {}
-        query_string = \
-            '''
-            START e=node(0)
-            MATCH (e)-[r:`<<TYPE>>`]->(t)-[q:`<<INSTANCE>>`]->(a)
-            WHERE t.model_name = {model_name}''' \
-            + ((' AND ' + self._str(children_params, 'a', 'AND'))
-            if len(children_params) > 0 else '') + '''
-            RETURN a
-            '''
-        return self._execute_query(query_string, **params)
-
-    @error_handle_odm
-    def set(self, **params):
-        node_uuid = params['node_uuid']
-
-        if node_uuid not in self._uuid_images:
-            raise Exception('Unknown uuid')
-
-        node_id = self._uuid_images[node_uuid]
-        node_params = self._str(params['node_params'])
-        query_string = \
-            '''
-            START e=node({node_id})
-            SET {node_params}
-            '''.format(node_id=node_id, node_params=node_params)
-        # There is a problem with node_params if they are given to _run_query
-        self._run_query(query_string)
-
-    @error_handle_odm
-    def add_node(self, **params):
-
-        #TODO: add default values and check if there are no extra fields
-
-        model_name = params['model_name']
-
-        if model_name not in self._model_name_images:
-            raise Exception('Unknown type')
-
-        # Default values loaded from graph_defines (for instances loved for Content)
-        node_params = GRAPH_MODELS[model_name] if model_name in GRAPH_MODELS else {}
-        node_params.update(params['node_params'])
-        node_params['uuid'] = str(uuid.uuid1())
-        query_string = \
-            '''
-            CREATE e=({node_params})
-            RETURN id(e)
-            '''
-        node_results = self._execute_query(query_string,
-                                           node_params=node_params)
-
-        if len(node_results) == 0:
-            raise Exception('Executing query failed')
-
-        self._uuid_images[node_params['uuid']] = node_results[0]
-
-        start_node_uuid = self._model_name_images[model_name]
-        end_node_uuid = node_params['uuid']
-        rel_type = '<<INSTANCE>>'
-        self.add_rel(start_node_uuid=start_node_uuid,
-                     end_node_uuid=end_node_uuid, rel_type=rel_type)
-        return {'uuid': node_params['uuid']}
-
-    @error_handle_odm
-    def delete_node(self, **params):
-        node_uuid = params['node_uuid']
-
-        if node_uuid not in self._uuid_images:
-            raise Exception('Unknown uuid')
-
-        node_id = self._uuid_images[node_uuid]
-        query_string = \
-            '''
-            START e=node({node_id})
-            MATCH (e)-[r]-()
-            DELETE e, r
-            '''
-        self._run_query(query_string, node_id=node_id)
-        del self._uuid_images[node_uuid]
-
-    @error_handle_odm
-    def add_rel(self, **params):
-        start_node_uuid = params['start_node_uuid']
-        end_node_uuid = params['end_node_uuid']
-
-        if start_node_uuid not in self._uuid_images \
-            or end_node_uuid not in self._uuid_images:
-            raise Exception('Unknown uuid')
-
-        start_node_id = self._uuid_images[start_node_uuid]
-        end_node_id = self._uuid_images[end_node_uuid]
-        rel_type = params['rel_type']
-        rel_params = params['rel_params'] if 'rel_params' in params else {}
-
-        query_string = \
-            '''
-            START a=node({start_node_id}), b=node({end_node_id})
-            CREATE (a)-[r:`''' + rel_type + '''` {rel_params}]->(b)
-            '''
-        # There is a problem with node_params if they are given to _run_query
-        self._run_query(query_string, start_node_id=start_node_id,
-                        end_node_id=end_node_id, rel_params=rel_params)
-
-    @error_handle_odm
-    def delete_rel(self, **params):
-        start_node_uuid = params['start_node_uuid']
-        end_node_uuid = params['end_node_uuid']
-
-        if start_node_uuid not in self._uuid_images \
-            or end_node_uuid not in self._uuid_images:
-            raise Exception('Unknown uuid')
-
-        start_node_id = self._uuid_images[start_node_uuid]
-        end_node_id = self._uuid_images[end_node_uuid]
-
-        query_string = \
-            '''
-            START a=node({start_node_id}), b=node({end_node_id})
-            MATCH (a)-[r]->(b)
-            DELETE r
-            '''
-        self._run_query(query_string, start_node_id=start_node_id,
-                        end_node_id=end_node_id)
-
-    @error_handle_odm
-    def execute_query(self, **params):
-
-        query_string = params['query_string']
-        query_params = params['query_params']
-
-        return self._execute_query(query_string, True, **query_params)
-
-    @error_handle_odm
-    def run_query(self, **params):
-        query_string = params['query_string']
-        query_params = params['query_params']
-
-        self._run_query(query_string, **query_params)
-
-    @error_handle_odm
-    def _execute_query(self, query_string, multi_value=False, **query_params):
+    def _execute_query(self, query_string, **query_params):
         """
         Executes query and returns results as python dictionaries
         @param query_string string
         @param multi_value bool
         @param query_params dictionary
         """
-        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
+        # Executes cypher query
+        cypher_query = neo4j.CypherQuery(self._graph_db, unicode(query_string))
         query_results = cypher_query.execute(**query_params)
 
         results = []
         for result in query_results:
             values = []
-            if not multi_value:
-                value = result.values[0]
+            for value in result.values:
                 if value.__class__.__name__ in ('Node', 'Relationship'):
-                    values = value.get_properties()
+                    values.append(value.get_properties())
                 else:
-                    values = value
-            else:
-                for value in result.values:
-                    if value.__class__.__name__ in ('Node', 'Relationship'):
-                        values.append(value.get_properties())
-                    else:
-                        values.append(value)
+                    values.append(value)
             results.append(values)
         return results
 
@@ -369,43 +108,312 @@ class DatabaseManager:
         @param query_string
         @param query_params
         """
-        cypher_query = neo4j.CypherQuery(self._graph_db, str(query_string))
+        cypher_query = neo4j.CypherQuery(self._graph_db, unicode(query_string))
         cypher_query.run(**query_params)
 
-    def _init_model_name_images(self):
-        self._model_name_images.clear()
+    @error_handle_odm
+    def get_by_uuid(self, node_uuid_list):
+        # Extracts ids from a list of uuids
+        # TODO: this code assumes that all uuid->id mapping is in memory
+        node_id_list = []
+        for node_uuid in node_uuid_list:
+            if str(node_uuid) not in self._uuid_images:
+                raise Exception('Unknown uuid')
+            node_id_list.append(self._uuid_images[node_uuid])
+
+        # Builds query and gets results
         query_string = \
             '''
-            START e=node(0)
-            MATCH (e)-[]->(t)
-            RETURN t.uuid, t
+            MATCH (e)
+            WHERE id(e) IN {node_id_list}
+            RETURN (e)
             '''
-        query_results = self._execute_query(query_string, True)
-        for record in query_results:
-            key = record[1]['model_name']
-            value = record[0]
-            self._model_name_images[key] = value
+        return self._execute_query(query_string, node_id_list=node_id_list)
 
-    def _init_uuid_images(self):
-        self._uuid_images.clear()
+    @error_handle_odm
+    def get_by_link(self, model_name_list, link_list):
+        # Extracts ids from a list of model names
+        model_id_list = []
+        for model_name in model_name_list:
+            if model_name not in self._model_name_images:
+                raise Exception('Unknown model name')
+            model_id_list.append(
+                self._uuid_images[self._model_name_images[model_name]])
+
+        # Builds query and gets results
         query_string = \
             '''
-            START e=node(*)
-            WHERE id(e) <> 0
-            RETURN id(e), e
+            MATCH (e)-[r1:`<<TYPE>>`]->(t)-[r2:`<<INSTANCE>>`]->(a)
+            WHERE id(e) = 0 AND HAS (a.link) AND (id(t) IN {model_id_list}) AND (a.link IN {link_list})
+            RETURN (a)
             '''
-        query_results = self._execute_query(query_string, True)
-        for record in query_results:
-            key = record[1]['uuid']
-            value = record[0]
-            self._uuid_images[key] = value
+        return self._execute_query(query_string,
+                                   model_id_list=model_id_list,
+                                   link_list=link_list)
 
-    def _str(self, dictionary, element='e', separator=','):
-        string = unicode('')
-        for (key, value) in dictionary.iteritems():
-            string += unicode(separator) + unicode(' ') + unicode(element) + unicode('.') \
-                      +unicode(key) + unicode('=') + unicode(json.dumps(value, ensure_ascii=False)) + ' '
-        return unicode(string[(len(separator) + 1):])
+    @error_handle_odm
+    def get_model_nodes(self):
+        # Builds query and gets results
+        query_string = \
+            '''
+            MATCH (e)-[r:`<<TYPE>>`]->(a)
+            WHERE id(e) = 0
+            RETURN (a)
+            '''
+        return self._execute_query(query_string)
+
+    @error_handle_odm
+    def get_children(self, node_list):
+        # Extracts ids from a list of uuids
+        for node in node_list:
+            node_uuid = node['uuid']
+            if node_uuid not in self._uuid_images:
+                raise Exception('Unknown uuid')
+            node['id'] = self._uuid_images[node_uuid]
+
+        # Prepares MATCH statement
+        match_str = 'MATCH (e)-[r]->(a)\n'
+
+        # Prepares WHERE clause
+        where_str = 'WHERE '
+        for i, node in enumerate(node_list):
+            if 'children_params' in node and len(node['children_params']) > 0:
+                for key, value in node['children_params'].iteritems():
+                    where_str += '(id(e) = {node_id} AND type(r) = {rel_type} ' \
+                                 'AND a.{key} = {value}) OR '\
+                        .format(node_id=node['id'],
+                                rel_type=unicode(json.dumps(node['rel_type'],
+                                                            ensure_ascii=False)),
+                                key=key,
+                                value=unicode(json.dumps(value,
+                                                         ensure_ascii=False)))
+            else:
+                where_str += '(id(e) = {node_id} AND type(r) = {rel_type}) OR '\
+                    .format(node_id=node['id'],
+                            rel_type=unicode(json.dumps(node['rel_type'],
+                                                        ensure_ascii=False)))
+        where_str = where_str[:len(where_str) - 4] + '\n'
+
+        # Prepares RETURN statement
+        return_str = 'RETURN (a), id(e)'
+
+        # Builds query and gets results
+        query_string = match_str + where_str + return_str
+
+        # Extracts results from default lists
+        raw_results = self._execute_query(query_string)
+        results = []
+        for i, node in enumerate(node_list):
+            results.append([])
+            for item in raw_results:
+                if item[1] == node['id']:
+                    results[i].append(item[0])
+
+        return results
+
+    @error_handle_odm
+    def get_instances(self, model_name_list):
+        # Prepares params for get_children
+        node_list = []
+        for model_name in model_name_list:
+            node = {
+                'uuid': self._model_name_images[model_name],
+                'rel_type': '<<INSTANCE>>'
+            }
+            node_list.append(node)
+
+        # Executes get_children and return its results
+        return self.get_children(node_list)
+
+    @error_handle_odm
+    def set(self, node_list):
+        # Extracts ids from a list of uuids
+        for node in node_list:
+            node_uuid = node['uuid']
+            if node_uuid not in self._uuid_images:
+                raise Exception('Unknown uuid')
+            node['id'] = self._uuid_images[node_uuid]
+
+        # Prepares MATCH statement
+        match_str = 'MATCH '
+        for i in range(0, len(node_list)):
+            match_str += '(e{no}), '.format(no=i)
+        match_str = match_str[:len(match_str) - 2] + '\n'
+
+        # Prepares WHERE clause
+        where_str = 'WHERE '
+        for i, node in enumerate(node_list):
+            where_str += 'id(e{no}) = {node_id} AND '.format(no=i, node_id=node['id'])
+        where_str = where_str[:len(where_str) - 5] + '\n'
+
+        # Prepares SET statement
+        set_str = 'SET '
+        for i, node in enumerate(node_list):
+            for key, value in node['params'].iteritems():
+                set_str += 'e{no}.{key} = {value}, '\
+                    .format(no=i, key=key,
+                            value=unicode(json.dumps(value, ensure_ascii=False)))
+        set_str = set_str[:len(set_str) - 2]
+
+        # Builds query and runs it
+        query_string = match_str + where_str + set_str
+        self._run_query(query_string)
+
+    @error_handle_odm
+    def create_nodes(self, node_list):
+        # Prepares params
+        for node in node_list:
+            model_name = node['model_name']
+            if model_name not in self._model_name_images:
+                raise Exception('Unknown type')
+            # Default values loaded from graph_defines
+            # (for instances loved for Content)
+            node_params = GRAPH_MODELS[model_name] \
+                if model_name in GRAPH_MODELS else {}
+            node_params.update(node['params'])
+            node_params['uuid'] = str(uuid.uuid1())
+            node['params'] = node_params
+
+        # Builds query and gets results
+        query_string = \
+            '''
+            CREATE (e {node_list})
+            RETURN id(e)
+            '''
+        node_results = \
+            self._execute_query(query_string,
+                                node_list=[n['params'] for n in node_list])
+
+        if len(node_results) == 0:
+            raise Exception('Executing query failed')
+
+        # Connects relations to newly created nodes
+        rel_list = []
+        for i, node in enumerate(node_list):
+            self._uuid_images[node['params']['uuid']] = node_results[i][0]
+            node_uuid_list.append(node['params']['uuid'])
+
+            rel = {
+                'start_node_uuid': self._model_name_images[node['model_name']],
+                'end_node_uuid': node['params']['uuid'],
+                'type': '<<INSTANCE>>'
+            }
+            rel_list.append(rel)
+
+        self.create_relationships(rel_list)
+        return node_uuid_list
+
+    @error_handle_odm
+    def delete_nodes(self, node_uuid_list):
+        # Extracts ids from a list of uuids
+        node_id_list = []
+        for node_uuid in node_uuid_list:
+            if node_uuid not in self._uuid_images:
+                raise Exception('Unknown uuid')
+            node_id_list.append(self._uuid_images[node_uuid])
+
+        # Builds query and runs it
+        query_string = \
+            '''
+            MATCH (e)-[r]-()
+            WHERE id(e) IN {node_id_list}
+            DELETE (e), (r)
+            '''
+        self._run_query(query_string, node_id_list=node_id_list)
+
+        # Removes uuids of deleted nodes from cache
+        for node_uuid in node_uuid_list:
+            del self._uuid_images[node_uuid]
+
+    @error_handle_odm
+    def create_relationships(self, rel_list):
+        # Extracts ids from a list of uuids and prepares rel params dict
+        rel_params_dict = {}
+        for i, rel in enumerate(rel_list):
+            start_node_uuid = rel['start_node_uuid']
+            end_node_uuid = rel['end_node_uuid']
+
+            if start_node_uuid not in self._uuid_images \
+                    or end_node_uuid not in self._uuid_images:
+                raise Exception('Unknown uuid')
+
+            rel['start_node_id'] = self._uuid_images[start_node_uuid]
+            rel['end_node_id'] = self._uuid_images[end_node_uuid]
+
+            rel_params_dict['params{no}'.format(i)] = rel['params'] \
+                if 'params' in rel else {}
+
+        # Prepares MATCH statement
+        match_str = 'MATCH '
+        for i in range(0, len(rel_list)):
+            match_str += '(a{no}), (b{no}), '.format(no=i)
+        match_str = match_str[:len(match_str) - 2] + '\n'
+
+        # Prepares WHERE clause
+        where_str = 'WHERE '
+        for i, rel in enumerate(rel_list):
+            where_str += 'id(a{no}) = {start_node_id} ' \
+                         'AND id(b{no}) = {end_node_id} AND '\
+                .format(no=i, start_node_id=rel['start_node_id'],
+                        end_node_id=rel['end_node_id'])
+        where_str = where_str[:len(where_str) - 5] + '\n'
+
+        # Prepares CREATE statements
+        create_str = ''
+        for i, rel in enumerate(rel_list):
+            create_str += 'CREATE (a{no})-[r{no}:`{type}` {{params{no}}}]->(b{no})\n'\
+                .format(no=i, type=rel['type'])
+
+        # Builds query and runs it
+        query_string = match_str + where_str + create_str
+        self._run_query(query_string, **rel_params_dict)
+
+    @error_handle_odm
+    def delete_relationships(self, rel_list):
+        # Extracts ids from a list of uuids and prepares rel params dict
+        for i, rel in enumerate(rel_list):
+            start_node_uuid = rel['start_node_uuid']
+            end_node_uuid = rel['end_node_uuid']
+
+            if start_node_uuid not in self._uuid_images \
+                    or end_node_uuid not in self._uuid_images:
+                raise Exception('Unknown uuid')
+
+            rel['start_node_id'] = self._uuid_images[start_node_uuid]
+            rel['end_node_id'] = self._uuid_images[end_node_uuid]
+
+        # Prepares MATCH statement
+        match_str = 'MATCH '
+        for i in range(0, len(rel_list)):
+            match_str += '(a{no})-[r{no}]->(b{no}), '.format(no=i)
+        match_str = match_str[:len(match_str) - 2] + '\n'
+
+        # Prepares WHERE clause
+        where_str = 'WHERE '
+        for i, rel in enumerate(rel_list):
+            where_str += 'id(a{no}) = {start_node_id} ' \
+                         'AND id(b{no}) = {end_node_id} AND '\
+                .format(no=i, start_node_id=rel['start_node_id'],
+                        end_node_id=rel['end_node_id'])
+        where_str = where_str[:len(where_str) - 5] + '\n'
+
+        # Prepares DELETE statement
+        delete_str = 'DELETE '
+        for i in range(0, len(rel_list)):
+            delete_str += '(r{no}), '.format(no=i)
+        delete_str = delete_str[:len(delete_str) - 2]
+
+        # Builds query and runs it
+        query_string = match_str + where_str + delete_str
+        self._run_query(query_string)
+
+    @error_handle_odm
+    def execute_query(self, query_string, query_params):
+        return self._execute_query(query_string, **query_params)
+
+    @error_handle_odm
+    def run_query(self, query_string, query_params):
+        self._run_query(query_string, **query_params)
 
 
 class Connection():
@@ -417,33 +425,65 @@ class Connection():
     def _send(self, data):
         try:
             send_message(self._conn, data)
-            #self._conn.send(json.dumps(data))
         except Exception, e:
-            print 'Not sent data ',data
-            print 'Sending data to client', self._id, 'failed.', str(e)
+            logger.log(info_level, 'Not sent data {data}'.format(data=data))
+            logger.log(error_level, 'Sending data to client {id} failed. {error}'
+                       .format(id=self._id, error=str(e)))
 
     def _recv(self):
         data = None
         try:
             data = get_message(self._conn)
-            #received_data = str(self._conn.recv(8192))
-            #data = json.loads(received_data) if len(received_data) > 0 else {}
         except Exception, e:
-            print 'Receiving data from client', self._id, 'failed.', str(e)
+            logger.log(error_level, 'Receiving data from client {id} failed. '
+                                    '{error}'.format(id=self._id, error=str(e)))
         return data
 
     def _disconnect(self):
         try:
             self._conn.close()
-            print 'Client {0} disconnected.'.format(str(self._id))
+            logger.log(info_level, 'Client {id} disconnected.'
+                       .format(id=self._id))
         except Exception, e:
-            print 'Disconnecting with client', self._id, 'failed.', str(e)
+            logger.log(error_level, 'Disconnecting with client {id} failed. '
+                                    '{error}'.format(id=self._id, error=str(e)))
 
     @error_handle_odm
-    def _execute(self, func_name, params):
+    def _execute_function(self, request):
+        func_name = request['func_name']
+        args = request['args']
+
+        for i in range(0, len(args)):
+            args[i] = [args[i]]
+
         func = getattr(self._manager, str(func_name))
-        print 'Client {0}: {1}'.format(self._id, func_name)
-        return func(**params)
+
+        results = func(*args)
+        return results if len(results) > 1 else results[0]
+
+    @error_handle_odm
+    def _execute_batch(self, request):
+        tasks = request['tasks']
+        count = request['count']
+
+        # Prepares request to be executed
+        results = [None] * count
+        for func_name, params in tasks.iteritems():
+            full_args = [[]] * len(params[0][0])
+            for args, no in params:
+                for i, item in enumerate(args):
+                    full_args[i].append(item)
+
+            logger.log(info_level, 'Client {id}: {func_name}'
+                       .format(id=self._id, func_name=func_name))
+
+            func = getattr(self._manager, str(func_name))
+            raw_results = func(*full_args)
+
+            for i, item in enumerate(raw_results):
+                results[params[i][1]] = item
+
+        return results
 
     def handle(self):
         while True:
@@ -452,14 +492,11 @@ class Connection():
                 break
 
             try:
-                if request.__class__.__name__ == 'dict':
-                    results = self._execute(request['func_name'],
-                                            request['params'])
+                # Single request or batch
+                if 'tasks' not in request:
+                    results = self._execute_function(request)
                 else:
-                    results = []
-                    for item in request:
-                        results.append(self._execute(item['func_name'],
-                                                     item['params']))
+                    results = self._execute_batch(request)
                 self._send(results)
             except:
                 pass
@@ -484,8 +521,8 @@ class ODMServer():
             new_id = self._get_new_id()
             conn = Connection(new_id, conn, self._manager)
             Thread(target=conn.handle).start()
-            print 'New connection from {0}, new client id: {1}' \
-                .format(str(addr), str(new_id))
+            logger.log(info_level, 'Client {id} connected {addr}.'
+                       .format(addr=addr, id=new_id))
 
     def start(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -493,16 +530,18 @@ class ODMServer():
         while True:
             try:
                 server_socket.bind((self._host, self._port))
-            except socket.error:
+            except Exception, e:
                 self._port += 1
                 if self._port > 9999:
-                    print 'Starting server failed.'
+                    logger.log(error_level, 'Starting server failed. {error}'
+                               .format(error=str(e)))
                     return
             else:
                 break
 
         server_socket.listen(10)
-        print 'The server is listening on port {0}.'.format(str(self._port))
+        logger.log(info_level, 'The server is listening on port {port}.'
+                   .format(port=self._port))
         self._handle_connections(server_socket)
 
 HOST = 'localhost'
@@ -511,3 +550,24 @@ PORT = 7777
 if __name__ == '__main__':
     server = ODMServer(HOST, PORT)
     server.start()
+    # dm = DatabaseManager()
+    # print dm.get_by_uuid(['970f6d5c-a07d-11e3-9f3a-2cd05ae1c39b',
+    #                       '974eeacc-a07d-11e3-9f3a-2cd05ae1c39b'])
+    # print dm.get_by_link(['NeoUser', 'Website'], ['http://www.gry-online.pl/', 'http://www.tvn24.pl/'])
+    # print dm.get_children([{'uuid': '970f6d5c-a07d-11e3-9f3a-2cd05ae1c39b',
+    #                         'rel_type': '<<INSTANCE>>',
+    #                         'children_params': {}},
+    #                        {'uuid': '970f37f6-a07d-11e3-9f3a-2cd05ae1c39b',
+    #                         'rel_type': '<<INSTANCE>>',
+    #                         'children_params': {}}])
+    # print dm.get_instances(['NeoUser', 'Website'])
+    # print dm.set(node_list=[{'uuid': '974ee6b2-a07d-11e3-9f3a-2cd05ae1c39b',
+    #                          'params': {'dupa': 'a', 'lala': 2}},
+    #                         {'uuid': '974eeacc-a07d-11e3-9f3a-2cd05ae1c39b',
+    #                          'params': {'dupa': 'b'}}])
+    # print dm.create_node(node_list=[{'model_name': 'NeoUser',
+    #                               'params': {'a': 10, 'b': 'lal'}},
+    #                              {'model_name': 'NeoUser',
+    #                               'params': {'c': 10, 'd': 'lal'}}])
+    # print dm.delete_node(node_uuid_list=['dd26d8d4-a0af-11e3-be2a-2cd05ae1c39b',
+    #                                      'dd270bc4-a0af-11e3-be2a-2cd05ae1c39b'])
