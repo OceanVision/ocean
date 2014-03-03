@@ -40,19 +40,33 @@ CONFIG_USER = "ssh-user"
 
 SERVICE_ODM = "odm"
 SERVICE_NEO4J = "neo4j"
-#SERVICE_NEWS_FETCHER_MASTER = "news_fetcher_master"
+SERVICE_NEWS_FETCHER_MASTER = "news_fetcher_master"
 SERVICE_NEWS_FETCHER = "news_fetcher"
+
+
+
 UNARY_SERVICES = set([SERVICE_ODM, SERVICE_NEO4J, SERVICE_NEWS_FETCHER])
 KNOWN_SERVICES = set([SERVICE_ODM, SERVICE_NEO4J, SERVICE_NEWS_FETCHER])
 
 SERVICE = "service"
+#Service ID is in most cases the same as SERVICE, however if it is local, or if it is multiple_slave it can differ
+#For instance hadoop slaves will have service id hadoop_slave:2, whereas local service will have id
+#neo4j_local, service id is basically service_name:additional_config ,where service_name can have
+#additionally local tag
 SERVICE_ID = "id"
 SERVICE_STATUS = "status"
 SERVICE_ADDRESS = "address"
 SERVICE_SSH_PORT = "ssh-port"
 SERVICE_HOME = "home"
 SERVICE_RUN_CMD = "run_cmd"
+SERVICE_PORT = "port"
 SERVICE_USER = "user"
+
+
+additional_default_options = {}
+additional_default_options[SERVICE_ODM] = {SERVICE_PORT: 7777}
+additional_default_options[SERVICE_NEO4J] = {SERVICE_PORT: 7474}
+
 
 DEFAULT_COMMAND = "default"
 DEFAULT_SSH_PORT = 22
@@ -68,16 +82,16 @@ services = []
 
 
 service_tmp = {"service":"odm",SERVICE_SSH_PORT:2231,
-               SERVICE_ID:"odm", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
+               SERVICE_ID:"odm", "status":STATUS_TERMINATED, "address":"http://ocean-db.no-ip.biz", "port":7777,
                "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
                }
 service_tmp2 = {"service":"neo4j",SERVICE_SSH_PORT:2231,
-               SERVICE_ID:"neo4j", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":2231,
+               SERVICE_ID:"neo4j", "status":STATUS_TERMINATED, "address":"http://ocean-db.no-ip.biz", "port":7471,
                "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
                }
 
 service_tmp4 = {"service":"news_fetcher",SERVICE_SSH_PORT:22,
-               SERVICE_ID:"news_fetcher", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":7777,
+               SERVICE_ID:"news_fetcher", "status":STATUS_TERMINATED, "address":"http://ocean-db.no-ip.biz", "port":7777,
                "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
                }
 
@@ -199,85 +213,6 @@ def run_daemons():
 def hello():
     return "Hello world!"
 
-
-@app.route('/register_service', methods=['POST'])
-def register_service():
-    output = json.dumps(OK)
-    with services_lock:
-
-        print request.form
-
-        service_id = request.form['service_id']
-        service = request.form['service']
-
-
-        config = json.loads(request.form['config'])
-
-
-        print "Proceeding"
-        additional_service_config = {}
-        try:
-            additional_service_config = json.loads(request.form['additional_config'])
-        except Exception, ex:
-            print request.form['additional_config']
-            print str(ex)+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-
-        print len(additional_service_config)
-        print "Proceeding"
-
-        if not service or not service_id or len(service)==0 or len(service_id)==0:
-            return json.dumps(ERROR_WRONG_METHOD_PARAMETERS)
-
-        if filter(lambda x: x[SERVICE_ID] == service_id, services):
-            return json.dumps(ERROR_SERVICE_ID_REGISTERED)
-
-        if filter(lambda x: x[SERVICE] == service, services) and service in UNARY_SERVICES:
-            return json.dumps(ERROR_ALREADY_REGISTERED_SERVICE)
-
-        if service not in KNOWN_SERVICES:
-            return json.dumps(ERROR_NOT_RECOGNIZED_SERVICE)
-
-        logger.info("Proceeding to registering {0} {1}".format(service, service_id))
-
-
-        service = {SERVICE:service,
-                   SERVICE_ID:service_id,
-                   SERVICE_USER:config.get(CONFIG_USER, DEFAULT_USER),
-                   SERVICE_STATUS:STATUS_TERMINATED,
-                   SERVICE_ADDRESS:request.remote_addr,
-                   SERVICE_RUN_CMD:DEFAULT_COMMAND,
-                   SERVICE_SSH_PORT:config.get(CONFIG_SSH_PORT, DEFAULT_SSH_PORT),
-                   SERVICE_HOME:config[CONFIG_HOME]
-                   }
-
-        service.update(additional_service_config)
-
-        services.append(service)
-
-        logger.info("Registering "+str(service))
-
-        logger.info("Running service "+service_id)
-
-        update_status(None, service)
-
-        output_run_service = _run_service(service[SERVICE_ID])
-
-
-
-        if output_run_service != json.dumps(OK):
-            logger.error("Failed starting service")
-            logger.info("Running service output = "+str(output))
-
-        if service[SERVICE_STATUS] != STATUS_RUNNING:
-            output = output_run_service
-        else:
-            output = OK
-
-
-
-    return OK
-
-
 def _terminate_service(service_id):
     with services_lock:
         if not filter(lambda x: x[SERVICE_ID] == service_id, services):
@@ -303,15 +238,6 @@ def _terminate_service(service_id):
 
         return json.dumps(status)
 
-@app.route('/terminate_service')
-def terminate_service():
-    service_id = request.args.get('service_id')
-    global services
-    """ Check status of the jobs """
-    return _terminate_service(service_id)
-
-
-
 def _run_service(service_id):
     with services_lock:
         if not filter(lambda x: x[SERVICE_ID] == service_id, services):
@@ -335,7 +261,144 @@ def _run_service(service_id):
 
         logger.info(("Running service ",service_id, "output", output, "status ",status))
 
-        return json.dumps(status)
+        return status
+
+
+
+@app.route('/deregister_service', methods=['POST'])
+def deregister_service():
+    try:
+        with services_lock:
+
+            service_id = json.loads(request.form['service_id'])
+
+            #TODO: add special handling for local
+            if not filter(lambda x: x[SERVICE_ID] == service_id, services):
+                return json.dumps(ERROR_NOT_REGISTERED_SERVICE)
+
+
+            if len(filter(lambda x: x[SERVICE_ID] == service_id, services)) > 1:
+                logger.error("Duplicated service id")
+                exit(1)
+
+            for id, s in enumerate(services):
+                if s[SERVICE_ID]==service_id:
+                    services.remove(id)
+
+
+        return json.dumps(OK)
+
+
+
+    except Exception, e:
+        logger.error("Failed deregistering with "+str(e))
+        return json.dumps("error")
+
+
+@app.route('/register_service', methods=['POST'])
+def register_service():
+    try:
+        output = OK
+        with services_lock:
+
+            print request.form
+
+            run = json.loads(request.form['run'])
+            service = json.loads(request.form['service'])
+            service_id = service
+
+            config = json.loads(request.form['config'])
+
+
+            print "Proceeding"
+            additional_service_config = {}
+            try:
+                additional_service_config = json.loads(request.form['additional_config'])
+            except Exception, ex:
+                print request.form['additional_config']
+                print str(ex)+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+            print len(additional_service_config)
+            print "Proceeding"
+
+
+            #TODO: add special handling for local
+
+            if not service or not service_id or len(service)==0 or len(service_id)==0:
+                return json.dumps(ERROR_WRONG_METHOD_PARAMETERS)
+
+            if filter(lambda x: x[SERVICE_ID] == service_id, services):
+                return json.dumps(ERROR_SERVICE_ID_REGISTERED)
+
+            if filter(lambda x: x[SERVICE] == service, services) and service in UNARY_SERVICES:
+                return json.dumps(ERROR_ALREADY_REGISTERED_SERVICE)
+
+            if service not in KNOWN_SERVICES:
+                return json.dumps(ERROR_NOT_RECOGNIZED_SERVICE)
+
+            logger.info("Proceeding to registering {0} {1}".format(service, service_id))
+
+
+            #Prepare service
+            service_dict = {SERVICE:service,
+                       SERVICE_ID:service_id,
+                       SERVICE_USER:config.get(CONFIG_USER, DEFAULT_USER),
+                       SERVICE_STATUS:STATUS_TERMINATED,
+                       SERVICE_ADDRESS:str(request.remote_addr),
+                       SERVICE_RUN_CMD:DEFAULT_COMMAND,
+                       SERVICE_SSH_PORT:config.get(CONFIG_SSH_PORT, DEFAULT_SSH_PORT),
+                       SERVICE_HOME:config[CONFIG_HOME]
+                       }
+
+            service_dict.update(additional_default_options.get(service, {}))
+            service_dict.update(additional_service_config)
+
+            #Modify service_id to make it unique
+
+
+            services.append(service_dict)
+
+            logger.info(("Registering " if not run else "Running and registering ")+str(service_dict))
+
+            logger.info("Running service "+service_id)
+
+            update_status(None, service_dict)
+
+            if run:
+                output_run_service = _run_service(service_dict[SERVICE_ID])
+                logger.info("Running service result "+output_run_service)
+                if output_run_service != OK:
+                    logger.error("Failed starting service")
+                    logger.info("Running service output = "+str(output))
+
+                if service_dict[SERVICE_STATUS] != STATUS_RUNNING:
+                    output = output_run_service
+                else:
+                    output = OK
+            else:
+                output=OK
+
+
+        return json.dumps(output)
+
+
+
+    except Exception, e:
+        logger.error("Failed registering with "+str(e))
+        return "error"
+
+
+
+@app.route('/terminate_service')
+def terminate_service():
+    service_id = request.args.get('service_id')
+    global services
+    """ Check status of the jobs """
+    return _terminate_service(service_id)
+
+
+
+
 
 @app.route('/run_service')
 def run_service():
@@ -343,7 +406,7 @@ def run_service():
     global services
     """ Check status of the jobs """
 
-    return _run_service(service_id)
+    return json.dumps(_run_service(service_id))
 
 @app.route('/get_configuration', methods=["GET"])
 def get_configuraiton():
@@ -352,7 +415,12 @@ def get_configuraiton():
     if len(tmp) == 2:
         #Typical service_feature configuration
         if filter(lambda x: x[SERVICE_ID] == tmp[0], services):
-            return json.dumps(filter(lambda x: x[SERVICE_ID] == tmp[0], services)[0].get(tmp[1], ERROR_NOT_RECOGNIZED_CONFIGURATION))
+            base = filter(lambda x: x[SERVICE_ID] == tmp[0], services)[0].get(tmp[1], ERROR_NOT_RECOGNIZED_CONFIGURATION)
+            if tmp[1] == SERVICE_ADDRESS and not base.startswith("http"):
+                return json.dumps("http://"+base)
+            else:
+                return json.dumps(base)
+
         else:
             return json.dumps(ERROR_NOT_REGISTERED_SERVICE)
     else:

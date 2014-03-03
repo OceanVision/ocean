@@ -17,12 +17,13 @@ from odm_client import ODMClient
 def massing_add_delete():
     pass  #asserts
 
-
-def basic_tests():    
+def basic_tests_local():
     ### Create Objects ###
     db = DatabaseManager()
     cs = db.get_instances(model_name="ContentSource", children_params={})
-    assert(len(cs) > 0) 
+    assert(len(cs) > 0)
+
+def basic_tests():
     
     ### Connect ###
     cl = ODMClient()
@@ -31,7 +32,7 @@ def basic_tests():
     print "0. get instance by params"
     
     assert(cl.get_instances(model_name="NeoUser", username="kudkudak")[0]["username"]=="kudkudak")
-
+    cs = cl.get_instances(model_name="ContentSource")
 
     print "1. Change one instance"
     ### Change one instance and see if change has occured ### 
@@ -58,13 +59,13 @@ def basic_tests():
     ### Retrieve all instances by get_all_children and after that ###
     ### recieve only the first one ###
     assert(type_content_source is not None)
-    all_children = db.get_children(node_uuid=type_content_source["uuid"],
+    all_children = cl.get_children(node_uuid=type_content_source["uuid"],
                                        rel_type="<<INSTANCE>>")
     assert(len(all_children) > 2)
     
 
     picked_child = all_children[0]
-    picked_child_queried = db.get_children(node_uuid=type_content_source["uuid"],
+    picked_child_queried = cl.get_children(node_uuid=type_content_source["uuid"],
         rel_type="<<INSTANCE>>", children_params={'link': picked_child["link"]})
     assert(len(picked_child_queried) == 1 and \
         picked_child_queried[0]["uuid"] == picked_child["uuid"])
@@ -155,6 +156,6 @@ def test_utf():
 
 
 if __name__ == "__main__":
-    test_utf()
+    #test_utf()
     basic_tests()
 

@@ -111,13 +111,18 @@ class DatabaseManager:
         """Create DatabaseManager driver"""
         logger.log(info_level, 'Created DatabaseManager object')
         self._graph_db = \
-            neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
+            neo4j.GraphDatabaseService("{0}:{1}/db/data/".format(get_configuration("neo4j_address"),
+                                                                 get_configuration("neo4j_port")))
+        logger.log(info_level, "Connecting to "+"{0}:{1}/db/data/".format(get_configuration("neo4j_address"),
+                                                                 get_configuration("neo4j_port")))
+
+
+
         self._uuid_images = dict()
         self._model_name_images = dict()
 
         self._init_uuid_images()
         self._init_model_name_images()
-
 
     @error_handle_odm
     def get_by_uuid(self, **params):
@@ -508,9 +513,11 @@ class ODMServer():
 
 from ocean_don_corleone.utils import get_configuration
 HOST = get_configuration("odm_address")
-PORT = int(get_configuration("odm_port"))
+PORT = get_configuration("odm_port")
 
+print type(PORT)
 print "Odmclient ",HOST,PORT
+print "Neo4j ",get_configuration("neo4j_address"),get_configuration("neo4j_port")
 
 if __name__ == '__main__':
     server = ODMServer(HOST, PORT)

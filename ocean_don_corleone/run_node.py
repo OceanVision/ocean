@@ -19,12 +19,14 @@ LOCAL = "127.0.0.1:8881"
 RESPONSIBILITIES = "node_responsibilities"
 
 
-def install_node(config):
+def install_node(config, run=False):
     """ Waits for webserver to start """
     time.sleep(1)
     logger.info("Installing the node")
     print config[RESPONSIBILITIES]
 
+    if not run:
+        logger.info("WARNING: Only installing not running services")
 
 
     for id, responsibility in enumerate(config[RESPONSIBILITIES]):
@@ -32,14 +34,13 @@ def install_node(config):
 
 
 
-        service, service_id = responsibility[0].split(":") if (len(responsibility[0].split(":"))>1)\
-            else (responsibility[0], responsibility[0])
+        service = responsibility[0]
 
         additional_config = responsibility[1]
 
 
         params = urllib.urlencode\
-                ({"service":service, "service_id":service_id, "config":json.dumps(config),
+                ({"service":json.dumps(service),"run":json.dumps(run) , "config":json.dumps(config),
                   "additional_config":json.dumps(additional_config)
                   })
 
@@ -47,14 +48,14 @@ def install_node(config):
         response = urllib2.urlopen(config[MASTER]+"/register_service", params).read()
         print response
 
-
+import sys
 if __name__ == "__main__":
     config = json.load(open("config.json","r"))
 
     logger.info(("Configuration file ", config))
 
 
-    t = threading.Thread(target=install_node, args=(config,))
+    t = threading.Thread(target=install_node, args=(config,len(sys.argv)!=1))
     t.start()
 
     if config[MASTER]:

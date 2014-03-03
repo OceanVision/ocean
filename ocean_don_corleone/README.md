@@ -41,8 +41,18 @@ You have to specify following items:
 
     * kafka (not implemented)
 
-Each responsibility is a list of name and running command (or just name, if default
-running command is sufficient)
+Each responsibility is a list of name and additional options. Exemplary additional options:
+
+    * for news_fetcher_slave "id" (default id is 0)
+
+    * for ODM (lionfish) "port" (default port is 7777)
+
+    * for neo4j "port" (default port is 7474)
+
+**Note**: It should be possible to run local responsibility (only for this node), but not implemented yet.
+
+**Note**: Responsibilities have to be ordered in the order of starting (topological order).
+Of course it is easy to implement in don corleone so it might be in the future.
 
 * home: path to your ocean directory
 
