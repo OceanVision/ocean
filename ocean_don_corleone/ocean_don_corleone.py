@@ -15,7 +15,10 @@ formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(levelname)s - %(me
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
-
+ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),"server.log"), )
+formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(levelname)s - %(message)s')
+ch_file.setFormatter(formatter)
+logger.addHandler(ch_file)
 
 
 ERROR_NOT_RUNNING_SERVICE = "error_not_running_service_error"
@@ -170,7 +173,7 @@ def update_status(id, m):
         logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", status))
 
         if status == ERROR_NOT_REACHABLE_SERVICE:
-            if id: services.remove(id)
+            if id: services.pop(id)
             logger.info("Service not reachable")
             return
 
@@ -203,7 +206,7 @@ app = Flask(__name__)
 
 #@app.before_first_request
 def run_daemons():
-    t = threading.Thread(targ1et=status_checker_job)
+    t = threading.Thread(target=status_checker_job)
     t.daemon = True
     t.start()
 
@@ -265,12 +268,12 @@ def _run_service(service_id):
 
 
 
-@app.route('/deregister_service', methods=['POST'])
+@app.route('/deregister_service', methods=['GET'])
 def deregister_service():
     try:
         with services_lock:
 
-            service_id = json.loads(request.form['service_id'])
+            service_id = request.args.get('service_id')
 
             #TODO: add special handling for local
             if not filter(lambda x: x[SERVICE_ID] == service_id, services):
@@ -283,7 +286,7 @@ def deregister_service():
 
             for id, s in enumerate(services):
                 if s[SERVICE_ID]==service_id:
-                    services.remove(id)
+                    services.pop(id)
 
 
         return json.dumps(OK)
