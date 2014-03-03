@@ -203,7 +203,7 @@ app = Flask(__name__)
 
 #@app.before_first_request
 def run_daemons():
-    t = threading.Thread(target=status_checker_job)
+    t = threading.Thread(targ1et=status_checker_job)
     t.daemon = True
     t.start()
 
@@ -255,7 +255,7 @@ def _run_service(service_id):
 
         cmd = "\"(cd {0} && {1})\"".format(
                                         os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
-                                        "./scripts/{0}_run.sh".format(m[SERVICE]))
+                                        "./scripts/run.sh {1} ./scripts/{0}_run.sh".format(m[SERVICE], m[SERVICE_ID]))
 
         status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
 

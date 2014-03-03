@@ -21,7 +21,7 @@ RESPONSIBILITIES = "node_responsibilities"
 
 def install_node(config, run=False):
     """ Waits for webserver to start """
-    time.sleep(1)
+    time.sleep(3)
     logger.info("Installing the node")
     print config[RESPONSIBILITIES]
 
@@ -65,7 +65,8 @@ if __name__ == "__main__":
                 os.system("python ocean_don_corleone.py")
         else:
             #TODO: correct condition??
+            logger.info("Checking if run_node should run the ocean_don_corleone service")
             if os.system("./scripts/don_corleone_test.sh") != 0:
                 logger.info("Running DonCorleone on master setting")
-                os.system("workon ocean && gunicorn -c gunicorn_config.py ocean_don_corleone:app")
+                os.system("./scripts/run.sh don ./scripts/don_corleone_run.sh")
 
