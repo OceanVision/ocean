@@ -4,6 +4,8 @@ import threading
 import time
 import logging
 import urllib2, urllib
+from signal import *
+import sys
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -15,14 +17,17 @@ logger.propagate = False
 
 
 MASTER = "master"
-LOCAL = "local"
-LOCAL_ADDRESS = "localhost:8881"
+MASTER_LOCAL = "master_local"
 
 RESPONSIBILITIES = "node_responsibilities"
 
 
 def install_node(config, run=False):
     """ Waits for webserver to start """
+
+    while os.system("./scripts/don_corleone_test.sh") != 0:
+        time.sleep(1)
+
     time.sleep(3)
     logger.info("Installing the node")
     print config[RESPONSIBILITIES]
@@ -47,29 +52,56 @@ def install_node(config, run=False):
                   })
 
 
-        response = urllib2.urlopen((config[MASTER] if config[MASTER] != LOCAL else LOCAL_ADDRESS)
-                                   +"/register_service", params).read()
+        response = urllib2.urlopen(config[MASTER] +"/register_service", params).read()
         print response
 
-import sys
+
+
+
+#Does run_node own don_corleone
+run_node_owner = False
+
+
+def clean(*args):
+    logger.info("Terminating node by terminating node in DonCorleone and terminating DonCorleone if local")
+    ret = os.system("python terminate_node.py")
+
+    if ret != 0:
+        logger.error("Failed terminating node")
+    else:
+        logger.info("Terminated node successfully")
+
+    if run_node_owner:
+        ret = os.system("./scripts/don_corleone_terminate.sh")
+        if ret != 0:
+            logger.error("Failed terminating don corleone")
+            logger.error("Return code = "+str(ret))
+        else:
+            logger.info("Terminated Ocean DonCorleone successfully")
+
+
+
 if __name__ == "__main__":
+    #Load configuration files
     config = json.load(open("config.json","r"))
 
     logger.info(("Configuration file ", config))
 
-
+    #Start installing thread
     t = threading.Thread(target=install_node, args=(config,len(sys.argv)!=1))
     t.start()
 
-    if config[MASTER]:
-        if config[MASTER] == LOCAL:
-            if os.system("./scripts/don_corleone_test.sh") != 0:
-                logger.info("Running DonCorleone on local setting")
-                os.system("python ocean_don_corleone.py")
-        else:
-            #TODO: correct condition??
-            logger.info("Checking if run_node should run the ocean_don_corleone service")
-            if os.system("./scripts/don_corleone_test.sh") != 0:
-                logger.info("Running DonCorleone on master setting")
-                os.system("./scripts/run.sh don ./scripts/don_corleone_run.sh")
+    #Check if run_node should create Don Corleone
+    if config.get(MASTER_LOCAL, False):
+        logger.info("Checking if run_node should run the ocean_don_corleone service")
+        if os.system("./scripts/don_corleone_test.sh") != 0:
+            logger.info("Running DonCorleone on master setting")
+            run_node_owner = True
+            os.system("./scripts/run.sh don ./scripts/don_corleone_run.sh")
 
+
+    #Clean shutdown
+    for sig in (SIGINT,):
+        signal(sig, clean)
+    while True:
+        time.sleep(1.0)

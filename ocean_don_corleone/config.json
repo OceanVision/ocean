@@ -1,6 +1,7 @@
 {
 
 "master":"http://127.0.0.1:8882",
+"master_local":true,
 "node_responsibilities":[
     ["neo4j",{"port":7474}],
     ["odm",{"port":7777}],
