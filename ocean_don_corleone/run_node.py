@@ -15,7 +15,9 @@ logger.propagate = False
 
 
 MASTER = "master"
-LOCAL = "127.0.0.1:8881"
+LOCAL = "local"
+LOCAL_ADDRESS = "localhost:8881"
+
 RESPONSIBILITIES = "node_responsibilities"
 
 
@@ -45,7 +47,8 @@ def install_node(config, run=False):
                   })
 
 
-        response = urllib2.urlopen(config[MASTER]+"/register_service", params).read()
+        response = urllib2.urlopen((config[MASTER] if config[MASTER] != LOCAL else LOCAL_ADDRESS)
+                                   +"/register_service", params).read()
         print response
 
 import sys

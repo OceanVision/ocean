@@ -1,6 +1,21 @@
 import json
 import urllib2, urllib
+import logging
+import os
+import sys
 
+#TODO: move to another class
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+ch = logging.StreamHandler()
+formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+logger.propagate = False
+ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),"server.log"), )
+formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(levelname)s - %(message)s')
+ch_file.setFormatter(formatter)
+logger.addHandler(ch_file)
 
 MASTER = "master"
 def get_configuration(name):
