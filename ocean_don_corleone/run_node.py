@@ -3,6 +3,10 @@ import json
 import threading
 import time
 import logging
+import urllib2, urllib
+from signal import *
+import sys
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 ch = logging.StreamHandler()
@@ -13,25 +17,91 @@ logger.propagate = False
 
 
 MASTER = "master"
-LOCAL = "local"
-RESPONSIBILITIES = "responsibilities"
+MASTER_LOCAL = "master_local"
+
+RESPONSIBILITIES = "node_responsibilities"
 
 
-def install_node(config):
+def install_node(config, run=False):
     """ Waits for webserver to start """
-    time.sleep(1)
-    logger.info("Installing node")
+
+    while os.system("./scripts/don_corleone_test.sh") != 0:
+        time.sleep(1)
+
+    time.sleep(3)
+    logger.info("Installing the node")
+    print config[RESPONSIBILITIES]
+
+    if not run:
+        logger.info("WARNING: Only installing not running services")
+
+
+    for id, responsibility in enumerate(config[RESPONSIBILITIES]):
+        logger.info("Registering "+str(id)+" responsibility "+str(responsibility))
+
+
+
+        service = responsibility[0]
+
+        additional_config = responsibility[1]
+
+
+        params = urllib.urlencode\
+                ({"service":json.dumps(service),"run":json.dumps(run) , "config":json.dumps(config),
+                  "additional_config":json.dumps(additional_config)
+                  })
+
+
+        response = urllib2.urlopen(config[MASTER] +"/register_service", params).read()
+        print response
+
+
+
+
+#Does run_node own don_corleone
+run_node_owner = False
+
+
+def clean(*args):
+    logger.info("Terminating node by terminating node in DonCorleone and terminating DonCorleone if local")
+    ret = os.system("python terminate_node.py")
+
+    if ret != 0:
+        logger.error("Failed terminating node")
+    else:
+        logger.info("Terminated node successfully")
+
+    if run_node_owner:
+        ret = os.system("./scripts/don_corleone_terminate.sh")
+        if ret != 0:
+            logger.error("Failed terminating don corleone")
+            logger.error("Return code = "+str(ret))
+        else:
+            logger.info("Terminated Ocean DonCorleone successfully")
+
+
 
 if __name__ == "__main__":
+    #Load configuration files
     config = json.load(open("config.json","r"))
+
     logger.info(("Configuration file ", config))
 
-    t = threading.Thread(target=install_node, args=(config,))
+    #Start installing thread
+    t = threading.Thread(target=install_node, args=(config,len(sys.argv)!=1))
     t.start()
 
-    if config[MASTER]:
-        if config[MASTER] == LOCAL:
-            os.system("python ocean_don_corleone.py")
-        else:
-            os.system("gunicorn -c gunicorn_config.py ocean_don_corleone:app")
+    #Check if run_node should create Don Corleone
+    if config.get(MASTER_LOCAL, False):
+        logger.info("Checking if run_node should run the ocean_don_corleone service")
+        if os.system("./scripts/don_corleone_test.sh") != 0:
+            logger.info("Running DonCorleone on master setting")
+            run_node_owner = True
+            os.system("./scripts/run.sh don ./scripts/don_corleone_run.sh")
 
+
+    #Clean shutdown
+    for sig in (SIGINT,):
+        signal(sig, clean)
+    while True:
+        time.sleep(1.0)

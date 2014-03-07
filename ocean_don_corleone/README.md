@@ -8,16 +8,28 @@ run services yourself!
 
 Sidenote: For checking Hadoop cluster status we will use Hue service (included in Cloudera package).
 
+### TODO
+
+* Local responsibilities
+
+* Terminating node (terminate_node.py)
+
+* Get node status service
+
+* Frontend
 
 ### Configuration file
 
 You have to specify following items:
 
-* master: ip or domain of the master node, if you want to run locally everything just set it to "local"
+* master: ip or domain of the master node, if you want to run locally everything just set it to "local", if
+you want your node to become master set it to "localhost:8882"
 
 * responsibilties: what responsibilities is this node registering. Options:
 
     * neo4j
+
+    * **temporary**: news_fetcher
 
     * news_fetcher_master (not implemented, pending)
 
@@ -39,8 +51,18 @@ You have to specify following items:
 
     * kafka (not implemented)
 
-Each responsibility is a list of name and running command (or just name, if default
-running command is sufficient)
+Each responsibility is a list of name and additional options. Exemplary additional options:
+
+* for news_fetcher_slave "id" (default id is 0)
+
+* for ODM (lionfish) "port" (default port is 7777)
+
+* for neo4j "port" (default port is 7474)
+
+**Note**: It should be possible to run local responsibility (only for this node), but not implemented yet.
+
+**Note**: Responsibilities have to be ordered in the order of starting (topological order).
+Of course it is easy to implement in don corleone so it might be in the future.
 
 * home: path to your ocean directory
 
@@ -73,8 +95,9 @@ Function returns a JSON, in our case it will be in most cases a string.
 
 ### Stoping
 
-Hit ctrl+C , run_node.py should terminate the responsibilities and deregister.
+Hit ctrl+C , run_node.py should terminate the responsibilities and deregister. (Not implemented yet)
 
 ### Administrating
 
-Go to <master>:8881  , and you should see webservice with intuitive UI for administrating Ocean.
+Go to <master>:8882 (or 8881 if run by python ocean_don_corleone.py),
+and you should see webservice with intuitive UI for administrating Ocean.

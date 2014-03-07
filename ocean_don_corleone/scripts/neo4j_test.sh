@@ -1,3 +1,3 @@
 #!/bin/bash
-./init.sh
-echo `ps ax | grep neo4j | wc -l
+source ./init.sh
+(( `ps ax | grep neo4j | wc -l` > 1 ))
