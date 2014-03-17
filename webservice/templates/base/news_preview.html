@@ -1,16 +1,12 @@
 {% extends 'base/index.html' %}
 {% block body %}
 
+<a id="news-preview-close" href="{{ url }}"></a>
 <div id="news-preview" class="container" data-transit="true">
     <object type="text/html" data="{{ url }}"></object>
 </div>
 
 <script type="text/javascript">
-    $(document).on('ready', function() {
-        var el = $('div#news-preview object');
-        el.css({
-            'height' : ($(window).height() - 73) + 'px'
-        });
-    });
+    $('div#news-preview object').css('height', ($(window).height() - 60) + 'px');
 </script>
 {% endblock %}

@@ -257,9 +257,6 @@ class NewsFetcher(GraphWorker):
 
         # Default iteration stop
         if newer_than is None:
-            #logger.log(MY_INFO_LEVEL, ("News website "+news_website[CONTENT_SOURCE_LINK],
-            #    "last_updated ", database_timestamp_to_datetime(news_website[CONTENT_SOURCE_LAST_UPDATE]))
-            #)
             newer_than = database_timestamp_to_datetime(news_website[CONTENT_SOURCE_LAST_UPDATE])
 
         #logger.log(MY_INFO_LEVEL, "Fetching news from "+str(rss_link)+" newer_than "+str(newer_than))
@@ -305,6 +302,7 @@ class NewsFetcher(GraphWorker):
             d = pubdate_to_datetime(try_get_node_value(item, "pubDate"))
 
             news_node[CONTENT_PUBDATE_TIMESTAMP] = GMTdatetime_to_database_timestamp(d)
+            #print GMTdatetime_to_database_timestamp(d), " is ", d
 
             if len(news_node["title"])<5 or len(news_node["description"])<5 or len(news_node["link"])<5:
                 continue

@@ -5,8 +5,8 @@
 
     <div class="leaflet"><p class="header">EDIT PROFILE</p></div>
     <form action="/edit_profile" method="post">
-        {% csrf_token %}
         {% load widget_tweaks %}
+        {% csrf_token %}
         {% ifequal form.description.value "description" %}
             {% render_field form.description type="text" data-value="description" %}
         {% else %}
