@@ -8,19 +8,20 @@ get_by_uuid will be cached, as well as multiget. Other get procedures are
 not guaranteed to be cached
 """
 
-
-from py2neo import neo4j
 import uuid
 import os
 import socket
-from threading import Thread, Lock
+from threading import Thread
 import json
+
+from py2neo import neo4j
+
 # Logging (TODO: move creation of logger to utils)
 import logging
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__),"graph_workers"))
-from graph_defines import *
+from graph_workers.graph_defines import *
 
 # Defining levels to get rid of other loggers
 info_level = 100

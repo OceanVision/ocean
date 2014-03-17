@@ -1,24 +1,18 @@
 """
 Will be rewritten to database driven communication
 """
-import sys,os
-
-lib_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'news_fetcher'))
-sys.path.append(lib_path)
 print __file__
 
-from graph_utils import logger
 from news_fetcher import NewsFetcher
 import threading
-from privileges import construct_full_privilege, privileges_bigger_or_equal
-import time
-import inspect
+from privileges import construct_full_privilege
 from signal import *
-from graph_utils import *
+from graph_workers.graph_utils import *
+
 
 class GraphWorkersManager(object):
     """
-        Stub for manager of workers. On singal terminates all workers
+        Stub for manager of workers. On signal terminates all workers
         Will be rewritten to database driven communication
     """
     def __init__(self):
@@ -26,7 +20,8 @@ class GraphWorkersManager(object):
 
     def run(self):
         # Now it will only create NewsFetcher, stub :)
-        nf_master = NewsFetcher.create_master(privileges=construct_full_privilege())
+        nf_master = NewsFetcher.create_master(
+            privileges=construct_full_privilege())
 
         threading.Thread(target=nf_master.run).start()
         self.graph_workers.append(nf_master)
@@ -39,6 +34,7 @@ class GraphWorkersManager(object):
 
 gwm = None
 
+
 def clean(*args):
     global gwm
     logger.log(MY_INFO_IMPORTANT_LEVEL, "Terminating GWM")
@@ -46,7 +42,8 @@ def clean(*args):
     exit(0)
 
 if __name__ == "__main__":
-    logger.log(MY_INFO_IMPORTANT_LEVEL, "Starting GraphWorkersManager. To be started from OceanMaster")
+    logger.log(MY_INFO_IMPORTANT_LEVEL,
+               "Starting GraphWorkersManager. To be started from OceanMaster")
     gwm = GraphWorkersManager()
     gwm.run()
 

@@ -7,13 +7,9 @@ So if graph_db is closed - it fails.
 # when writing to database and also wrap basic access patterns
 
 
-import datetime
 from datetime import datetime, timedelta
-import pytz
-from dateutil import parser
 from pytz import timezone
 from py2neo import neo4j
-from py2neo import node, rel
 
 import py2neo
 import time

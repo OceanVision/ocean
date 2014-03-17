@@ -17,31 +17,24 @@ d = d.replace(tzinfo = timezone("GMT")) - otherwise the system won't work proper
 #TODO: Handle carefully time (UTC not GMT)
 
 import sys
-import os
 import copy
 from collections import namedtuple
-sys.path.append(os.path.join(os.path.dirname(__file__),".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import inspect
 
 from odm_client import ODMClient
 
-from graph_worker import GraphWorker
-import logging
-from neo4j_wrapper import datetime_to_pubdate, pubdate_to_datetime, \
-    get_all_instances, get_type_metanode, count_same_news, get_records_from_cypher
-from privileges import construct_full_privilege, privileges_bigger_or_equal
-from py2neo import neo4j
-from py2neo import node, rel
-import py2neo
-from graph_defines import * # import defines for fields
-from graph_utils import *
+from graph_workers.graph_worker import GraphWorker
+from graph_workers.privileges import construct_full_privilege, \
+    privileges_bigger_or_equal
+from graph_workers.graph_defines import *  # import defines for fields
+from graph_workers.graph_utils import *
+from graph_workers.neo4j_wrapper import *
 import os
 import urllib2
 import xml.dom.minidom
 from datetime import timedelta, datetime
-from dateutil import parser
 import time
-from pytz import timezone
 
 NewsFetcherJob = namedtuple("NewsFetcherJob", 'neo4j_node work_time')
 """
@@ -53,11 +46,13 @@ NewsFetcherJob = namedtuple("NewsFetcherJob", 'neo4j_node work_time')
 logging.basicConfig(level=MY_DEBUG_LEVEL)
 logger = logging.getLogger(__name__)
 ch = logging.StreamHandler()
-formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter(
+    '%(funcName)s - %(asctime)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
-ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),"../../logs/news_fetcher.log"), )
+ch_file = logging.FileHandler(
+    os.path.join(os.path.dirname(__file__), "../../logs/news_fetcher.log"), )
 ch_file.setLevel(MY_IMPORTANT_LEVEL)
 logger.addHandler(ch_file)
 
@@ -68,7 +63,10 @@ class NewsFetcher(GraphWorker):
     minimum_time_delta_to_update = 0
 
     def __init__(self, privileges, master_descriptor=None):
-        if not privileges_bigger_or_equal(privileges, NewsFetcher.required_privileges):
+        if not privileges_bigger_or_equal(
+                privileges,
+                NewsFetcher.required_privileges
+        ):
             raise Exception("Not enough privileges")
 
         self.odm_client = ODMClient()

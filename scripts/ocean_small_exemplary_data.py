@@ -1,19 +1,24 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+
 """
 Exemplary data for neo4j database
 Note : wipes database !
 Connection done using RESTApi and wrapper for python py2neo
 """
 
-from py2neo import neo4j
-from py2neo import node, rel
 import time
 import sys
 import uuid
 import os
+
+from py2neo import neo4j
+from py2neo import node, rel
+
 sys.path.append('../graph_workers/')
 lib_path = os.path.abspath('./graph_workers')
 sys.path.append(lib_path)
-from graph_defines import *
+from graph_workers.graph_defines import *
 
 APP_LABEL = 'rss'
 

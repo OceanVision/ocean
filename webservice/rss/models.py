@@ -1,11 +1,10 @@
 import os
+
 from django.db import models
 from django.contrib.auth.models import User
 from neo4django.db import models as neo4j_models
-from py2neo import node
-import sys
-from graph_defines import *
 
+from graph_workers.graph_defines import *
 
 
 def get_image_path(instance, filename):
