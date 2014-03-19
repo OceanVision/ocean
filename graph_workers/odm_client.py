@@ -2,7 +2,7 @@ import socket
 import json
 import inspect
 
-HOST = 'ocean-db.no-ip.biz'
+HOST = 'localhost'#'ocean-db.no-ip.biz'
 PORT = 7777
 import struct
 """ Utils for  prefix length TCP """
@@ -243,6 +243,20 @@ class ODMClient:
         """
         data = {'func_name': 'delete_node', 'params': {
             'node_uuid': node_uuid
+        }}
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(data)
+        self.recv()
+
+    def add_model(self, model_name):
+        """
+        Adds a new model node.
+        @type model_name string
+        """
+        data = {'func_name': 'add_model', 'params': {
+            'model_name': model_name
         }}
 
         if inspect.stack()[1][3] == '_get_data_for_batch':

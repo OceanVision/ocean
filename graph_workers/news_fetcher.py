@@ -52,7 +52,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
 ch_file = logging.FileHandler(
-    os.path.join(os.path.dirname(__file__), "../../logs/news_fetcher.log"), )
+    os.path.join(os.path.dirname(__file__), "../logs/news_fetcher.log"), )
 ch_file.setLevel(MY_IMPORTANT_LEVEL)
 logger.addHandler(ch_file)
 
