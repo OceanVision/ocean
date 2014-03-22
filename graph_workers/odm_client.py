@@ -3,7 +3,7 @@ import os
 import logging
 import inspect
 
-HOST = 'localhost'#'ocean-db.no-ip.biz'
+HOST = 'ocean-neo4j.no-ip.biz'  # 'localhost'
 PORT = 7777
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'graph_workers'))
@@ -26,8 +26,8 @@ ch_file.setLevel(info_level)
 logger.addHandler(ch_file)
 
 
-class ODMClient:
-    class Batch:
+class ODMClient(object):
+    class Batch(object):
         def __init__(self, client):
             self.client = client
             self.tasks = {}
@@ -59,9 +59,10 @@ class ODMClient:
                 'tasks': self.tasks,
                 'count': self.count
             }
+
             self.client.send(request)
             results = self.client.recv()
-            # print request
+
             self.tasks = {}
             self.count = 0
             return results
@@ -72,19 +73,13 @@ class ODMClient:
         self._conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def connect(self):
-        while True:
-            try:
-                self._conn.connect((self._host, self._port))
-            except Exception as e:
-                self._port += 1
-                if self._port > 9999:
-                    logger.log(error_level, 'Connecting failed. {error}'
-                               .format(error=str(e)))
-                    return
-            else:
-                break
-        logger.log(error_level, 'The client has connected to {host}:{port}.'
-                   .format(host=self._host, port=self._port))
+        try:
+            self._conn.connect((self._host, self._port))
+            logger.log(error_level, 'The client has connected to {host}:{port}.'
+                       .format(host=self._host, port=self._port))
+        except Exception as e:
+            logger.log(error_level, 'Connecting failed. {error}'
+                       .format(error=str(e)))
 
     def disconnect(self):
         try:
@@ -138,13 +133,17 @@ class ODMClient:
         """
         data = {
             'func_name': 'get_by_link',
-            'args': [model_name, link]
+            'args': [{
+                'model_name': model_name,
+                'link': link
+            }]
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(data)
-        return self.recv()
+        results = self.recv()
+        return results[0] if len(results) > 0 else {}
 
     def get_model_nodes(self, **params):
         """
@@ -181,7 +180,8 @@ class ODMClient:
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(data)
-        return self.recv()
+        results = self.recv()
+        return results[0] if len(results) > 0 else []
 
     def get_instances(self, model_name, **params):
         """
@@ -197,9 +197,10 @@ class ODMClient:
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(data)
-        return self.recv()
+        results = self.recv()
+        return results[0] if len(results) > 0 else []
 
-    def set(self, node_uuid, node_params, **params):
+    def set(self, node_uuid, **params):
         """
         Sets node_params to a node of given node_uuid
         @param node_uuid string
@@ -209,7 +210,7 @@ class ODMClient:
             'func_name': 'set',
             'args': [{
                 'uuid': node_uuid,
-                'params': node_params
+                'params': params
             }]
         }
 
@@ -218,7 +219,7 @@ class ODMClient:
         self.send(data)
         return self.recv()
 
-    def create_node(self, model_name, node_params, **params):
+    def create_node(self, model_name, **params):
         """
         Creates a node with node_params to the model given by model_name
         (with the associated relationship of <<INSTANCE>>)
@@ -229,14 +230,16 @@ class ODMClient:
             'func_name': 'create_nodes',
             'args': [{
                 'model_name': model_name,
-                'params': node_params
+                'params': params
             }]
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(data)
-        return self.recv()
+        results = self.recv()
+        # TODO: catching errors
+        return results[0] if len(results) > 0 else None
 
     def delete_node(self, node_uuid, **params):
         """
@@ -342,15 +345,3 @@ class ODMClient:
                 self.send(data)
                 return self.recv()
             return generic_result
-
-# if __name__ == '__main__':
-#     cl = ODMClient()
-#     cl.connect()
-#     batch = cl.get_batch()
-#     batch.append(cl.get_children, '970f6d5c-a07d-11e3-9f3a-2cd05ae1c39b', '<<INSTANCE>>', username='brunokam')
-#     batch.append(cl.get_by_uuid, '970f6d5c-a07d-11e3-9f3a-2cd05ae1c39b') # NeoUser
-#     batch.append(cl.get_children, '970f37f6-a07d-11e3-9f3a-2cd05ae1c39b', '<<INSTANCE>>', language='pl')
-#     batch.append(cl.get_by_uuid, '974ee6b2-a07d-11e3-9f3a-2cd05ae1c39b') # kudkudak
-#     print batch.submit()
-#     print cl.get_by_uuid('970f6d5c-a07d-11e3-9f3a-2cd05ae1c39b')
-#     cl.disconnect()

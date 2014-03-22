@@ -37,10 +37,10 @@ ch_file.setLevel(info_level)
 logger.addHandler(ch_file)
 
 
-class DatabaseManager:
+class DatabaseManager(object):
     """ Driver for Neo4j database """
     def __init__(self):
-        """Create DatabaseManager driver"""
+        """ Creates DatabaseManager driver """
         logger.log(info_level, 'Created DatabaseManager object')
         self._graph_db = \
             neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
@@ -128,28 +128,41 @@ class DatabaseManager:
             WHERE id(e) IN {node_id_list}
             RETURN (e)
             '''
-        return self._execute_query(query_string, node_id_list=node_id_list)
+        results = self._execute_query(query_string, node_id_list=node_id_list)
+        return [item[0] for item in results]
 
     @error_handle_odm
-    def get_by_link(self, model_name_list, link_list):
+    def get_by_link(self, node_list):
         # Extracts ids from a list of model names
         model_id_list = []
-        for model_name in model_name_list:
+        for node in node_list:
+            model_name = node['model_name']
             if model_name not in self._model_name_images:
                 raise Exception('Unknown model name')
-            model_id_list.append(
-                self._uuid_images[self._model_name_images[model_name]])
+            node['model_id'] = \
+                self._uuid_images[self._model_name_images[model_name]]
+
+        # Prepares MATCH statement
+        match_str = 'MATCH (e)-[r1:`<<TYPE>>`]->(t)-[r2:`<<INSTANCE>>`]->(a)\n'
+
+        # Prepares WHERE clause
+        where_str = 'WHERE id(e) = 0 AND HAS(a.link) AND ('
+        for node in node_list:
+            where_str += '(id(t) = {model_id} ' \
+                         'AND a.link = {link}) OR '\
+                .format(
+                    model_id=node['model_id'],
+                    link=json.dumps(node['link'], ensure_ascii=False)
+                )
+        where_str = where_str[:len(where_str) - 4] + ')\n'
+
+        # Prepares RETURN statement
+        return_str = 'RETURN (a)'
 
         # Builds query and gets results
-        query_string = \
-            '''
-            MATCH (e)-[r1:`<<TYPE>>`]->(t)-[r2:`<<INSTANCE>>`]->(a)
-            WHERE id(e) = 0 AND HAS (a.link) AND (id(t) IN {model_id_list}) AND (a.link IN {link_list})
-            RETURN (a)
-            '''
-        return self._execute_query(query_string,
-                                   model_id_list=model_id_list,
-                                   link_list=link_list)
+        query_string = match_str + where_str + return_str
+        results = self._execute_query(query_string)
+        return [item[0] for item in results]
 
     @error_handle_odm
     def get_model_nodes(self):
@@ -181,17 +194,22 @@ class DatabaseManager:
                 for key, value in node['children_params'].iteritems():
                     where_str += '(id(e) = {node_id} AND type(r) = {rel_type} ' \
                                  'AND a.{key} = {value}) OR '\
-                        .format(node_id=node['id'],
-                                rel_type=unicode(json.dumps(node['rel_type'],
-                                                            ensure_ascii=False)),
-                                key=key,
-                                value=unicode(json.dumps(value,
-                                                         ensure_ascii=False)))
+                        .format(
+                            node_id=node['id'],
+                            rel_type=unicode(
+                                json.dumps(node['rel_type'], ensure_ascii=False)
+                            ),
+                            key=key,
+                            value=unicode(json.dumps(value, ensure_ascii=False))
+                        )
             else:
                 where_str += '(id(e) = {node_id} AND type(r) = {rel_type}) OR '\
-                    .format(node_id=node['id'],
-                            rel_type=unicode(json.dumps(node['rel_type'],
-                                                        ensure_ascii=False)))
+                    .format(
+                        node_id=node['id'],
+                        rel_type=unicode(
+                            json.dumps(node['rel_type'], ensure_ascii=False)
+                        )
+                    )
         where_str = where_str[:len(where_str) - 4] + '\n'
 
         # Prepares RETURN statement
@@ -243,16 +261,20 @@ class DatabaseManager:
         # Prepares WHERE clause
         where_str = 'WHERE '
         for i, node in enumerate(node_list):
-            where_str += 'id(e{no}) = {node_id} AND '.format(no=i, node_id=node['id'])
+            where_str += 'id(e{no}) = {node_id} AND '.format(
+                no=i, node_id=node['id']
+            )
         where_str = where_str[:len(where_str) - 5] + '\n'
 
         # Prepares SET statement
         set_str = 'SET '
         for i, node in enumerate(node_list):
             for key, value in node['params'].iteritems():
-                set_str += 'e{no}.{key} = {value}, '\
-                    .format(no=i, key=key,
-                            value=unicode(json.dumps(value, ensure_ascii=False)))
+                set_str += 'e{no}.{key} = {value}, '.format(
+                    no=i,
+                    key=key,
+                    value=unicode(json.dumps(value, ensure_ascii=False))
+                )
         set_str = set_str[:len(set_str) - 2]
 
         # Builds query and runs it
@@ -265,14 +287,14 @@ class DatabaseManager:
         for node in node_list:
             model_name = node['model_name']
             if model_name not in self._model_name_images:
-                raise Exception('Unknown type')
+                raise Exception('Unknown model name')
             # Default values loaded from graph_defines
             # (for instances loved for Content)
-            node_params = GRAPH_MODELS[model_name] \
+            params = dict(GRAPH_MODELS[model_name]) \
                 if model_name in GRAPH_MODELS else {}
-            node_params.update(node['params'])
-            node_params['uuid'] = str(uuid.uuid1())
-            node['params'] = node_params
+            params.update(node['params'])
+            params['uuid'] = str(uuid.uuid1())
+            node['params'] = params
 
         # Builds query and gets results
         query_string = \
@@ -280,14 +302,16 @@ class DatabaseManager:
             CREATE (e {node_list})
             RETURN id(e)
             '''
-        node_results = \
-            self._execute_query(query_string,
-                                node_list=[n['params'] for n in node_list])
+        node_results = self._execute_query(
+            query_string,
+            node_list=[n['params'] for n in node_list]
+        )
 
         if len(node_results) == 0:
             raise Exception('Executing query failed')
 
         # Connects relations to newly created nodes
+        node_uuid_list = []
         rel_list = []
         for i, node in enumerate(node_list):
             self._uuid_images[node['params']['uuid']] = node_results[i][0]
@@ -340,7 +364,7 @@ class DatabaseManager:
             rel['start_node_id'] = self._uuid_images[start_node_uuid]
             rel['end_node_id'] = self._uuid_images[end_node_uuid]
 
-            rel_params_dict['params{no}'.format(i)] = rel['params'] \
+            rel_params_dict['params{no}'.format(no=i)] = rel['params'] \
                 if 'params' in rel else {}
 
         # Prepares MATCH statement
@@ -354,8 +378,11 @@ class DatabaseManager:
         for i, rel in enumerate(rel_list):
             where_str += 'id(a{no}) = {start_node_id} ' \
                          'AND id(b{no}) = {end_node_id} AND '\
-                .format(no=i, start_node_id=rel['start_node_id'],
-                        end_node_id=rel['end_node_id'])
+                .format(
+                    no=i,
+                    start_node_id=rel['start_node_id'],
+                    end_node_id=rel['end_node_id']
+                )
         where_str = where_str[:len(where_str) - 5] + '\n'
 
         # Prepares CREATE statements
@@ -393,8 +420,11 @@ class DatabaseManager:
         for i, rel in enumerate(rel_list):
             where_str += 'id(a{no}) = {start_node_id} ' \
                          'AND id(b{no}) = {end_node_id} AND '\
-                .format(no=i, start_node_id=rel['start_node_id'],
-                        end_node_id=rel['end_node_id'])
+                .format(
+                    no=i,
+                    start_node_id=rel['start_node_id'],
+                    end_node_id=rel['end_node_id']
+                )
         where_str = where_str[:len(where_str) - 5] + '\n'
 
         # Prepares DELETE statement
@@ -453,13 +483,18 @@ class Connection():
         func_name = request['func_name']
         args = request['args']
 
-        for i in range(0, len(args)):
-            args[i] = [args[i]]
+        if func_name != 'execute_query' and func_name != 'run_query':
+            for i in range(0, len(args)):
+                args[i] = [args[i]]
+
+        logger.log(info_level, 'Client {id}: {func_name}'.format(
+            id=self._id, func_name=func_name
+        ))
 
         func = getattr(self._manager, str(func_name))
 
         results = func(*args)
-        return results if len(results) > 1 else results[0]
+        return results
 
     @error_handle_odm
     def _execute_batch(self, request):
@@ -467,15 +502,22 @@ class Connection():
         count = request['count']
 
         # Prepares request to be executed
-        results = [None] * count
+        # TODO: consider execute_query and run_query as nonbatchable
+        results = []
+        for i in range(0, count):
+            results.append([None])
+
         for func_name, params in tasks.iteritems():
-            full_args = [[]] * len(params[0][0])
+            full_args = []
+            for i in range(0, len(params[0][0])):
+                full_args.append([])
             for args, no in params:
                 for i, item in enumerate(args):
                     full_args[i].append(item)
 
-            logger.log(info_level, 'Client {id}: {func_name}'
-                       .format(id=self._id, func_name=func_name))
+            logger.log(info_level, 'Client {id}: {func_name}'.format(
+                id=self._id, func_name=func_name
+            ))
 
             func = getattr(self._manager, str(func_name))
             raw_results = func(*full_args)
@@ -504,7 +546,7 @@ class Connection():
         self._disconnect()
 
 
-class ODMServer():
+class ODMServer(object):
     def __init__(self, host, port):
         self._host = host
         self._port = port
@@ -527,47 +569,19 @@ class ODMServer():
     def start(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        while True:
-            try:
-                server_socket.bind((self._host, self._port))
-            except Exception, e:
-                self._port += 1
-                if self._port > 9999:
-                    logger.log(error_level, 'Starting server failed. {error}'
-                               .format(error=str(e)))
-                    return
-            else:
-                break
+        try:
+            server_socket.bind((self._host, self._port))
+            server_socket.listen(10)
+            logger.log(info_level, 'The server is listening on port {port}.'
+                       .format(port=self._port))
+            self._handle_connections(server_socket)
+        except Exception, e:
+            logger.log(error_level, 'Starting server failed. {error}'
+                       .format(error=str(e)))
 
-        server_socket.listen(10)
-        logger.log(info_level, 'The server is listening on port {port}.'
-                   .format(port=self._port))
-        self._handle_connections(server_socket)
-
-HOST = 'localhost'
+HOST = ''
 PORT = 7777
 
 if __name__ == '__main__':
     server = ODMServer(HOST, PORT)
     server.start()
-    # dm = DatabaseManager()
-    # print dm.get_by_uuid(['970f6d5c-a07d-11e3-9f3a-2cd05ae1c39b',
-    #                       '974eeacc-a07d-11e3-9f3a-2cd05ae1c39b'])
-    # print dm.get_by_link(['NeoUser', 'Website'], ['http://www.gry-online.pl/', 'http://www.tvn24.pl/'])
-    # print dm.get_children([{'uuid': '970f6d5c-a07d-11e3-9f3a-2cd05ae1c39b',
-    #                         'rel_type': '<<INSTANCE>>',
-    #                         'children_params': {}},
-    #                        {'uuid': '970f37f6-a07d-11e3-9f3a-2cd05ae1c39b',
-    #                         'rel_type': '<<INSTANCE>>',
-    #                         'children_params': {}}])
-    # print dm.get_instances(['NeoUser', 'Website'])
-    # print dm.set(node_list=[{'uuid': '974ee6b2-a07d-11e3-9f3a-2cd05ae1c39b',
-    #                          'params': {'dupa': 'a', 'lala': 2}},
-    #                         {'uuid': '974eeacc-a07d-11e3-9f3a-2cd05ae1c39b',
-    #                          'params': {'dupa': 'b'}}])
-    # print dm.create_node(node_list=[{'model_name': 'NeoUser',
-    #                               'params': {'a': 10, 'b': 'lal'}},
-    #                              {'model_name': 'NeoUser',
-    #                               'params': {'c': 10, 'd': 'lal'}}])
-    # print dm.delete_node(node_uuid_list=['dd26d8d4-a0af-11e3-be2a-2cd05ae1c39b',
-    #                                      'dd270bc4-a0af-11e3-be2a-2cd05ae1c39b'])
