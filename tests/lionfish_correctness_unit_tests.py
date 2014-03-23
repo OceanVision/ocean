@@ -1,23 +1,21 @@
 import os
 import sys
-import re
-import traceback
 from py2neo import neo4j
 from unit_tests_interface import UnitTests
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '../graph_workers'))
 from odm_client import ODMClient
 
 
-class LionfishUnitTests(UnitTests):
+class LionfishCorrectnessUnitTests(UnitTests):
     def __init__(self):
-        super(LionfishUnitTests, self).__init__()
+        super(LionfishCorrectnessUnitTests, self).__init__()
+        self.run = self._run_correctness_tests
         self._client = ODMClient()
         self._client.connect()
         self._batch = self._client.get_batch()
         graph_db = neo4j.GraphDatabaseService(
-            # 'http://ocean-neo4j.no-ip.biz:7474/db/data/'
-            'http://localhost:7474/db/data/'
+            'http://ocean-neo4j.no-ip.biz:7474/db/data/'
+            # 'http://localhost:7474/db/data/'
         )
         self._v_read_batch = neo4j.ReadBatch(graph_db)
         self._v_write_batch = neo4j.WriteBatch(graph_db)
@@ -105,6 +103,7 @@ class LionfishUnitTests(UnitTests):
     def get_by_link__correct1(self):
         instances = self._client.get_instances(model_name='ContentSource')
         assert(len(instances) > 0)
+        assert('link' in instances[0])
         link = instances[0]['link']
 
         node = self._client.get_by_link('ContentSource', link)
@@ -126,6 +125,7 @@ class LionfishUnitTests(UnitTests):
     def get_by_link__correct2(self):
         instances = self._client.get_instances(model_name='Content')
         assert(len(instances) > 0)
+        assert('link' in instances[0])
         link = instances[0]['link']
 
         node = self._client.get_by_link('Content', link)
@@ -154,6 +154,7 @@ class LionfishUnitTests(UnitTests):
     def get_by_link__batch(self):
         instances = self._client.get_instances(model_name='ContentSource')
         assert(len(instances) >= 2)
+        assert('link' in instances[0] and 'link' in instances[1])
         link1 = instances[0]['link']
         link2 = instances[1]['link']
 
@@ -356,14 +357,14 @@ class LionfishUnitTests(UnitTests):
         assert(valid_node['username'] == 'set_test'
                and valid_node['second_test'] == 2)
 
-        self._v_read_batch.append_cypher(
+        self._v_write_batch.append_cypher(
             'MATCH (e)'
             'WHERE e.uuid={uuid}'
             'SET e.username={username}'
             'REMOVE e.second_test', {'uuid': uuid, 'username': username}
         )
-        self._v_read_batch.submit()
-        self._v_read_batch.clear()
+        self._v_write_batch.submit()
+        self._v_write_batch.clear()
 
     def set__incorrect(self):
         instances = self._client.get_instances('NeoUser')
@@ -404,20 +405,27 @@ class LionfishUnitTests(UnitTests):
         assert(valid_nodes[0]['username'] == 'set_test1'
                and valid_nodes[1]['username'] == 'set_test2')
 
-        self._v_read_batch.append_cypher(
+        self._v_write_batch.append_cypher(
             'MATCH (e1), (e2)'
             'WHERE e1.uuid={uuid1} AND e2.uuid={uuid2}'
             'SET e1.username={username1}, e2.username={username2}',
             {'uuid1': uuid1, 'uuid2': uuid2, 'username1': username1,
              'username2': username2}
         )
-        self._v_read_batch.submit()
-        self._v_read_batch.clear()
+        self._v_write_batch.submit()
+        self._v_write_batch.clear()
 
     # ================ C R E A T E   &   D E L E T E   N O D E ================
     def create_and_delete_node__correct_model_name(self):
         uuid = self._client.create_node('NeoUser', username='create_node_test')
         assert(len(str(uuid)) == 36)
+        instances = self._client.get_instances('NeoUser')
+        node = None
+        for instance in instances:
+            assert('uuid' in instance)
+            if instance['uuid'] == uuid:
+                node = instance
+        assert(node is not None)
         node = self._client.get_by_uuid(uuid)
         assert(len(node) > 0)
         assert(node['uuid'] == uuid and node['username'] == 'create_node_test')
@@ -551,5 +559,5 @@ class LionfishUnitTests(UnitTests):
         assert(len(children[0]) == 0 and len(children[1]) == 0)
 
 if __name__ == "__main__":
-    unit_tests = LionfishUnitTests()
+    unit_tests = LionfishCorrectnessUnitTests()
     unit_tests.run()

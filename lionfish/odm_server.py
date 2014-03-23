@@ -8,15 +8,15 @@ get_by_uuid will be cached, as well as multiget. Other get procedures are
 not guaranteed to be cached
 """
 
-
 from py2neo import neo4j
 import uuid
 import os
 import socket
+import logging
 from threading import Thread
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'graph_workers'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../graph_workers'))
 from graph_defines import *
 from graph_utils import *
 
@@ -32,7 +32,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
 ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),
-                                           'logs/odm_server.log'))
+                                           '../logs/odm_server.log'))
 ch_file.setLevel(info_level)
 logger.addHandler(ch_file)
 
