@@ -1,3 +1,3 @@
 #!/bin/bash
 source ./init.sh
-(( `ps ax | grep ocean_don_corleone | wc -l` > 1 ))
+(( `ps ax | grep ocean_don_corleone:app | wc -l` > 2 ))

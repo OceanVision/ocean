@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ocean Don Corleone</title>
+
+
+    <link href="css/jquery-ui.css" rel="stylesheet">
+    <script src="js/jquery-1.10.2.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="css/bootstrap-theme.min.css" rel="stylesheet" type="text/css">
+
+    <script src="js/bootstrap.min.js"></script>
+
+    <script type="text/javascript" src="js/tablesorter/jquery-latest.js"></script>
+    <script type="text/javascript" src="js/tablesorter/jquery.tablesorter.min.js"></script>
+
+  </head>
+  <body>
+    <h1>Ocean Don Corleone</h1>
+    <script>
+          //Download JSON with present nodes and replace json table
+          function update_services(){
+               var nodes = []
+               //Run jquery ajax to download current nodes
+               jQuery.ajax({
+                        url:"http://127.0.0.1:8882/get_services",
+                        type:'GET',
+                        crossDomain:true,
+                        dataType:'jsonp',
+                        async:false,
+                        success:
+                        function(data, status, jqXHR)
+                       {
+                            nodes = data['response'];
+                            alert(JSON.stringify(data['response']));
+                       }
+                    });
+                alert(JSON.stringify(nodes));
+          }
+
+    
+          //Replaces content of table (bootstrap table) with data
+          function json_to_table(column_names, rows, table){
+                //Remove html content from table and replace it with empty data
+				table.html('<thead></thead>').append("<tbody></tbody>");
+		
+                //Add headers
+                var tr=$('<tr></tr>');
+                $.each(column_names, function(idx, x) {
+                    $('<th style="background-color:white">'+x+'</th>').appendTo(tr);
+                    table.find("thead").append(tr);
+				});
+
+                //Add cells
+                $.each(rows, function(idx, row) {
+				    var tr=$('<tr class="success"></tr>');
+
+                    $.each(row, function(idx, x) {
+                        $('<td>'+x+'</td>').appendTo(tr);
+                    });
+                    
+                    table.find("tbody").append(tr);
+				});
+        
+                //Set styles
+                table.css('opacity',0.6);
+                table.css('opacity',0.9);
+                //Use tablesorter (TODO: check if successful loading)
+    			table.tablesorter({ sortList: [[0,1]] });
+
+                //Events
+                table.find("th").hover(
+                  function(){
+                        $(this).css('background-color','#400101')
+                        $(this).css('cursor', 'pointer');
+						
+
+                    },
+                    function(){
+                         $(this).css('background-color','rgba(255,255,255,255)')
+                        $(this).css('cursor', 'default');
+                    }
+   
+               );
+       }
+
+
+       //Displays data in messages_div container 
+       function display_alert(column_names, rows){
+                var alert_template = "";
+                jQuery.ajax({
+                    async: false,
+                    url:'alert_template.html',
+                    type:'get',
+                    dataType:'html',
+                    success:function(data)
+                   {
+
+                        alert_template = $(data);
+                   }
+                });
+                json_to_table(column_names, rows, alert_template.find("table"));
+                $("#messages_div").append(alert_template);
+        }
+
+        $(document).ready(function()
+            {
+                //Setup data
+                 $("#sortTableExample th").css('opacity',0.6);
+                 $("#sortTableExample td").css('opacity',0.9);
+
+
+                 //Register events
+                 $("#sortTableExample").tablesorter({ sortList: [[1,0]] });
+
+                 $("#sortTableExample th").hover(
+                    function(){
+                        $(this).css('background-color','#400101')
+                        $(this).css('cursor', 'pointer');
+
+                    },
+                    function(){
+                        $(this).css('background-color','#fff')
+                        $(this).css('cursor', 'default');
+                    }
+                 );
+
+                $("#refresh_button").click(function(){
+                    alert("Updating services");
+                    update_services();
+
+                });
+
+                //Check display
+                display_alert(["COLUMNA", "COLUMNB", "COLUMNC"], [["x","y","c"], ["a","b","z"]])
+            }
+        );
+
+
+    </script>
+
+    <style>
+        .btn-label {position: relative;left: -12px;display: inline-block;padding: 6px 12px;background: rgba(0,0,0,0.15);border-radius: 3px 0 0 3px;}
+        .btn-labeled {padding-top: 0;padding-bottom: 0;}
+        .btn { margin-bottom:10px; }
+
+        #sortTableExample th { opacity:0.9; }
+    </style>
+
+<div class="container">
+    <div class="row">
+        <h2>
+            Cool Buttons With Labels</h2>
+        <div class="col-md-12">
+            <button type="button" class="btn btn-labeled btn-success">
+                <span class="btn-label"><i class="glyphicon glyphicon-ok"></i></span>Success</button>
+            <button type="button" class="btn btn-labeled btn-danger">
+                <span class="btn-label"><i class="glyphicon glyphicon-remove"></i></span>Cancel</button>
+            <br />
+            <button type="button" class="btn btn-labeled btn-warning">
+                <span class="btn-label"><i class="glyphicon glyphicon-bookmark"></i></span>Bookmark</button>
+            <button type="button" class="btn btn-labeled btn-primary">
+                <span class="btn-label"><i class="glyphicon glyphicon-camera"></i></span>Camera</button>
+            <br />
+            <button type="button" class="btn btn-labeled btn-default">
+                <span class="btn-label"><i class="glyphicon glyphicon-chevron-left"></i></span>Left</button>
+            <button type="button" class="btn btn-labeled btn-default">
+                <span class="btn-label"><i class="glyphicon glyphicon-chevron-right"></i></span>
+                Right</button>
+            <br />
+            <button type="button" class="btn btn-labeled btn-success">
+                <span class="btn-label"><i class="glyphicon glyphicon-thumbs-up"></i></span>Thumbs
+                Up</button>
+            <button type="button" class="btn btn-labeled btn-danger">
+                <span class="btn-label"><i class="glyphicon glyphicon-thumbs-down"></i></span>Thumbs
+                Down</button>
+            <br />
+
+            <br />
+
+        </div>
+    </div>
+
+
+    <div class="row">
+    <table class="table table-striped" id="sortTableExample">
+        <thead>
+          <tr>
+            <th class="header">#</th>
+            <th class="yellow header headerSortUp">Service Id</th>
+            <th class="blue header">Status</th>
+            <th class="green header">Options</th>
+          </tr>
+        </thead>
+        <tbody>
+
+
+
+        <tr>
+            <td>1</td>
+            <td>Your</td>
+            <td style="background-color:green">Running</td>
+            <td>English</td>
+          </tr>
+        <tr>
+            <td >3</td>
+            <td>Stu</td>
+            <td>Dent</td>
+            <td>Code</td>
+          </tr>
+         <tr>
+            <td>2</td>
+            <td>Joe</td>
+            <td>Sixpack</td>
+            <td>
+
+            </td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="row" id="messages_div">
+
+    </div>
+
+
+        <div class="row"  style="float:right">
+        <button id="refresh_button" type="button" class="btn btn-labeled btn-info">
+        <span class="btn-label"><i class="glyphicon glyphicon-refresh"></i></span>Refresh</button>
+
+    </div>
+
+</div>
+  </body>
+</html>

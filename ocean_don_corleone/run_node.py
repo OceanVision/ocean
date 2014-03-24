@@ -22,11 +22,20 @@ MASTER_LOCAL = "master_local"
 RESPONSIBILITIES = "node_responsibilities"
 
 
+#Does run_node own don_corleone
+run_node_owner = False
+terminated = False
+
+
 def install_node(config, run=False):
+    global terminated
     """ Waits for webserver to start """
 
-    while os.system("./scripts/don_corleone_test.sh") != 0:
+    while os.system("./scripts/don_corleone_test.sh") != 0 and not terminated:
         time.sleep(1)
+
+    if terminated:
+        exit(0)
 
     time.sleep(3)
     logger.info("Installing the node")
@@ -57,28 +66,29 @@ def install_node(config, run=False):
 
 
 
-
-#Does run_node own don_corleone
-run_node_owner = False
-
-
 def clean(*args):
-    logger.info("Terminating node by terminating node in DonCorleone and terminating DonCorleone if local")
-    ret = os.system("python terminate_node.py")
+    global terminated
+    try:
+        logger.info("Terminating node by terminating node in DonCorleone and terminating DonCorleone if local")
+        ret = os.system("python terminate_node.py")
 
-    if ret != 0:
-        logger.error("Failed terminating node")
-    else:
-        logger.info("Terminated node successfully")
-
-    if run_node_owner:
-        ret = os.system("./scripts/don_corleone_terminate.sh")
         if ret != 0:
-            logger.error("Failed terminating don corleone")
-            logger.error("Return code = "+str(ret))
+            logger.error("Failed terminating node")
         else:
-            logger.info("Terminated Ocean DonCorleone successfully")
+            logger.info("Terminated node successfully")
 
+        if run_node_owner:
+            ret = os.system("./scripts/don_corleone_terminate.sh")
+            if ret != 0:
+                logger.error("Failed terminating don corleone")
+                logger.error("Return code = "+str(ret))
+            else:
+                logger.info("Terminated Ocean DonCorleone successfully")
+
+    except Exception, e:
+        pass
+    finally:
+        terminated=True
 
 
 if __name__ == "__main__":
@@ -87,9 +97,6 @@ if __name__ == "__main__":
 
     logger.info(("Configuration file ", config))
 
-    #Start installing thread
-    t = threading.Thread(target=install_node, args=(config,len(sys.argv)!=1))
-    t.start()
 
     #Check if run_node should create Don Corleone
     if config.get(MASTER_LOCAL, False):
@@ -103,5 +110,6 @@ if __name__ == "__main__":
     #Clean shutdown
     for sig in (SIGINT,):
         signal(sig, clean)
-    while True:
-        time.sleep(1.0)
+
+    #Install
+    install_node(config)    
