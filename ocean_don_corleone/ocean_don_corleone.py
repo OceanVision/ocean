@@ -643,7 +643,7 @@ def get_configuraiton():
         # Try getting value
         try:
             config_value = services_of_node[0][config_name]
-            return jsonify(result=json.dumps(config_value))
+            return jsonify(result=config_value)
         except Exception, e:
             return jsonify(result=(str(ERROR_NOT_RECOGNIZED_CONFIGURATION)))
 
@@ -654,7 +654,7 @@ def get_configuraiton():
         if len(services_list) > 0:
             try:
                 config_value = services_list[0][config_name]
-                return jsonify(result=json.dumps(config_value))
+                return jsonify(result=json.config_value)
             except Exception, e:
                 return jsonify(result=(str(ERROR_NOT_RECOGNIZED_CONFIGURATION)))
 

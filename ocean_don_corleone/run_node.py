@@ -45,7 +45,7 @@ RESPONSIBILITIES = "node_responsibilities"
 run_node_owner = False
 terminated = False
 
-
+from utils import get_don_corleone_url
 def install_node(config, run=False):
     global terminated
     """ Waits for webserver to start """
@@ -80,13 +80,13 @@ def install_node(config, run=False):
                   })
 
 
-        response = urllib2.urlopen(config[MASTER] +"/register_service", params).read()
+        response = urllib2.urlopen(get_don_corleone_url(config)+"/register_service", params).read()
 
 
 
         print response
 
-        response = urllib2.urlopen(config[MASTER] +"/get_services").read()
+        response = urllib2.urlopen(get_don_corleone_url(config)+"/get_services").read()
 
         print json.loads(response)['result']
 

@@ -45,6 +45,60 @@
                     });
           }
 
+            //Call to don corleone webservice functionality
+          function run_service(service_id){
+
+                    jQuery.ajax({
+                         async:false,
+                         url:    "http://127.0.0.1:8882/run_service?service_id="+service_id,
+                         success: function(data, status) {
+                                        display_alert_text(JSON.stringify(data));
+                                        update_services();
+                                  },
+                            type:'GET',
+                            crossDomain:true,
+                            dataType:'jsonp'
+
+                    });
+          }
+
+
+          //Call to don corleone webservice functionality
+          function terminate_service(service_id){
+
+                    jQuery.ajax({
+                         async:false,
+                          data: {"service_id": service_id},
+                         url:    "http://127.0.0.1:8882/terminate_service",
+                         success: function(data, status) {
+                                       display_alert_text(JSON.stringify(data));
+                                       update_services();
+                                  },
+                            type:'GET',
+                            crossDomain:true,
+                            dataType:'jsonp'
+
+                    });
+          }
+
+          //Call to don corleone webservice functionality
+          function deregister_service(service_id){
+
+                    jQuery.ajax({
+                         async:false,
+                         url:    "http://127.0.0.1:8882/deregister_service?service_id="+service_id,
+                         success: function(data, status) {
+                                        display_alert_text(JSON.stringify(data));
+                                        update_services();
+                                  },
+                            type:'GET',
+                            crossDomain:true,
+                            dataType:'jsonp'
+
+                    });
+          }
+
+
             function fill_services(services_raw){
 
                 //Get and prepare service JSON data
@@ -64,7 +118,7 @@
 
                 // Add classes
                 $("#services .service_row").each(function(){
-                    if( services[parseInt($(this).attr("id"))]["status"] == "running"){
+                    if( services[parseInt($(this).attr("row"))]["status"] == "running"){
                         console.log("Running");
                         $(this).addClass("success");
                     }
@@ -75,7 +129,7 @@
 
                 // Prepare buttons
                 var start_button=$('<button type="button" class="btn btn-labeled btn-success"><span class="btn-label"><i class="glyphicon glyphicon-play"></i></span>Start</button>');
-                var remove_button=$('<button type="button" class="btn btn-labeled btn-danger"><span class="btn-label"><i class="glyphicon glyphicon-remove"></i></span>Terminate</button>');
+                var remove_button=$('<button type="button" class="btn btn-labeled btn-danger"><span class="btn-label"><i class="glyphicon glyphicon-remove"></i></span>Delete</button>');
                 var pause_button=$('<button type="button" class="btn btn-labeled btn-warning"><span class="btn-label"><i class="glyphicon glyphicon-pause"></i></span>Pause</button>');
                 var info_button=$('<button type="button" class="btn btn-labeled btn-primary"><span class="btn-label"><i class="glyphicon glyphicon-info-sign"></i></span>Info</button>');
 
@@ -88,7 +142,16 @@
                         pause_button_cpy = pause_button.clone();
                         info_button_cpy = info_button.clone();
 
+                        var current_column = "service_id";
+                        var current_row = $(this).attr('row');
+                        var current_service_id = $('#services td[row="'+current_row+'"][column="'+current_column+'"]').html();
+
+
+
                         // Add event handlers
+                        start_button_cpy.click(function(){ run_service(current_service_id);});
+                        remove_button_cpy.click(function(){ deregister_service(current_service_id);});
+                        pause_button_cpy.click(function(){ terminate_service(current_service_id);});
 
 
                         $(this).append(start_button_cpy);
@@ -115,10 +178,10 @@
 
                 //Add cells
                 $.each(rows, function(idx, row) {
-				    var tr=$('<tr class="service_row" id="'+row["id"]+'"></tr>');
+				    var tr=$('<tr class="service_row" row="'+row["id"]+'"></tr>');
 
                     $.each(row, function(idx2, x) {
-                        $('<td class="service_cell" column="'+idx2+'">'+x+'</td>').appendTo(tr);
+                        $('<td class="service_cell" value="'+x+'" row="'+idx+'" column="'+idx2+'">'+x+'</td>').appendTo(tr);
                     });
                     
                     table.find("tbody").append(tr);
@@ -146,6 +209,23 @@
                );
        }
 
+       //Displays data in messages_div container
+       function display_alert_text(text){
+                var alert_template = "";
+                jQuery.ajax({
+                    async: false,
+                    url:'alert_template.html',
+                    type:'get',
+                    dataType:'html',
+                    success:function(data)
+                   {
+
+                        alert_template = $(data);
+                   }
+                });
+                alert_template.find("p").html(text);
+                $("#messages_div").append(alert_template);
+        }
 
        //Displays data in messages_div container 
        function display_alert(column_names, rows){
@@ -200,7 +280,6 @@
 
 
 
-
             }
         );
 
@@ -226,9 +305,11 @@
 
 
         <div class="row"  style="float:right">
-        <button id="refresh_button" type="button" class="btn btn-labeled btn-info">
-
+         <button id="refresh_button" type="button" class="btn btn-labeled btn-info">
         <span class="btn-label" id="refresh_button"><i class="glyphicon glyphicon-refresh"></i></span>Refresh</button>
+
+
+
 
     </div>
 

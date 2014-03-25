@@ -5,8 +5,8 @@ import os,sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 from ocean_don_corleone.utils import get_configuration
-HOST = get_configuration("odm_address")
-PORT = get_configuration("odm_port")
+HOST = get_configuration("odm", "address")
+PORT = get_configuration("odm", "address")
 
 import struct
 """ Utils for  prefix length TCP """

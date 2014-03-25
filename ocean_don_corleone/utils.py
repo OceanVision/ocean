@@ -19,11 +19,17 @@ logger.addHandler(ch_file)
 
 MASTER = "master"
 NODE_ID = "node_id"
+MASTER_LOCAL = "master_local"
+MASTER_LOCAL_URL = "master_local_url"
+
+def get_don_corleone_url(config):
+    if(config[MASTER_LOCAL]): return config[MASTER_LOCAL_URL]
+    else: return config[MASTER]
 
 def get_configuration(service_name, config_name):
-    config = json.load(open("config.json","r"))
+    config = json.load(open(os.path.join(os.path.dirname(__file__),"config.json"),"r"))
     params = urllib.urlencode({"service_name":service_name, "node_id":config[NODE_ID], "config_name":config_name})
-    response = json.loads(urllib2.urlopen(config[MASTER]+"/get_configuration?%s" % params).read())
+    response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/get_configuration?%s" % params).read())['result']
 
     # Sometimes it is incompatible
     if isinstance(response, str) or isinstance(response, unicode):

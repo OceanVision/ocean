@@ -111,10 +111,10 @@ class DatabaseManager:
         """Create DatabaseManager driver"""
         logger.log(info_level, 'Created DatabaseManager object')
         self._graph_db = \
-            neo4j.GraphDatabaseService("{0}:{1}/db/data/".format(get_configuration("neo4j_address"),
-                                                                 get_configuration("neo4j_port")))
-        logger.log(info_level, "Connecting to "+"{0}:{1}/db/data/".format(get_configuration("neo4j_address"),
-                                                                 get_configuration("neo4j_port")))
+            neo4j.GraphDatabaseService("{0}:{1}/db/data/".format(get_configuration("neo4j", "address"),
+                                                                 get_configuration("neo4j", "address")))
+        logger.log(info_level, "Connecting to "+"{0}:{1}/db/data/".format(get_configuration("neo4j", "address"),
+                                                                 get_configuration("neo4j", "port")))
 
 
 
@@ -512,12 +512,12 @@ class ODMServer():
 
 
 from ocean_don_corleone.utils import get_configuration
-HOST = get_configuration("odm_address")
-PORT = get_configuration("odm_port")
+HOST = get_configuration("odm", "address")
+PORT = get_configuration("odm", "port")
 
 print type(PORT)
 print "Odmclient ",HOST,PORT
-print "Neo4j ",get_configuration("neo4j_address"),get_configuration("neo4j_port")
+print "Neo4j ",get_configuration("neo4j", "address"),get_configuration("neo4j", "port")
 
 if __name__ == '__main__':
     server = ODMServer(HOST, PORT)
