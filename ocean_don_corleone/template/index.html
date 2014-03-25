@@ -19,35 +19,92 @@
     <script type="text/javascript" src="js/tablesorter/jquery-latest.js"></script>
     <script type="text/javascript" src="js/tablesorter/jquery.tablesorter.min.js"></script>
 
+    <style>
+        body {background-image:url("bg.png");}
+    </style>
+
   </head>
   <body>
     <h1>Ocean Don Corleone</h1>
     <script>
           //Download JSON with present nodes and replace json table
           function update_services(){
-               var nodes = []
+               var nodes = "";
                //Run jquery ajax to download current nodes
-               jQuery.ajax({
-                        url:"http://127.0.0.1:8882/get_services",
-                        type:'GET',
-                        crossDomain:true,
-                        dataType:'jsonp',
-                        async:false,
-                        success:
-                        function(data, status, jqXHR)
-                       {
-                            nodes = data['response'];
-                            alert(JSON.stringify(data['response']));
-                       }
+               var txt = "";
+                    jQuery.ajax({
+                         async:false,
+                         url:    "http://127.0.0.1:8881/get_services",
+                         success: function(data, status) {
+                                        fill_services(eval(data["response"]));
+                                  },
+                            type:'GET',
+                            crossDomain:true,
+                            dataType:'jsonp'
+
                     });
-                alert(JSON.stringify(nodes));
           }
 
+            function fill_services(services_raw){
+
+                //Get and prepare service JSON data
+                var id = 0;
+                var services = []
+                services_raw.map(function(s){
+                    services.push( {"id":id, "service":s["service"], "service_id":s["service_id"],
+                        "node_id":s["node_id"], "node_address":s["address"],"options":"", "status":s["status"]} );
+                    id += 1
+                });
+
+                var column_names = ["id", "service", "service_id", "node_id", "node_address", "options", "state"];
+
+                // Write to table
+                json_to_table(column_names,
+                services, $("#services"));
+
+                // Add classes
+                $("#services .service_row").each(function(){
+                    if( services[parseInt($(this).attr("id"))]["status"] == "running"){
+                        console.log("Running");
+                        $(this).addClass("success");
+                    }
+                    else{
+                        //$(this).addClass("error");
+                    }
+                });
+
+                // Prepare buttons
+                var start_button=$('<button type="button" class="btn btn-labeled btn-success"><span class="btn-label"><i class="glyphicon glyphicon-play"></i></span>Start</button>');
+                var remove_button=$('<button type="button" class="btn btn-labeled btn-danger"><span class="btn-label"><i class="glyphicon glyphicon-remove"></i></span>Terminate</button>');
+                var pause_button=$('<button type="button" class="btn btn-labeled btn-warning"><span class="btn-label"><i class="glyphicon glyphicon-pause"></i></span>Pause</button>');
+                var info_button=$('<button type="button" class="btn btn-labeled btn-primary"><span class="btn-label"><i class="glyphicon glyphicon-info-sign"></i></span>Info</button>');
+
+                // Add buttons
+                $("#services .service_cell").each(function(){
+                    if( $(this).attr('column') == "options"){
+                        // Prepare copies
+                        start_button_cpy = start_button.clone();
+                        remove_button_cpy = remove_button.clone();
+                        pause_button_cpy = pause_button.clone();
+                        info_button_cpy = info_button.clone();
+
+                        // Add event handlers
+
+
+                        $(this).append(start_button_cpy);
+                        $(this).append(remove_button_cpy);
+                        $(this).append(pause_button_cpy);
+                        $(this).append(info_button_cpy);
+                    }
+                });
+            }
     
           //Replaces content of table (bootstrap table) with data
           function json_to_table(column_names, rows, table){
+                $("#services").remove()
                 //Remove html content from table and replace it with empty data
-				table.html('<thead></thead>').append("<tbody></tbody>");
+				table = $('<table class="table table-striped" id="services"></table>').html('<thead></thead>').append("<tbody></tbody>");
+				$("#services_row").append(table);
 		
                 //Add headers
                 var tr=$('<tr></tr>');
@@ -58,10 +115,10 @@
 
                 //Add cells
                 $.each(rows, function(idx, row) {
-				    var tr=$('<tr class="success"></tr>');
+				    var tr=$('<tr class="service_row" id="'+row["id"]+'"></tr>');
 
-                    $.each(row, function(idx, x) {
-                        $('<td>'+x+'</td>').appendTo(tr);
+                    $.each(row, function(idx2, x) {
+                        $('<td class="service_cell" column="'+idx2+'">'+x+'</td>').appendTo(tr);
                     });
                     
                     table.find("tbody").append(tr);
@@ -111,14 +168,14 @@
         $(document).ready(function()
             {
                 //Setup data
-                 $("#sortTableExample th").css('opacity',0.6);
-                 $("#sortTableExample td").css('opacity',0.9);
+                 $("#services th").css('opacity',0.6);
+                 $("#services td").css('opacity',0.9);
 
 
                  //Register events
-                 $("#sortTableExample").tablesorter({ sortList: [[1,0]] });
+                 $("#services").tablesorter({ sortList: [[1,0]] });
 
-                 $("#sortTableExample th").hover(
+                 $("#services th").hover(
                     function(){
                         $(this).css('background-color','#400101')
                         $(this).css('cursor', 'pointer');
@@ -131,13 +188,19 @@
                  );
 
                 $("#refresh_button").click(function(){
-                    alert("Updating services");
                     update_services();
-
                 });
 
+
+
+                update_services();
+
                 //Check display
-                display_alert(["COLUMNA", "COLUMNB", "COLUMNC"], [["x","y","c"], ["a","b","z"]])
+                //display_alert(["COLUMNA", "COLUMNB", "COLUMNC"], [["x","y","c"], ["a","b","z"]]);
+
+
+
+
             }
         );
 
@@ -149,79 +212,13 @@
         .btn-labeled {padding-top: 0;padding-bottom: 0;}
         .btn { margin-bottom:10px; }
 
-        #sortTableExample th { opacity:0.9; }
+        #services th { opacity:0.9; }
     </style>
 
 <div class="container">
-    <div class="row">
-        <h2>
-            Cool Buttons With Labels</h2>
-        <div class="col-md-12">
-            <button type="button" class="btn btn-labeled btn-success">
-                <span class="btn-label"><i class="glyphicon glyphicon-ok"></i></span>Success</button>
-            <button type="button" class="btn btn-labeled btn-danger">
-                <span class="btn-label"><i class="glyphicon glyphicon-remove"></i></span>Cancel</button>
-            <br />
-            <button type="button" class="btn btn-labeled btn-warning">
-                <span class="btn-label"><i class="glyphicon glyphicon-bookmark"></i></span>Bookmark</button>
-            <button type="button" class="btn btn-labeled btn-primary">
-                <span class="btn-label"><i class="glyphicon glyphicon-camera"></i></span>Camera</button>
-            <br />
-            <button type="button" class="btn btn-labeled btn-default">
-                <span class="btn-label"><i class="glyphicon glyphicon-chevron-left"></i></span>Left</button>
-            <button type="button" class="btn btn-labeled btn-default">
-                <span class="btn-label"><i class="glyphicon glyphicon-chevron-right"></i></span>
-                Right</button>
-            <br />
-            <button type="button" class="btn btn-labeled btn-success">
-                <span class="btn-label"><i class="glyphicon glyphicon-thumbs-up"></i></span>Thumbs
-                Up</button>
-            <button type="button" class="btn btn-labeled btn-danger">
-                <span class="btn-label"><i class="glyphicon glyphicon-thumbs-down"></i></span>Thumbs
-                Down</button>
-            <br />
 
-            <br />
+    <div class="row" id="services_row">
 
-        </div>
-    </div>
-
-
-    <div class="row">
-    <table class="table table-striped" id="sortTableExample">
-        <thead>
-          <tr>
-            <th class="header">#</th>
-            <th class="yellow header headerSortUp">Service Id</th>
-            <th class="blue header">Status</th>
-            <th class="green header">Options</th>
-          </tr>
-        </thead>
-        <tbody>
-
-
-
-        <tr>
-            <td>1</td>
-            <td>Your</td>
-            <td style="background-color:green">Running</td>
-            <td>English</td>
-          </tr>
-        <tr>
-            <td >3</td>
-            <td>Stu</td>
-            <td>Dent</td>
-            <td>Code</td>
-          </tr>
-         <tr>
-            <td>2</td>
-            <td>Joe</td>
-            <td>Sixpack</td>
-            <td>
-
-            </td>
-          </tr></tbody>
-      </table>
     </div>
     <div class="row" id="messages_div">
 
@@ -230,7 +227,8 @@
 
         <div class="row"  style="float:right">
         <button id="refresh_button" type="button" class="btn btn-labeled btn-info">
-        <span class="btn-label"><i class="glyphicon glyphicon-refresh"></i></span>Refresh</button>
+
+        <span class="btn-label" id="refresh_button"><i class="glyphicon glyphicon-refresh"></i></span>Refresh</button>
 
     </div>
 

@@ -1,3 +1,3 @@
 #!/bin/bash
 source ./init.sh
-(( `ps ax | grep neo4j | wc -l` > 1 ))
+echo `cat ocean_password` | sudo -S service neo4j-service status

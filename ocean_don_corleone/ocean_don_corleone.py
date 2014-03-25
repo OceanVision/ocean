@@ -15,6 +15,7 @@ Protocol: JSONP:
 #TODO: timeout for ssh
 
 import json
+
 import threading
 import logging
 import os
@@ -49,15 +50,17 @@ SERVICE = "service"
 #For instance hadoop slaves will have service id hadoop_slave:2, whereas local service will have id
 #neo4j_local, service id is basically service_name:additional_config ,where service_name can have
 #additionally local tag
-SERVICE_ID = "id"
+SERVICE_ID = "service_id"
 SERVICE_STATUS = "status"
 #Without http
 SERVICE_ADDRESS = "address"
 SERVICE_SSH_PORT = "ssh-port"
 SERVICE_HOME = "home"
 SERVICE_RUN_CMD = "run_cmd"
+SERVICE_NAME = "service"
 SERVICE_PORT = "port"
 SERVICE_USER = "user"
+NODE_ID = "node_id" # Id for node
 
 
 #Nodes in the system
@@ -114,8 +117,14 @@ def get_service_by_id(service_id):
                 logger.error("Duplicated service_id")
                 exit(1)
 
-            return filter(lambda x: x[SERVICE_ID] == service_id, services)[0]
+            result = filter(lambda x: x[SERVICE_ID] == service_id, services)[0]
+    return result
 
+def get_node_services(node_id):
+    """ Returns service of given node_id"""
+    with services_lock:
+        # Return is fine in with clause
+        return [s for s in services if s[NODE_ID] == node_id]
 
 #TODO: package as a class
 def add_service(service):
@@ -123,10 +132,10 @@ def add_service(service):
     with services_lock:
         if not get_service_by_id(service[SERVICE_ID]):
             services.append(service)
-            if service[SERVICE_ADDRESS] not in registered_nodes:
-                node = {NODE_ADDRESS: service[SERVICE_ADDRESS], NODE_RESPONSIBILITIES: [], NODE_CONFIG: {}}
-                registered_nodes[service[SERVICE_ADDRESS]] = node
-            registered_nodes[service[SERVICE_ADDRESS]][NODE_RESPONSIBILITIES].append(service)
+            if service[NODE_ID] not in registered_nodes:
+                node = {NODE_ID: service[NODE_ID], NODE_ADDRESS: service[SERVICE_ADDRESS], NODE_RESPONSIBILITIES: [], NODE_CONFIG: {}}
+                registered_nodes[service[NODE_ID]] = node
+            registered_nodes[service[NODE_ID]][NODE_RESPONSIBILITIES].append(service)
         else:
             logger.error("Error adding existing service_id")
             exit(1)
@@ -152,43 +161,58 @@ def remove_service(service_id):
         #Remove from registered node
 
         #Should be in registered_nodes. Remove from responsibilities
-        if found_service[SERVICE_ADDRESS] not in registered_nodes:
+        if found_service[NODE_ID] not in registered_nodes:
             logger.error("Node not registered, fatal error")
             raise ERROR_NODE_NOT_REGISTERED
         else:
             with registered_nodes_lock:
                 for id, m in enumerate(
-                        registered_nodes[found_service[SERVICE_ADDRESS]][NODE_RESPONSIBILITIES]):
+                        registered_nodes[found_service[NODE_ID]][NODE_RESPONSIBILITIES]):
                     if m[SERVICE_ID] == service_id:
-                        registered_nodes[found_service[SERVICE_ADDRESS]][NODE_RESPONSIBILITIES].pop(id)
+                        registered_nodes[found_service[NODE_ID]][NODE_RESPONSIBILITIES].pop(id)
 
         return OK
 
 
 ### Exemplary data ###
 
-service_tmp = {"service":"odm",SERVICE_SSH_PORT:2231,
+service_tmp = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:2231,
                SERVICE_ID:"odm", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":7777,
-               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
+               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER,
+               NODE_ID: "acer"
                }
-service_tmp2 = {"service":"neo4j",SERVICE_SSH_PORT:2231,
+service_tmp2 = {SERVICE_NAME:"neo4j",SERVICE_SSH_PORT:2231,
                SERVICE_ID:"neo4j", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("ocean-db.no-ip.biz"), "port":7471,
-               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
+               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER,
+               NODE_ID: "acer"
                }
-service_tmp3 = {"service":"neo4j",SERVICE_SSH_PORT:2231,
+service_tmp3 = {SERVICE_NAME:"neo4j",SERVICE_SSH_PORT:2231,
                SERVICE_ID:"neo4j", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("192.168.0.32"), "port":7471,
-               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
+               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER,
+               NODE_ID: "acer"
                }
-service_tmp4 = {"service":"news_fetcher",SERVICE_SSH_PORT:22,
+service_tmp4 = {SERVICE_NAME:"news_fetcher",SERVICE_SSH_PORT:22,
                SERVICE_ID:"news_fetcher", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":7777,
-               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
+               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER,
+               NODE_ID: "acer"
                }
-service_tmp5 = {"service":"neo4j",SERVICE_SSH_PORT:22,
+
+#Local neo4j
+service_tmp5 = {SERVICE_NAME:"neo4j",SERVICE_SSH_PORT:22,
                SERVICE_ID:"neo4j", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("127.0.0.1"), "port":7471,
-               "home":"/home/staszek", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER
+               "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek",
+               NODE_ID: "staszek"
                }
+
+service_tmp6 = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:22,
+               SERVICE_ID:"odm", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("127.0.0.1"), "port":7471,
+               "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek",
+               NODE_ID: "staszek"
+               }
+
 #services.append(service_tmp)
 add_service(service_tmp5)
+add_service(service_tmp6)
 #services.append(service_tmp4)
 
 """
@@ -231,6 +255,7 @@ def cautious_run_cmd_over_ssh(user, port, cmd, address):
     prog.communicate()
 
     if prog.returncode != 0:
+        logger.info("Error running command " + str(ERROR_FILE_NOT_FOUND))
         return (ERROR_NOT_REACHABLE_SERVICE, "")
 
 
@@ -245,6 +270,7 @@ def cautious_run_cmd_over_ssh(user, port, cmd, address):
     output = prog.communicate()[1]
 
     if prog.returncode != 0:
+        logger.info("Error running command " + str(ERROR_FAILED_SSH_CMD))
         return (ERROR_FAILED_SSH_CMD, output)
 
     return (OK, output)
@@ -259,14 +285,14 @@ def update_status(m):
 
         status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
 
-        logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", status))
+        logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", str(status)))
 
         if status == ERROR_NOT_REACHABLE_SERVICE:
             remove_service(m[SERVICE_ID])
             logger.info("Service not reachable")
             return
 
-        logger.info(("Checking server availability for ",m[SERVICE_ID], "result ", status))
+        logger.info(("Checking server availability for ",m[SERVICE_ID], "result ", str(status)))
         logger.info(output)
 
         if status == ERROR_FAILED_SSH_CMD:
@@ -478,7 +504,7 @@ def register_service():
 
 
             add_service(service_dict)
-            registered_nodes[service_dict[SERVICE_ADDRESS]][NODE_CONFIG] = config
+            registered_nodes[service_dict[NODE_ID]][NODE_CONFIG] = config
 
             logger.info(("Registering " if not run else "Running and registering ")+str(service_dict))
 
@@ -591,39 +617,39 @@ def get_modules():
     #return json.dumps([(m[MODULE_SERVICE_NAME], modules[MODULE_ADDRESS], m[MODULE_STATUS]) for m in modules])
     return jsonify(result=json.dumps(services))
 
-@app.route('/get_node_config')
+@app.route('/get_node_config', methods=['GET'])
 def get_node_config():
     global services
+
     """ Check status of the jobs """
-    logger.info("Checking node config for "+str(request.remote_addr))
+    node_id = request.args.get('node_id')
+    logger.info("Checking node config for "+str(node_id))
 
-    address = get_bare_ip(request.remote_addr)
-
-    if address not in registered_nodes:
+    if node_id not in registered_nodes:
         return jsonify(result=json.dumps(str(ERROR_NODE_NOT_REGISTERED)))
 
 
-    return jsonify(result=json.dumps(registered_nodes[address]))
+    return jsonify(result=json.dumps(registered_nodes[node_id]))
 
 
-@app.route('/terminate_node')
+@app.route('/terminate_node', methods=['GET'])
 def terminate_node():
     """ Terminates node with all the responsibilities """
     address = get_bare_ip(request.remote_addr)
+    node_id = request.args.get('node_id')
 
-    print address
 
     logger.info("Terminating node "+str(address))
 
     # Basic error checking
-    if address not in registered_nodes:
+    if node_id not in registered_nodes:
         return jsonify(result=json.dumps(str(ERROR_NODE_NOT_REGISTERED)))
 
 
 
     try:
         with services_lock:
-            for m in services:
+            for m in get_node_services(node_id):
                 # Try deregistering the service and delegate errror checking to _run_service
                 try:
                     logger.info("Deregistering service "+m[SERVICE_ID])
@@ -637,7 +663,7 @@ def terminate_node():
                     return jsonify(result=json.dumps(str(ERROR_FAILED_SERVICE_RUN)))
 
         with registered_nodes_lock:
-            registered_nodes.pop(address)
+            registered_nodes.pop(node_id)
 
     except Exception, e:
         logger.error("Failed termination with "+str(e))
@@ -646,8 +672,15 @@ def terminate_node():
     return jsonify(result=OK)
 
 
+
 @app.route('/get_status', methods=['GET'])
 def get_status():
+
+    """
+        @param service_id
+        @returns status of service
+    """
+
     service_name = request.args.get('service_id')
     print filter(lambda x: x[SERVICE_ID] == service_name, services)
     if filter(lambda x: x[SERVICE_ID] == service_name, services):
