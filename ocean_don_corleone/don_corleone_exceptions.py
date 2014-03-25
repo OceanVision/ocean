@@ -26,3 +26,5 @@ ERROR_SERVICE_ID_REGISTERED = DonCorleoneException("error_service_id_registered"
 ERROR_WRONG_METHOD_PARAMETERS = DonCorleoneException("error_wrong_method_parameters")
 ERROR_NODE_NOT_REGISTERED = DonCorleoneException("error_node_not_registered")
 ERROR = DonCorleoneException("error_not_specified")
+ERROR_DUPLICATE = DonCorleoneException("error_duplicate")
+ERROR_FILE_NOT_FOUND = DonCorleoneException("error_file_not_found")

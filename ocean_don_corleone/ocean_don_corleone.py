@@ -61,6 +61,7 @@ SERVICE_NAME = "service"
 SERVICE_PORT = "port"
 SERVICE_USER = "user"
 NODE_ID = "node_id" # Id for node
+SERVICE_LOCAL = "local"
 
 
 #Nodes in the system
@@ -130,15 +131,24 @@ def get_node_services(node_id):
 def add_service(service):
     """ Adds service """
     with services_lock:
-        if not get_service_by_id(service[SERVICE_ID]):
+        # Check if no duplicate or duplicate and local
+        if not get_service_by_id(service[SERVICE_ID]) or service[SERVICE_LOCAL]:
+
+            # Check if local then only one local
+            if any([True for s in services if s[SERVICE] == service[SERVICE] and s[NODE_ID] == service[NODE_ID]]):
+                raise ERROR_DUPLICATE
+
             services.append(service)
+
             if service[NODE_ID] not in registered_nodes:
                 node = {NODE_ID: service[NODE_ID], NODE_ADDRESS: service[SERVICE_ADDRESS], NODE_RESPONSIBILITIES: [], NODE_CONFIG: {}}
                 registered_nodes[service[NODE_ID]] = node
             registered_nodes[service[NODE_ID]][NODE_RESPONSIBILITIES].append(service)
         else:
             logger.error("Error adding existing service_id")
-            exit(1)
+            raise ERROR_DUPLICATE
+
+
 
 #TODO: package as a class
 def remove_service(service_id):
@@ -199,20 +209,28 @@ service_tmp4 = {SERVICE_NAME:"news_fetcher",SERVICE_SSH_PORT:22,
 
 #Local neo4j
 service_tmp5 = {SERVICE_NAME:"neo4j",SERVICE_SSH_PORT:22,
-               SERVICE_ID:"neo4j", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("127.0.0.1"), "port":7471,
+               SERVICE_ID:"neo4j_1", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("127.0.0.1"), "port":7471,
                "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek",
                NODE_ID: "staszek"
                }
 
-service_tmp6 = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:22,
-               SERVICE_ID:"odm", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("127.0.0.1"), "port":7471,
+service_tmp6 = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:221,
+               SERVICE_ID:"odm_1", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("127.0.0.1"), "port":7471,
                "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek",
                NODE_ID: "staszek"
+               }
+
+
+service_tmp7 = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:222,
+               SERVICE_ID:"odm_2", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("127.0.0.1"), "port":74721,
+               "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek",
+               NODE_ID: "staszek2"
                }
 
 #services.append(service_tmp)
 add_service(service_tmp5)
 add_service(service_tmp6)
+add_service(service_tmp7)
 #services.append(service_tmp4)
 
 """
@@ -454,8 +472,17 @@ def register_service():
         output = OK
         with services_lock:
             run = json.loads(request.form['run'])
-            service = json.loads(request.form['service'])
-            service_id = service
+            service_name = json.loads(request.form['service'])
+
+            node_id = json.loads(request.form['node_id'])
+            local = True if 'local' in request.form else False
+
+            #Prepare service id
+            services_ids = [int(s[SERVICE_ID].split("_")[1]) for s in services if s[SERVICE] == service_name]
+            next_id = max(services_ids)+1 if len(services_ids) else 1
+            service_id = service_name + "_" + next_id
+
+
             config = json.loads(request.form['config'])
 
 
@@ -468,36 +495,35 @@ def register_service():
                 print str(ex)+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 
-
-            #TODO: add special handling for local
-
-            if not service or not service_id or len(service)==0 or len(service_id)==0:
+            if not service_name or not service_id or len(service_name)==0 or len(service_id)==0:
                 return jsonify(result=json.dumps(str(ERROR_WRONG_METHOD_PARAMETERS)))
 
             if filter(lambda x: x[SERVICE_ID] == service_id, services):
                 return jsonify(result=json.dumps(str(ERROR_SERVICE_ID_REGISTERED)))
 
-            if filter(lambda x: x[SERVICE] == service, services) and service in UNARY_SERVICES:
+            if filter(lambda x: x[SERVICE] == service_name, services) and service_name in UNARY_SERVICES:
                 return jsonify(result=json.dumps(str(ERROR_ALREADY_REGISTERED_SERVICE)))
 
-            if service not in KNOWN_SERVICES:
+            if service_name not in KNOWN_SERVICES:
                 return jsonify(result=json.dumps(str(ERROR_NOT_RECOGNIZED_SERVICE)))
 
-            logger.info("Proceeding to registering {0} {1}".format(service, service_id))
+            logger.info("Proceeding to registering {0} {1}".format(service_name, service_id))
 
 
             #Prepare service
-            service_dict = {SERVICE:service,
+            service_dict = {SERVICE:service_name,
                        SERVICE_ID:service_id,
                        SERVICE_USER:config.get(CONFIG_USER, DEFAULT_USER),
                        SERVICE_STATUS:STATUS_TERMINATED,
+                       NODE_ID: node_id,
+                       SERVICE_LOCAL: local,
                        SERVICE_ADDRESS:get_bare_ip(str(request.remote_addr)),
                        SERVICE_RUN_CMD:DEFAULT_COMMAND,
                        SERVICE_SSH_PORT:config.get(CONFIG_SSH_PORT, DEFAULT_SSH_PORT),
                        SERVICE_HOME:config[CONFIG_HOME]
                        }
 
-            service_dict.update(additional_default_options.get(service, {}))
+            service_dict.update(additional_default_options.get(service_name, {}))
             service_dict.update(additional_service_config)
 
             #Modify service_id to make it unique
@@ -595,21 +621,45 @@ def get_services():
 
 @app.route('/get_configuration', methods=["GET"])
 def get_configuraiton():
-    name = request.args.get('name')
-    tmp = name.split("_")
-    if len(tmp) == 2:
+    """
+        Loads configuration request.
+
+        If there is local service for given node picks it,
+        if not picks  the global one (always only one!!).
+    """
+
+    # Get input parameters
+    service_name = request.args.get('service_name')
+    config_name = request.args.get('config_name')
+    node_id = request.args.get('node_id')
+
+    logger.info("Getting configuration for {0} {1} {2}".format(service_name, config_name, node_id))
+
+    services_of_node = filter(lambda x: x[SERVICE] == service_name and x[NODE_ID] == node_id, services)
+    if len(services_of_node) > 0:
+        # Try getting value
+        try:
+            config_value = services_of_node[0][config_name]
+            return jsonify(result=json.dumps(config_value))
+        except Exception, e:
+            return jsonify(result=(str(ERROR_NOT_RECOGNIZED_CONFIGURATION)))
+
+    else:
+        services_list = filter(lambda x: x[SERVICE] == service_name, services)
+
         #Typical service_feature configuration
-        if filter(lambda x: x[SERVICE_ID] == tmp[0], services):
-            base = filter(lambda x: x[SERVICE_ID] == tmp[0], services)[0].get(tmp[1], ERROR_NOT_RECOGNIZED_CONFIGURATION)
-            if tmp[1] == SERVICE_ADDRESS and not base.startswith("http"):
-                return jsonify(result=json.dumps("http://"+base))
-            else:
-                return jsonify(result=json.dumps(base))
+        if len(services_list) > 0:
+            try:
+                config_value = services_list[0][config_name]
+                return jsonify(result=json.dumps(config_value))
+            except Exception, e:
+                return jsonify(result=(str(ERROR_NOT_RECOGNIZED_CONFIGURATION)))
 
         else:
             return jsonify(result=(str(ERROR_NOT_REGISTERED_SERVICE)))
-    else:
-        return jsonify(result=json.dumps(str(ERROR_NOT_RECOGNIZED_CONFIGURATION)))
+
+
+
 
 
 @app.route('/get_services', methods=['GET'])

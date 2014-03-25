@@ -1,24 +1,23 @@
-# Ocean Admin
+# Don Corleone
 
-Ocean admin is a server that can be used to easily admin the Ocean cluster
+Don Corleone is a server that can be used to easily admin the Ocean cluster
 or check Ocean status, etc. run_node script is an easy way to join our node
 to the cluster. In case of failure (repeatiting responsibilities etc.) it
-should inform you about the problem. run_node will run all the services and register the node. You should not
-run services yourself!
+should inform you about the problem. run_node will run all the services and register the node.
+You should not run services yourself!
+
+**Important note**: you can register each service as local, or not. If it is local, then you can
+register another instance, and it will be used only by you. If it is global, you cannot
+register more than one instance.
 
 Sidenote: For checking Hadoop cluster status we will use Hue service (included in Cloudera package).
 
 ### TODO
-
-* Local responsibilities
-
 * Terminating node (terminate_node.py)
 
-* Get node status service
-
-* Frontend
-
 ### Configuration file
+
+Please see config.json : it should explain everything.
 
 You have to specify following items:
 

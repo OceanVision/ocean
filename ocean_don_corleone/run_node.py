@@ -1,3 +1,22 @@
+"""
+Simple script for running node given node configuration
+"""
+from optparse import OptionParser
+
+def create_parser():
+    """ Configure options and return parser object """
+    parser = OptionParser()
+    parser.add_option(
+        "-c",
+        "--config",
+        dest="config",
+        type="str",
+        default="config.json",
+        help="File with configuration for running node"
+    )
+    return parser
+
+
 import os
 import json
 import threading
@@ -18,7 +37,7 @@ logger.propagate = False
 
 MASTER = "master"
 MASTER_LOCAL = "master_local"
-
+NODE_ID = "node_id"
 RESPONSIBILITIES = "node_responsibilities"
 
 
@@ -92,8 +111,12 @@ def clean(*args):
 
 
 if __name__ == "__main__":
+    # Read in parameters
+    parser = create_parser()
+    (opt, args) = parser.parse_args()
+
     #Load configuration files
-    config = json.load(open("config.json","r"))
+    config = json.load(open(opt.config,"r"))
 
     logger.info(("Configuration file ", config))
 
