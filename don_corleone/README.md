@@ -12,6 +12,11 @@ register more than one instance.
 
 Sidenote: For checking Hadoop cluster status we will use Hue service (included in Cloudera package).
 
+### Installation
+Add file ocean_password to don_corleone folder with your password to ocean
+account. Otherwise ocean_don_corleone won't be able to run scripts on your
+machine
+
 ### TODO
 * Terminating node (terminate_node.py)
 
