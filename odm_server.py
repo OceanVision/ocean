@@ -511,7 +511,7 @@ class ODMServer():
         self._handle_connections(server_socket)
 
 
-from ocean_don_corleone.utils import get_configuration
+from don_corleone.utils import get_configuration
 HOST = get_configuration("odm", "address")
 PORT = get_configuration("odm", "port")
 

@@ -36,14 +36,15 @@ CONFIG_USER = "ssh-user"
 
 
 SERVICE_ODM = "odm"
+SERVICE_LIONFISH = "lionfish"
 SERVICE_NEO4J = "neo4j"
 SERVICE_NEWS_FETCHER_MASTER = "news_fetcher_master"
 SERVICE_NEWS_FETCHER = "news_fetcher"
 
 
 
-UNARY_SERVICES = set([SERVICE_ODM, SERVICE_NEO4J, SERVICE_NEWS_FETCHER])
-KNOWN_SERVICES = set([SERVICE_ODM, SERVICE_NEO4J, SERVICE_NEWS_FETCHER])
+UNARY_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH, SERVICE_NEO4J, SERVICE_NEWS_FETCHER])
+KNOWN_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH,  SERVICE_NEO4J, SERVICE_NEWS_FETCHER])
 
 SERVICE = "service"
 #Service ID is in most cases the same as SERVICE, however if it is local, or if it is multiple_slave it can differ
@@ -298,7 +299,7 @@ def update_status(m):
     with services_lock:
         logger.info("Updating status for " + str(m))
         cmd = "\"(cd {0} && {1})\"".format(
-                                        os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
+                                        os.path.join(m[SERVICE_HOME],"don_corleone"),
                                         "./scripts/{0}_test.sh".format(m[SERVICE]))
 
         status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
@@ -369,7 +370,7 @@ def _terminate_service(service_id):
 
 
         cmd = "\"(cd {0} && {1})\"".format(
-                                        os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
+                                        os.path.join(m[SERVICE_HOME],"don_corleone"),
                                         "./scripts/{0}_terminate.sh".format(m[SERVICE]))
 
 
@@ -405,7 +406,7 @@ def _run_service(service_id):
 
 
         cmd = "\"(cd {0} && {1})\"".format(
-                                        os.path.join(m[SERVICE_HOME],"ocean_don_corleone"),
+                                        os.path.join(m[SERVICE_HOME],"don_corleone"),
                                         "./scripts/run.sh {1} ./scripts/{0}_run.sh".format(m[SERVICE], m[SERVICE_ID]))
 
 

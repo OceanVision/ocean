@@ -131,7 +131,7 @@ if __name__ == "__main__":
 
     #Check if run_node should create Don Corleone
     if config.get(MASTER_LOCAL, False):
-        logger.info("Checking if run_node should run the ocean_don_corleone service")
+        logger.info("Checking if run_node should run the don_corleone service")
         if os.system("./scripts/don_corleone_test.sh") != 0:
             logger.info("Running DonCorleone on master setting")
             run_node_owner = True
