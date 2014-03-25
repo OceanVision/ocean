@@ -21,8 +21,11 @@ Please see config.json : it should explain everything.
 
 You have to specify following items:
 
-* master: ip or domain of the master node, if you want to run locally everything just set it to "local", if
-you want your node to become master set it to "localhost:8882"
+* master: url of master
+
+* master_local_url: url of local server (do not change in most cases)
+
+* master_local: true/false : if true, run_node will run don_corleone first
 
 * responsibilties: what responsibilities is this node registering. Options:
 
@@ -50,20 +53,21 @@ you want your node to become master set it to "localhost:8882"
 
     * kafka (not implemented)
 
-Each responsibility is a list of name and additional options. Exemplary additional options:
+Each responsibility is a list of name and additional options.
 
-* for news_fetcher_slave "id" (default id is 0)
+**Important note**: You add option local: this will make this service local (and accessible only by your computer)
 
-* for ODM (lionfish) "port" (default port is 7777)
+Exemplary additional options.
 
-* for neo4j "port" (default port is 7474)
+    * for news_fetcher_slave "id" (default id is 0)
 
-**Note**: It should be possible to run local responsibility (only for this node), but not implemented yet.
+    * for ODM (lionfish) "port" (default port is 7777)
 
-**Note**: Responsibilities have to be ordered in the order of starting (topological order).
-Of course it is easy to implement in don corleone so it might be in the future.
+    * for neo4j "port" (default port is 7474)
 
 * home: path to your ocean directory
+
+<few others >
 
 ### Running
 
@@ -77,20 +81,7 @@ to the master responsibilities.
 The main idea is that modules can fetch configuration from the webserivce. The function
 is defined in ocean_admin/utils.py
 
-Usage: fetch_configuration(name), where name is a string, one of the following:
-
-* neo4j_address (will fetch ip or domain)
-
-* neo4j_port
-
-* odm_address
-
-* odm_port
-
-* news_fetcher_master_address
-
-Function returns a JSON, in our case it will be in most cases a string.
-
+Usage: fetch_configuration(service_name, config_name). For exemplary usage see lionfish
 
 ### Stoping
 
@@ -98,5 +89,4 @@ Hit ctrl+C , run_node.py should terminate the responsibilities and deregister. (
 
 ### Administrating
 
-Go to <master>:8882 (or 8881 if run by python ocean_don_corleone.py),
-and you should see webservice with intuitive UI for administrating Ocean.
+Go to 127.0.0.1:8881

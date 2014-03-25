@@ -7,20 +7,20 @@
     <title>Ocean Don Corleone</title>
 
 
-    <link href="css/jquery-ui.css" rel="stylesheet">
-    <script src="js/jquery-1.10.2.min.js"></script>
-    <script src="js/jquery-ui.min.js"></script>
+    <link href="static/css/jquery-ui.css" rel="stylesheet">
+    <script src="static/js/jquery-1.10.2.min.js"></script>
+    <script src="static/js/jquery-ui.min.js"></script>
     <!-- Bootstrap -->
-    <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css">
-    <link href="css/bootstrap-theme.min.css" rel="stylesheet" type="text/css">
+    <link href="static/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="static/css/bootstrap-theme.min.css" rel="stylesheet" type="text/css">
 
-    <script src="js/bootstrap.min.js"></script>
+    <script src="static/js/bootstrap.min.js"></script>
 
-    <script type="text/javascript" src="js/tablesorter/jquery-latest.js"></script>
-    <script type="text/javascript" src="js/tablesorter/jquery.tablesorter.min.js"></script>
+    <script type="text/javascript" src="static/js/tablesorter/jquery-latest.js"></script>
+    <script type="text/javascript" src="static/js/tablesorter/jquery.tablesorter.min.js"></script>
 
     <style>
-        body {background-image:url("bg.png");}
+        body {background-image:url("static/bg_2.jpg");}
     </style>
 
   </head>
@@ -214,7 +214,7 @@
                 var alert_template = "";
                 jQuery.ajax({
                     async: false,
-                    url:'alert_template.html',
+                    url:'static/alert_template.html',
                     type:'get',
                     dataType:'html',
                     success:function(data)

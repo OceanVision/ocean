@@ -348,7 +348,7 @@ def run_daemons():
 
 @app.route('/')
 def hello():
-    return "Hello world!"
+    return flask.render_template("index.html")
 
 def _terminate_service(service_id):
     """ Terminate service given service_id

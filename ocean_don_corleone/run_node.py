@@ -90,8 +90,11 @@ def install_node(config, run=False):
 
         print json.loads(response)['result']
 
+config = []
+
 def clean(*args):
     global terminated
+
     try:
         logger.info("Terminating node by terminating node in DonCorleone and terminating DonCorleone if local")
         ret = os.system("python terminate_node.py")
