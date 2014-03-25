@@ -76,14 +76,19 @@ def install_node(config, run=False):
 
         params = urllib.urlencode\
                 ({"service":json.dumps(service),"run":json.dumps(run) , "config":json.dumps(config),
-                  "additional_config":json.dumps(additional_config)
+                  "additional_config":json.dumps(additional_config), "node_id":json.dumps(config[NODE_ID])
                   })
 
 
         response = urllib2.urlopen(config[MASTER] +"/register_service", params).read()
+
+
+
         print response
 
+        response = urllib2.urlopen(config[MASTER] +"/get_services").read()
 
+        print json.loads(response)['result']
 
 def clean(*args):
     global terminated

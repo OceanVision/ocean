@@ -34,9 +34,9 @@
                var txt = "";
                     jQuery.ajax({
                          async:false,
-                         url:    "http://127.0.0.1:8881/get_services",
+                         url:    "http://127.0.0.1:8882/get_services",
                          success: function(data, status) {
-                                        fill_services(eval(data["response"]));
+                                        fill_services(data["result"]);
                                   },
                             type:'GET',
                             crossDomain:true,

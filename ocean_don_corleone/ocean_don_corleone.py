@@ -228,9 +228,9 @@ service_tmp7 = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:222,
                }
 
 #services.append(service_tmp)
-add_service(service_tmp5)
-add_service(service_tmp6)
-add_service(service_tmp7)
+#add_service(service_tmp5)
+#add_service(service_tmp6)
+#add_service(service_tmp7)
 #services.append(service_tmp4)
 
 """
@@ -455,13 +455,13 @@ def deregister_service():
     try:
         output_run_service = _deregister_service(service_id)
         logger.info("Deregistering service "+service_id+" "+output_run_service)
-        return jsonify(result=json.dumps(str(OK)))
+        return jsonify(result=str(OK))
     except DonCorleoneException,e:
         logger.error("Failed deregistering service " + service_id + " with DonCorleoneException "+str(e))
-        return jsonify(result=json.dumps(str(e)))
+        return jsonify(result=str(e))
     except Exception,e:
         logger.error("Failed deregistering service " + service_id + " with unexpected error "+str(e))
-        return jsonify(result=json.dumps(str(ERROR)))
+        return jsonify(result=str(ERROR))
 
 
 
@@ -474,18 +474,6 @@ def register_service():
             run = json.loads(request.form['run'])
             service_name = json.loads(request.form['service'])
 
-            node_id = json.loads(request.form['node_id'])
-            local = True if 'local' in request.form else False
-
-            #Prepare service id
-            services_ids = [int(s[SERVICE_ID].split("_")[1]) for s in services if s[SERVICE] == service_name]
-            next_id = max(services_ids)+1 if len(services_ids) else 1
-            service_id = service_name + "_" + next_id
-
-
-            config = json.loads(request.form['config'])
-
-
             # Load default service additional config (like port configuration)
             additional_service_config = {}
             try:
@@ -494,18 +482,33 @@ def register_service():
                 print request.form['additional_config']
                 print str(ex)+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
+            node_id = json.loads(request.form['node_id'])
+            local = True if 'local' in request.form or 'local' in additional_service_config\
+                else False
+
+            #Prepare service id
+            services_ids = [int(s[SERVICE_ID].split("_")[1]) for s in services if s[SERVICE] == service_name]
+            next_id = max(services_ids)+1 if len(services_ids) else 1
+            service_id = service_name + "_" + str(next_id)
+
+
+            config = json.loads(request.form['config'])
+
+
+
+
 
             if not service_name or not service_id or len(service_name)==0 or len(service_id)==0:
-                return jsonify(result=json.dumps(str(ERROR_WRONG_METHOD_PARAMETERS)))
+                return jsonify(result=str(ERROR_WRONG_METHOD_PARAMETERS))
 
             if filter(lambda x: x[SERVICE_ID] == service_id, services):
-                return jsonify(result=json.dumps(str(ERROR_SERVICE_ID_REGISTERED)))
+                return jsonify(result=str(ERROR_SERVICE_ID_REGISTERED))
 
             if filter(lambda x: x[SERVICE] == service_name, services) and service_name in UNARY_SERVICES:
-                return jsonify(result=json.dumps(str(ERROR_ALREADY_REGISTERED_SERVICE)))
+                return jsonify(result=str(ERROR_ALREADY_REGISTERED_SERVICE))
 
             if service_name not in KNOWN_SERVICES:
-                return jsonify(result=json.dumps(str(ERROR_NOT_RECOGNIZED_SERVICE)))
+                return jsonify(result=str(ERROR_NOT_RECOGNIZED_SERVICE))
 
             logger.info("Proceeding to registering {0} {1}".format(service_name, service_id))
 
@@ -558,7 +561,7 @@ def register_service():
                 output=OK
 
 
-        return jsonify(result=json.dumps(str(output)))
+        return jsonify(result=str(output))
 
 
 
@@ -577,13 +580,13 @@ def terminate_service():
         output_run_service = _terminate_service(service_id)
 
         logger.info("Terminating service "+service_id+" result "+output_run_service)
-        return jsonify(result=json.dumps(str(OK)))
+        return jsonify(result=str(OK))
     except DonCorleoneException,e:
         logger.error("Failed terminating service " + service_id + " with DonCorleoneException "+str(e))
-        return jsonify(result=json.dumps(str(e)))
+        return jsonify(result=str(e))
     except Exception,e:
         logger.error("Failed terminating service " + service_id + " with non expected exception "+str(e))
-        return jsonify(result=json.dumps(str(ERROR_FAILED_SERVICE_RUN)))
+        return jsonify(result=str(ERROR_FAILED_SERVICE_RUN))
 
 
 
@@ -602,7 +605,7 @@ def run_service():
     try:
         output_run_service = _run_service(service_id)
         logger.info("Running service "+service_id+" result "+output_run_service)
-        return jsonify(result=json.dumps(str(OK)))
+        return jsonify(result=str(OK))
     except DonCorleoneException,e:
         logger.error("Failed running service " + service_id + " with DonCorleoneException "+str(e))
         return jsonify(result=json.dumps(str(e)))
@@ -617,7 +620,7 @@ import flask
 @app.route('/get_services')
 def get_services():
     with services_lock:
-        return jsonify(response=json.dumps(services))
+        return jsonify(result=services)
 
 @app.route('/get_configuration', methods=["GET"])
 def get_configuraiton():
@@ -656,7 +659,7 @@ def get_configuraiton():
                 return jsonify(result=(str(ERROR_NOT_RECOGNIZED_CONFIGURATION)))
 
         else:
-            return jsonify(result=(str(ERROR_NOT_REGISTERED_SERVICE)))
+            return jsonify(result=str(ERROR_NOT_REGISTERED_SERVICE))
 
 
 
@@ -665,7 +668,7 @@ def get_configuraiton():
 @app.route('/get_services', methods=['GET'])
 def get_modules():
     #return json.dumps([(m[MODULE_SERVICE_NAME], modules[MODULE_ADDRESS], m[MODULE_STATUS]) for m in modules])
-    return jsonify(result=json.dumps(services))
+    return jsonify(result=services)
 
 @app.route('/get_node_config', methods=['GET'])
 def get_node_config():
@@ -676,10 +679,10 @@ def get_node_config():
     logger.info("Checking node config for "+str(node_id))
 
     if node_id not in registered_nodes:
-        return jsonify(result=json.dumps(str(ERROR_NODE_NOT_REGISTERED)))
+        return jsonify(result=str(ERROR_NODE_NOT_REGISTERED))
 
 
-    return jsonify(result=json.dumps(registered_nodes[node_id]))
+    return jsonify(result=registered_nodes[node_id])
 
 
 @app.route('/terminate_node', methods=['GET'])
@@ -693,7 +696,7 @@ def terminate_node():
 
     # Basic error checking
     if node_id not in registered_nodes:
-        return jsonify(result=json.dumps(str(ERROR_NODE_NOT_REGISTERED)))
+        return jsonify(result=str(ERROR_NODE_NOT_REGISTERED))
 
 
 
@@ -707,10 +710,10 @@ def terminate_node():
                     logger.info("Deregistering service "+m[SERVICE_ID]+ " "+output_run_service)
                 except DonCorleoneException,e:
                     logger.error("Failed deregistering service "+m[SERVICE_ID]+" with DonCorleoneException "+str(e))
-                    return jsonify(result=json.dumps(str(e)))
+                    return jsonify(result=str(e))
                 except Exception,e:
                     logger.error("Failed deregistering service " + m[SERVICE_ID] + " with unexpected error "+str(e))
-                    return jsonify(result=json.dumps(str(ERROR_FAILED_SERVICE_RUN)))
+                    return jsonify(result=str(ERROR_FAILED_SERVICE_RUN))
 
         with registered_nodes_lock:
             registered_nodes.pop(node_id)
@@ -734,9 +737,9 @@ def get_status():
     service_name = request.args.get('service_id')
     print filter(lambda x: x[SERVICE_ID] == service_name, services)
     if filter(lambda x: x[SERVICE_ID] == service_name, services):
-        return jsonify(result=json.dumps(filter(lambda x: x[SERVICE_ID] == service_name, services)[0][SERVICE_STATUS]))
+        return jsonify(result=filter(lambda x: x[SERVICE_ID] == service_name, services)[0][SERVICE_STATUS])
     else:
-        return jsonify(result=json.dumps(STATUS_NOTREGISTERED))
+        return jsonify(result=STATUS_NOTREGISTERED)
 
 
 
