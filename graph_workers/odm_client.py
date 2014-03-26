@@ -4,7 +4,7 @@ import logging
 import inspect
 
 HOST = 'ocean-neo4j.no-ip.biz'  # 'localhost'
-PORT = 7777
+PORT = 21
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'graph_workers'))
 from graph_utils import *
@@ -204,7 +204,7 @@ class ODMClient(object):
         """
         Sets node_params to a node of given node_uuid
         @param node_uuid string
-        @param node_params dictionary
+        @param params dictionary/keywords
         """
         data = {
             'func_name': 'set',
@@ -219,17 +219,18 @@ class ODMClient(object):
         self.send(data)
         return self.recv()
 
-    def create_node(self, model_name, **params):
+    def create_node(self, model_name, rel_type='<<INSTANCE>>', **params):
         """
         Creates a node with node_params to the model given by model_name
-        (with the associated relationship of <<INSTANCE>>)
-        @param type string
-        @param node_params dictionary
+        @param model_name string
+        @param rel_type string
+        @param params dictionary/keywords
         """
         data = {
             'func_name': 'create_nodes',
             'args': [{
                 'model_name': model_name,
+                'rel_type': rel_type,
                 'params': params
             }]
         }

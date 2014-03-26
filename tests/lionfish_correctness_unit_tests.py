@@ -1,6 +1,7 @@
 import os
 import sys
 from py2neo import neo4j
+import json
 from unit_tests_interface import UnitTests
 sys.path.append(os.path.join(os.path.dirname(__file__), '../graph_workers'))
 from odm_client import ODMClient
@@ -14,7 +15,7 @@ class LionfishCorrectnessUnitTests(UnitTests):
         self._client.connect()
         self._batch = self._client.get_batch()
         graph_db = neo4j.GraphDatabaseService(
-            'http://ocean-neo4j.no-ip.biz:7474/db/data/'
+            'http://ocean-neo4j.no-ip.biz:16/db/data/'
             # 'http://localhost:7474/db/data/'
         )
         self._v_read_batch = neo4j.ReadBatch(graph_db)
@@ -66,11 +67,11 @@ class LionfishCorrectnessUnitTests(UnitTests):
     def get_by_uuid__incorrect(self):
         instances = self._client.get_instances(model_name='NeoUser')
         assert(len(instances) > 0)
-        uuid = instances[0]['uuid'].replace('a', 'e').replace('0', '1')\
+        uuid = instances[0]['uuid'].replace('b', 'e').replace('0', '1')\
             .replace('6', '7')
 
         node = self._client.get_by_uuid(uuid)
-        assert(len(node) == 0)
+        assert(not node)
 
     def get_by_uuid__batch(self):
         nu_instances = self._client.get_instances(model_name='NeoUser')
@@ -88,16 +89,16 @@ class LionfishCorrectnessUnitTests(UnitTests):
         assert('uuid' in nodes[0] and 'uuid' in nodes[1])
 
         self._v_read_batch.append_cypher(
-            'MATCH (e)'
-            'WHERE e.uuid IN {uuids}'
-            'RETURN (e)', {'uuids': [nu_uuid, cs_uuid]}
+            'OPTIONAL MATCH (e0:Node {uuid: {uuid0} }) '
+            'OPTIONAL MATCH (e1:Node {uuid: {uuid1} }) '
+            'RETURN DISTINCT (e0), (e1)', {'uuid0': cs_uuid, 'uuid1': nu_uuid}
         )
         results = self._v_read_batch.submit()[0]
         assert(results and len(results) > 0)
-        valid_nodes = [item.values[0].get_properties() for item in results]
+        valid_nodes = [item.get_properties() for item in results]
         self._v_read_batch.clear()
         assert('username' in nodes[0] and 'title' in nodes[1])
-        assert(nodes[0] == valid_nodes[0] and nodes[1] == valid_nodes[1])
+        assert(nodes[0] == valid_nodes[1] and nodes[1] == valid_nodes[0])
 
     # ================ G E T   B Y   L I N K ================
     def get_by_link__correct1(self):
@@ -112,9 +113,8 @@ class LionfishCorrectnessUnitTests(UnitTests):
         assert(node['link'] == link)
 
         self._v_read_batch.append_cypher(
-            'MATCH (e)-[]->(a)'
-            'WHERE e.model_name = "ContentSource" AND a.link={link}'
-            'RETURN (a)', {'link': link}
+            'OPTIONAL MATCH (e:ContentSource {link: {link} })'
+            'RETURN DISTINCT (e)', {'link': link}
         )
         valid_node = self._v_read_batch.submit()[0]
         self._v_read_batch.clear()
@@ -124,7 +124,9 @@ class LionfishCorrectnessUnitTests(UnitTests):
 
     def get_by_link__correct2(self):
         instances = self._client.get_instances(model_name='Content')
-        assert(len(instances) > 0)
+        # There is such possibility at initial state
+        if len(instances) == 0:
+            return
         assert('link' in instances[0])
         link = instances[0]['link']
 
@@ -134,9 +136,8 @@ class LionfishCorrectnessUnitTests(UnitTests):
         assert(node['link'] == link)
 
         self._v_read_batch.append_cypher(
-            'MATCH (e)-[]->(a)'
-            'WHERE e.model_name = "Content" AND a.link={link}'
-            'RETURN (a)', {'link': link}
+            'OPTIONAL MATCH (e:Content {link: {link} })'
+            'RETURN DISTINCT (e)', {'link': link}
         )
         valid_node = self._v_read_batch.submit()[0]
         self._v_read_batch.clear()
@@ -149,7 +150,7 @@ class LionfishCorrectnessUnitTests(UnitTests):
         assert(len(instances) > 0)
         link = instances[0]['link'].replace('http', 'lol')
         node = self._client.get_by_link('ContentSource', link)
-        assert(len(node) == 0)
+        assert(not node)
 
     def get_by_link__batch(self):
         instances = self._client.get_instances(model_name='ContentSource')
@@ -167,13 +168,13 @@ class LionfishCorrectnessUnitTests(UnitTests):
         assert('link' in nodes[0] and 'link' in nodes[1])
 
         self._v_read_batch.append_cypher(
-            'MATCH (e)-[]->(a)'
-            'WHERE e.model_name="ContentSource" AND a.link IN {links}'
-            'RETURN (a)', {'links': [link1, link2]}
+            'OPTIONAL MATCH (e0:ContentSource {link: {link0} })'
+            'OPTIONAL MATCH (e1:ContentSource {link: {link1} })'
+            'RETURN DISTINCT (e0), (e1)', {'link0': link1, 'link1': link2}
         )
         results = self._v_read_batch.submit()[0]
         assert(results and len(results) > 0)
-        valid_nodes = [item.values[0].get_properties() for item in results]
+        valid_nodes = [item.get_properties() for item in results]
         self._v_read_batch.clear()
         assert(nodes[0] == valid_nodes[0] and nodes[1] == valid_nodes[1])
 
@@ -300,9 +301,8 @@ class LionfishCorrectnessUnitTests(UnitTests):
         assert('uuid' in nodes[0])
 
         self._v_read_batch.append_cypher(
-            'MATCH (e)-[r]->(a)'
-            'WHERE e.model_name={model_name} AND type(r)={rel_type}'
-            'RETURN (a)', {'model_name': 'NeoUser', 'rel_type': '<<INSTANCE>>'}
+            'MATCH (e:Model {model_name: {model}})-[:`<<INSTANCE>>`]->(a:NeoUser)'
+            'RETURN (a)', {'model': 'NeoUser'}
         )
         results = self._v_read_batch.submit()[0]
         assert(results and len(results) > 0)
@@ -319,20 +319,18 @@ class LionfishCorrectnessUnitTests(UnitTests):
 
     def get_instances__batch(self):
         self._batch.append(self._client.get_instances, 'NeoUser')
-        self._batch.append(self._client.get_instances, 'ContentSource')
+        self._batch.append(self._client.get_instances, 'Content')
         instances = self._batch.submit()
 
         assert(len(instances) == 2)
-        assert(len(instances[0]) > 0 and len(instances[1]) > 0)
-        assert('username' in instances[0][0] and 'title' in instances[1][0])
+        assert(len(instances[0]) > 0 and len(instances[1]) == 0)
+        assert('username' in instances[0][0])
 
-        nodes = instances[0] + instances[1]
+        nodes = instances[0]
 
         self._v_read_batch.append_cypher(
-            'MATCH (e)-[r]->(a)'
-            'WHERE e.model_name IN {model_names} AND type(r)={rel_type}'
-            'RETURN (a)',
-            {'model_names': ['NeoUser', 'ContentSource'], 'rel_type': '<<INSTANCE>>'}
+            'MATCH (e:Model {{model_name: {0}}})-[:`<<INSTANCE>>`]->(a:{1})'
+            'RETURN (a)'.format(json.dumps('NeoUser'), 'NeoUser')
         )
         results = self._v_read_batch.submit()[0]
         assert(results and len(results) > 0)
@@ -427,11 +425,11 @@ class LionfishCorrectnessUnitTests(UnitTests):
                 node = instance
         assert(node is not None)
         node = self._client.get_by_uuid(uuid)
-        assert(len(node) > 0)
+        assert(node and len(node) > 0)
         assert(node['uuid'] == uuid and node['username'] == 'create_node_test')
         self._client.delete_node(uuid)
         node = self._client.get_by_uuid(uuid)
-        assert(len(node) == 0)
+        assert(not node)
 
     def create_and_delete_node__incorrect_model_name(self):
         uuid = self._client.create_node('MODEL', username='create_node_test2')
@@ -458,7 +456,7 @@ class LionfishCorrectnessUnitTests(UnitTests):
         assert(len(str(uuids[0])) == 36 and not uuids[1])
 
         node = self._client.get_by_uuid(uuids[0])
-        assert('uuid' in node and 'username' in node)
+        assert(node and 'uuid' in node and 'username' in node)
         assert(node['uuid'] == uuids[0] and node['username'] == 'create_node_test3.1')
         self._client.delete_node(uuids[0])
         node = self._client.get_by_uuid(uuids[0])
@@ -491,9 +489,9 @@ class LionfishCorrectnessUnitTests(UnitTests):
         assert('uuid' in instances[0] and 'uuid' in instances[1])
 
         self._client.create_relationship(
-            instances[0]['uuid'].replace('a', 'e').replace('0', '1')
+            instances[0]['uuid'].replace('b', 'e').replace('0', '1')
             .replace('6', '7'),
-            instances[1]['uuid'].replace('a', 'e').replace('0', '1')
+            instances[1]['uuid'].replace('b', 'e').replace('0', '1')
             .replace('6', '7'),
             '<<TEST>>',
             test_param=1, test_param2='abc'
