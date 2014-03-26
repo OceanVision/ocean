@@ -34,7 +34,7 @@
                var txt = "";
                     jQuery.ajax({
                          async:false,
-                         url:    "http://127.0.0.1:8882/get_services",
+                         url:    "{{server_url}}/get_services",
                          success: function(data, status) {
                                         fill_services(data["result"]);
                                   },
@@ -50,7 +50,7 @@
 
                     jQuery.ajax({
                          async:false,
-                         url:    "http://127.0.0.1:8882/run_service?service_id="+service_id,
+                         url:    "{{server_url}}/run_service?service_id="+service_id,
                          success: function(data, status) {
                                         display_alert_text(JSON.stringify(data));
                                         update_services();
@@ -69,7 +69,7 @@
                     jQuery.ajax({
                          async:false,
                           data: {"service_id": service_id},
-                         url:    "http://127.0.0.1:8882/terminate_service",
+                         url:    "{{server_url}}/terminate_service",
                          success: function(data, status) {
                                        display_alert_text(JSON.stringify(data));
                                        update_services();
@@ -86,7 +86,7 @@
 
                     jQuery.ajax({
                          async:false,
-                         url:    "http://127.0.0.1:8882/deregister_service?service_id="+service_id,
+                         url:    "{{server_url}}/deregister_service?service_id="+service_id,
                          success: function(data, status) {
                                         display_alert_text(JSON.stringify(data));
                                         update_services();

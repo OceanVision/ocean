@@ -35,7 +35,7 @@ logger.addHandler(ch)
 logger.propagate = False
 
 
-PUBLIC_URL = "public_url"
+PUBLIC_URL = "public_ssh_domain"
 MASTER = "master"
 MASTER_LOCAL = "master_local"
 NODE_ID = "node_id"
@@ -81,6 +81,7 @@ def install_node(config, run=False):
                   })
 
 
+        print get_don_corleone_url(config)
         response = urllib2.urlopen(get_don_corleone_url(config)+"/register_service", params).read()
 
 

@@ -297,16 +297,16 @@ def cautious_run_cmd_over_ssh(user, port, cmd, address):
 
 def update_status(m):
     """ Checks and updates status of given service  """
+    logger.info("Updating status for " + str(m))
+    cmd = "\"(cd {0} && {1})\"".format(
+                                    os.path.join(m[SERVICE_HOME],"don_corleone"),
+                                    "./scripts/{0}_test.sh".format(m[SERVICE]))
+
+    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
+
+    logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", str(status)))
+
     with services_lock:
-        logger.info("Updating status for " + str(m))
-        cmd = "\"(cd {0} && {1})\"".format(
-                                        os.path.join(m[SERVICE_HOME],"don_corleone"),
-                                        "./scripts/{0}_test.sh".format(m[SERVICE]))
-
-        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
-
-        logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", str(status)))
-
         if status == ERROR_NOT_REACHABLE_SERVICE:
             remove_service(m[SERVICE_ID])
             logger.info("Service not reachable")
@@ -348,9 +348,13 @@ def run_daemons():
     t.start()
 
 
+
+from utils import get_don_corleone_url
+
 @app.route('/')
 def hello():
-    return flask.render_template("index.html")
+    ### Render out url of server, very clever Staszek!
+    return flask.render_template("index.html", server_url=get_don_corleone_url(json.loads(open("config.json","r").read())))
 
 def _terminate_service(service_id):
     """ Terminate service given service_id
@@ -374,12 +378,10 @@ def _terminate_service(service_id):
                                         os.path.join(m[SERVICE_HOME],"don_corleone"),
                                         "./scripts/{0}_terminate.sh".format(m[SERVICE]))
 
+    # Non blocking ssh
+    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
 
-
-
-
-        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
-
+    with services_lock:
         logger.info(("Terminating service ",service_id, "output", output, "status ",status))
 
         if status == OK:
@@ -413,8 +415,9 @@ def _run_service(service_id):
 
 
 
-        status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
+    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
 
+    with services_lock:
         logger.info(("Running service ",service_id, "output", output, "status ",status))
 
         # Update status
