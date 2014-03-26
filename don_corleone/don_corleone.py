@@ -98,6 +98,7 @@ status_checker_job_status = "NotRunning"
 
 
 import socket
+
 def get_bare_ip(address):
     """ Return bare ip for address (ip->ip, domain -> ip) """
     address = str(address)
@@ -474,6 +475,7 @@ def register_service():
         with services_lock:
             run = json.loads(request.form['run'])
             service_name = json.loads(request.form['service'])
+            public_url = json.loads(request.form['public_url'])
 
             # Load default service additional config (like port configuration)
             additional_service_config = {}
@@ -521,7 +523,7 @@ def register_service():
                        SERVICE_STATUS:STATUS_TERMINATED,
                        NODE_ID: node_id,
                        SERVICE_LOCAL: local,
-                       SERVICE_ADDRESS:get_bare_ip(str(request.remote_addr)),
+                       SERVICE_ADDRESS: public_url,
                        SERVICE_RUN_CMD:DEFAULT_COMMAND,
                        SERVICE_SSH_PORT:config.get(CONFIG_SSH_PORT, DEFAULT_SSH_PORT),
                        SERVICE_HOME:config[CONFIG_HOME]
@@ -649,7 +651,8 @@ def get_configuraiton():
             return jsonify(result=(str(ERROR_NOT_RECOGNIZED_CONFIGURATION)))
 
     else:
-        services_list = filter(lambda x: x[SERVICE] == service_name, services)
+        # Get global, discard local
+        services_list = filter(lambda x: x[SERVICE] == service_name and x[SERVICE_LOCAL] == False, services)
 
         #Typical service_feature configuration
         if len(services_list) > 0:
@@ -689,11 +692,10 @@ def get_node_config():
 @app.route('/terminate_node', methods=['GET'])
 def terminate_node():
     """ Terminates node with all the responsibilities """
-    address = get_bare_ip(request.remote_addr)
     node_id = request.args.get('node_id')
 
 
-    logger.info("Terminating node "+str(address))
+    logger.info("Terminating node "+node_id)
 
     # Basic error checking
     if node_id not in registered_nodes:

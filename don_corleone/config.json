@@ -1,16 +1,17 @@
 {
 
-"master":"niewiadomo.gdzie.com:7777",
+"master":"http://188.226.179.35",
 "master_local_url":"http://127.0.0.1:8881",
 "master_local":true,
+"public_url":"http://ocean-db.no-ip.biz",
 "node_responsibilities":[
-    ["neo4j",{"port":7474, "local":true}],
-    ["odm",{"port":7777, "local":true}],
+    ["neo4j",{"port":7474, "local":false}],
+    ["odm",{"port":7777, "local":false}],
     ["news_fetcher",{}],
     ["webservice",{}]
 ],
 "node_id":"staszek",
 "home":"/home/moje/Projekty/ocean/ocean",
 "ssh-user":"staszek",
-"ssh-port":22
+"ssh-port":2215
 }

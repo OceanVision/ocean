@@ -35,6 +35,7 @@ logger.addHandler(ch)
 logger.propagate = False
 
 
+PUBLIC_URL = "public_url"
 MASTER = "master"
 MASTER_LOCAL = "master_local"
 NODE_ID = "node_id"
@@ -50,7 +51,7 @@ def install_node(config, run=False):
     global terminated
     """ Waits for webserver to start """
 
-    while os.system("./scripts/don_corleone_test.sh") != 0 and not terminated:
+    while config[MASTER_LOCAL] and os.system("./scripts/don_corleone_test.sh") != 0 and not terminated:
         time.sleep(1)
 
     if terminated:
@@ -76,7 +77,7 @@ def install_node(config, run=False):
 
         params = urllib.urlencode\
                 ({"service":json.dumps(service),"run":json.dumps(run) , "config":json.dumps(config),
-                  "additional_config":json.dumps(additional_config), "node_id":json.dumps(config[NODE_ID])
+                  "additional_config":json.dumps(additional_config), "node_id":json.dumps(config[NODE_ID]), "public_url":json.dumps(config[PUBLIC_URL])
                   })
 
 
