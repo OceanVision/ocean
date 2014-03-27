@@ -254,18 +254,18 @@ import time
 
 
 
-
+#TODO: add throwing errors here
 def cautious_run_cmd_over_ssh(user, port, cmd, address):
     """ Returns appropriate errors if encounters problems """
 
-    prog = subprocess.Popen(["ssh {user}@{0} -p{1} -o ConnectTimeout=1 ls".
+    prog = subprocess.Popen(["ssh {user}@{0} -p{1} -o ConnectTimeout=3 ls".
                              format(
          address,
          port,
          user=user
         )], stdout=subprocess.PIPE, shell=True)
 
-    logger.info("SSH connection "+"ssh {user}@{0} -o ConnectTimeout=1 -p{1} ls".
+    logger.info("SSH connection "+"ssh {user}@{0} -o ConnectTimeout=3 -p{1} ls".
                              format(
          address,
          port,
@@ -274,8 +274,9 @@ def cautious_run_cmd_over_ssh(user, port, cmd, address):
 
     prog.communicate()
 
+    #TODO: add "soft" trials, like 3
     if prog.returncode != 0:
-        logger.info("Error running command " + str(ERROR_FILE_NOT_FOUND))
+        logger.info("Error running command " + str(ERROR_NOT_REACHABLE_SERVICE))
         return (ERROR_NOT_REACHABLE_SERVICE, "")
 
 

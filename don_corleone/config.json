@@ -1,11 +1,10 @@
 {
-
 "master":"http://188.226.179.35",
 "master_local_url":"http://127.0.0.1:8881",
-"master_local":true,
+"master_local":false,
 "public_ssh_domain":"ocean-db.no-ip.biz",
 "node_responsibilities":[
-    ["neo4j",{"port":7474, "local":false}],
+    ["neo4j",{"port":7474, "address":"127.0.0.1", "local":true}],
     ["odm",{"port":7777, "local":false}],
     ["news_fetcher",{}],
     ["webservice",{}]
