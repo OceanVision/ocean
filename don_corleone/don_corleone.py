@@ -54,11 +54,11 @@ SERVICE = "service"
 SERVICE_ID = "service_id"
 SERVICE_STATUS = "status"
 #Without http
-SERVICE_ADDRESS = "address"
 SERVICE_SSH_PORT = "ssh-port"
 SERVICE_HOME = "home"
 SERVICE_RUN_CMD = "run_cmd"
 SERVICE_NAME = "service"
+SERVICE_CONFIG = "service_config"
 SERVICE_PORT = "port"
 SERVICE_USER = "user"
 NODE_ID = "node_id" # Id for node
@@ -142,9 +142,6 @@ def add_service(service):
 
             services.append(service)
 
-            if service[NODE_ID] not in registered_nodes:
-                node = {NODE_ID: service[NODE_ID], NODE_ADDRESS: service[SERVICE_ADDRESS], NODE_RESPONSIBILITIES: [], NODE_CONFIG: {}}
-                registered_nodes[service[NODE_ID]] = node
             registered_nodes[service[NODE_ID]][NODE_RESPONSIBILITIES].append(service)
         else:
             logger.error("Error adding existing service_id")
@@ -194,12 +191,10 @@ service_tmp = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:2231,
                NODE_ID: "acer"
                }
 service_tmp2 = {SERVICE_NAME:"neo4j",SERVICE_SSH_PORT:2231,
-               SERVICE_ID:"neo4j", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("ocean-db.no-ip.biz"), "port":7471,
                "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER,
                NODE_ID: "acer"
                }
 service_tmp3 = {SERVICE_NAME:"neo4j",SERVICE_SSH_PORT:2231,
-               SERVICE_ID:"neo4j", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("192.168.0.32"), "port":7471,
                "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER,
                NODE_ID: "acer"
                }
@@ -211,20 +206,20 @@ service_tmp4 = {SERVICE_NAME:"news_fetcher",SERVICE_SSH_PORT:22,
 
 #Local neo4j
 service_tmp5 = {SERVICE_NAME:"neo4j",SERVICE_SSH_PORT:22,
-               SERVICE_ID:"neo4j_1", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("127.0.0.1"), "port":7471,
+               SERVICE_ID:"neo4j_1", "status":STATUS_TERMINATED, "port":7471,
                "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek",
                NODE_ID: "staszek"
                }
 
 service_tmp6 = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:221,
-               SERVICE_ID:"odm_1", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("127.0.0.1"), "port":7471,
+               SERVICE_ID:"odm_1", "status":STATUS_TERMINATED, "port":7471,
                "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek",
                NODE_ID: "staszek"
                }
 
 
 service_tmp7 = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:222,
-               SERVICE_ID:"odm_2", "status":STATUS_TERMINATED, SERVICE_ADDRESS:get_bare_ip("127.0.0.1"), "port":74721,
+               SERVICE_ID:"odm_2", "status":STATUS_TERMINATED, "port":74721,
                "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek",
                NODE_ID: "staszek2"
                }
@@ -263,7 +258,7 @@ def cautious_run_cmd_over_ssh(user, port, cmd, address):
          address,
          port,
          user=user
-        )], stdout=subprocess.PIPE, shell=True)
+        )], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
     logger.info("SSH connection "+"ssh {user}@{0} -o ConnectTimeout=3 -p{1} ls".
                              format(
@@ -272,7 +267,9 @@ def cautious_run_cmd_over_ssh(user, port, cmd, address):
          user=user
         ))
 
-    prog.communicate()
+    output = prog.communicate()
+
+    #logger.info(output)
 
     #TODO: add "soft" trials, like 3
     if prog.returncode != 0:
@@ -288,7 +285,9 @@ def cautious_run_cmd_over_ssh(user, port, cmd, address):
                                 )
                             ],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    output = prog.communicate()[1]
+    output = prog.communicate()
+
+    logger.info(output)
 
     if prog.returncode != 0:
         logger.info("Error running command " + str(ERROR_FAILED_SSH_CMD))
@@ -303,20 +302,24 @@ def update_status(m):
                                     os.path.join(m[SERVICE_HOME],"don_corleone"),
                                     "./scripts/{0}_test.sh".format(m[SERVICE]))
 
-    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
+    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, registered_nodes[m[NODE_ID]][NODE_ADDRESS])
 
     logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", str(status)))
 
     with services_lock:
+        
+        # Not removing 
+        """
         if status == ERROR_NOT_REACHABLE_SERVICE:
             remove_service(m[SERVICE_ID])
             logger.info("Service not reachable")
             return
+        """
 
         logger.info(("Checking server availability for ",m[SERVICE_ID], "result ", str(status)))
         logger.info(output)
 
-        if status == ERROR_FAILED_SSH_CMD:
+        if status == ERROR_FAILED_SSH_CMD or status == ERROR_NOT_REACHABLE_SERVICE:
             logger.error("Service terminated")
             logger.error(output)
             m[SERVICE_STATUS] = STATUS_TERMINATED
@@ -380,7 +383,7 @@ def _terminate_service(service_id):
                                         "./scripts/{0}_terminate.sh".format(m[SERVICE]))
 
     # Non blocking ssh
-    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
+    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, registered_nodes[m[NODE_ID]][NODE_ADDRESS])
 
     with services_lock:
         logger.info(("Terminating service ",service_id, "output", output, "status ",status))
@@ -416,7 +419,7 @@ def _run_service(service_id):
 
 
 
-    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, m[SERVICE_ADDRESS])
+    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, registered_nodes[m[NODE_ID]][NODE_ADDRESS])
 
     with services_lock:
         logger.info(("Running service ",service_id, "output", output, "status ",status))
@@ -469,7 +472,7 @@ def deregister_service():
         logger.error("Failed deregistering service " + service_id + " with unexpected error "+str(e))
         return jsonify(result=str(ERROR))
 
-
+#q - ma wplyw : q-->0 : liczymy nie zerowe, q-->inf : rownomierne
 
 from flask import Response
 @app.route('/register_service', methods=['POST'])
@@ -480,9 +483,11 @@ def register_service():
             run = json.loads(request.form['run'])
             service_name = json.loads(request.form['service'])
             public_url = json.loads(request.form['public_url'])
+            config = json.loads(request.form['config'])
+
 
             # Load default service additional config (like port configuration)
-            additional_service_config = {}
+            additional_service_config = additional_default_options.get(service_name, {})
             try:
                 additional_service_config = json.loads(request.form['additional_config'])
             except Exception, ex:
@@ -490,16 +495,21 @@ def register_service():
                 print str(ex)+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
             node_id = json.loads(request.form['node_id'])
+
+            with registered_nodes_lock:
+                if not node_id in registered_nodes:
+                    node = {NODE_ID:node_id, NODE_ADDRESS:public_url,NODE_CONFIG:config, NODE_RESPONSIBILITIES:[]}
+                    registered_nodes[node_id] = node
+
             local = True if 'local' in request.form or 'local' in additional_service_config\
                 else False
+
+
 
             #Prepare service id
             services_ids = [int(s[SERVICE_ID].split("_")[1]) for s in services if s[SERVICE] == service_name]
             next_id = max(services_ids)+1 if len(services_ids) else 1
             service_id = service_name + "_" + str(next_id)
-
-
-            config = json.loads(request.form['config'])
 
 
 
@@ -520,27 +530,27 @@ def register_service():
             logger.info("Proceeding to registering {0} {1}".format(service_name, service_id))
 
 
+    
+
             #Prepare service
             service_dict = {SERVICE:service_name,
                        SERVICE_ID:service_id,
                        SERVICE_USER:config.get(CONFIG_USER, DEFAULT_USER),
                        SERVICE_STATUS:STATUS_TERMINATED,
                        NODE_ID: node_id,
+                       NODE_ADDRESS: public_url,
                        SERVICE_LOCAL: local,
-                       SERVICE_ADDRESS: public_url,
                        SERVICE_RUN_CMD:DEFAULT_COMMAND,
                        SERVICE_SSH_PORT:config.get(CONFIG_SSH_PORT, DEFAULT_SSH_PORT),
-                       SERVICE_HOME:config[CONFIG_HOME]
+                       SERVICE_HOME:config[CONFIG_HOME],
+                        SERVICE_CONFIG: additional_service_config
                        }
 
-            service_dict.update(additional_default_options.get(service_name, {}))
-            service_dict.update(additional_service_config)
 
             #Modify service_id to make it unique
 
 
             add_service(service_dict)
-            registered_nodes[service_dict[NODE_ID]][NODE_CONFIG] = config
 
             logger.info(("Registering " if not run else "Running and registering ")+str(service_dict))
 
@@ -629,6 +639,12 @@ def get_services():
     with services_lock:
         return jsonify(result=services)
 
+@app.route('/get_nodes')
+def get_nodes():
+    with registered_nodes_lock:
+        return jsonify(result=registered_nodes)
+
+
 @app.route('/get_configuration', methods=["GET"])
 def get_configuraiton():
     """
@@ -649,7 +665,7 @@ def get_configuraiton():
     if len(services_of_node) > 0:
         # Try getting value
         try:
-            config_value = services_of_node[0][config_name]
+            config_value = services_of_node[0][SERVICE_CONFIG][config_name]
             return jsonify(result=config_value)
         except Exception, e:
             return jsonify(result=(str(ERROR_NOT_RECOGNIZED_CONFIGURATION)))
@@ -661,7 +677,7 @@ def get_configuraiton():
         #Typical service_feature configuration
         if len(services_list) > 0:
             try:
-                config_value = services_list[0][config_name]
+                config_value = services_list[0][SERVICE_CONFIG][config_name]
                 return jsonify(result=json.config_value)
             except Exception, e:
                 return jsonify(result=(str(ERROR_NOT_RECOGNIZED_CONFIGURATION)))

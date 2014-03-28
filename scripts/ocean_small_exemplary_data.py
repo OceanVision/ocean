@@ -10,6 +10,11 @@ import time
 import sys
 import uuid
 import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
+
+from don_utils import get_configuration
+
+
 sys.path.append('../graph_workers/')
 lib_path = os.path.abspath('./graph_workers')
 sys.path.append(lib_path)
@@ -19,7 +24,7 @@ APP_LABEL = 'rss'
 
 if __name__ == '__main__':
     # Create connection
-    graph_db = neo4j.GraphDatabaseService('http://ocean-neo4j.no-ip.biz:16/db/data/')
+    graph_db = neo4j.GraphDatabaseService('http://{0}:{1}/db/data/'.format(get_configuration("neo4j","host"), get_configuration("neo4j","port")))
     # graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
 
     print 'This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*\
@@ -41,11 +46,11 @@ if __name__ == '__main__':
     my_batch.append_cypher('match (n) return count(n);')
     result = my_batch.submit()
     print 'Nodes in graph erased. Sanity check : ', result
-
+    """
     if result[0] != 1:
         raise Exception('Not erased graph properly')
         exit(1)
-
+    """
 
     root = graph_db.node(0)
 

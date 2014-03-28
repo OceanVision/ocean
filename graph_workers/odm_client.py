@@ -4,63 +4,15 @@ import logging
 import inspect
 import os,sys
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
-from don_corleone.utils import get_configuration
-HOST = get_configuration("odm", "address")
-PORT = get_configuration("odm", "address")
 
-<<<<<<< HEAD
-import struct
-""" Utils for  prefix length TCP """
-def socket_read_n(sock, n):
-    """ Read exactly n bytes from the socket.
-        Raise RuntimeError if the connection closed before
-        n bytes were read.
-    """
-    buf = ''
-    while n > 0:
-        data = sock.recv(n)
-        if data == '':
-            raise RuntimeError('unexpected connection close')
-        buf += data
-        n -= len(data)
-    return buf
-def get_message_raw(sock):
-    """
-        Returns raw message (using length prefix framing)
-    """
-    len_buf = socket_read_n(sock, 4) # Read exactly n bytes
-    msg_len = struct.unpack('>L', len_buf)[0]
-    msg_buf = socket_read_n(sock,msg_len)
-    return msg_buf
-def send_message_raw(sock, msg ):
-    """
-        Sends raw message (using length prefix framing)
-    """
-    print "Sending "+msg
-    packed_len = struct.pack('>L', len(msg)) # Number of bytes
-    sock.sendall(packed_len + msg)
-def send_message(sock, msg):
-    """
-        Sends message of class message_class (using length prefix framing)
-    """
-    s = json.dumps(msg)
-    packed_len = struct.pack('>L', len(s)) # Number of bytes
-    sock.sendall(packed_len + s)
-def get_message(sock):
-    """
-        Returns object deserialized by JSON (using length prefix framing)
-    """
-    len_buf = socket_read_n(sock, 4) # Read exactly n bytes
-    msg_len = struct.unpack('>L', len_buf)[0]
-    msg_buf = socket_read_n(sock,msg_len)
-    return json.loads(msg_buf)
+sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone'))
+from don_utils import get_configuration 
 
-class ODMClient:
-    class Batch:
-=======
-HOST = 'ocean-neo4j.no-ip.biz'  # 'localhost'
-PORT = 21
+HOST = get_configuration("lionfish", "host")
+PORT = get_configuration("lionfish", "port")
+
+print "Running odm_client on ",HOST," ",PORT
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'graph_workers'))
 from graph_utils import *
@@ -84,7 +36,6 @@ logger.addHandler(ch_file)
 
 class ODMClient(object):
     class Batch(object):
->>>>>>> dev
         def __init__(self, client):
             self.client = client
             self.tasks = {}

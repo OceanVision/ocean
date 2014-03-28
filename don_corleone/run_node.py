@@ -57,9 +57,17 @@ def install_node(config, run=False):
     if terminated:
         exit(0)
 
-    time.sleep(3)
+
+    # Terminating node
+    logger.info("Terminating old responsibilities")
+    response = urllib2.urlopen(get_don_corleone_url(config)+"/terminate_node?node_id="+config[NODE_ID]).read()
+    print response
+
     logger.info("Installing the node")
     print config[RESPONSIBILITIES]
+
+
+
 
     if not run:
         logger.info("WARNING: Only installing not running services")
@@ -118,7 +126,27 @@ def clean(*args):
         pass
     finally:
         terminated=True
+        exit(0)
 
+
+def run_node(config, hang=False):
+
+    #Check if run_node should create Don Corleone
+    if config.get(MASTER_LOCAL, False):
+        logger.info("Checking if run_node should run the don_corleone service")
+        if os.system("./scripts/don_corleone_test.sh") != 0:
+            logger.info("Running DonCorleone on master setting")
+            run_node_owner = True
+            os.system("./scripts/run.sh don ./scripts/don_corleone_run.sh")
+
+
+    #Install
+    install_node(config)    
+
+
+    if hang:
+        while True:
+            time.sleep(1)
 
 if __name__ == "__main__":
     # Read in parameters
@@ -130,19 +158,8 @@ if __name__ == "__main__":
 
     logger.info(("Configuration file ", config))
 
-
-    #Check if run_node should create Don Corleone
-    if config.get(MASTER_LOCAL, False):
-        logger.info("Checking if run_node should run the don_corleone service")
-        if os.system("./scripts/don_corleone_test.sh") != 0:
-            logger.info("Running DonCorleone on master setting")
-            run_node_owner = True
-            os.system("./scripts/run.sh don ./scripts/don_corleone_run.sh")
-
-
     #Clean shutdown
     for sig in (SIGINT,):
         signal(sig, clean)
 
-    #Install
-    install_node(config)    
+    run_node(config, hang=True)

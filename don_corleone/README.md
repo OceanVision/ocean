@@ -12,13 +12,23 @@ register more than one instance.
 
 Sidenote: For checking Hadoop cluster status we will use Hue service (included in Cloudera package).
 
+**Note**: if you decide not to run don_corleone and not to connect to global
+don corleone because you are a strange person - there a mechanism that will
+make it work anyway: get_configuration if server is inaccessible with pull your
+config from config.json and return values if there is defined service in
+node_responsibilities
+
 ### Installation
-Add file ocean_password to don_corleone folder with your password to ocean
+
+    1. Add file ocean_password to don_corleone folder with your password to ocean
 account. Otherwise ocean_don_corleone won't be able to run scripts on your
 machine
 
-### TODO
-* Terminating node (terminate_node.py)
+    2. Configure ssh (as in wiki) - basically add your key from ocean don
+       server to your computer and create ssh user with access to your ocean directory.
+      **If you want to run locally don** - configure ssh so that you can fire
+    for instance ssh staszek@localhost without password prompt.
+
 
 ### Configuration file
 
@@ -48,7 +58,7 @@ You have to specify following items:
 
     * web_service
 
-    * odm
+    * lionfish
 
     * puffer (not implemented, main backend service running jobs on hadoop, etc.)
 

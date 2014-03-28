@@ -5,19 +5,21 @@ import unittest
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "..")))
 
-from run_node import install_node
+from run_node import install_node, run_node
 from test_util import count_services
 
 class BasicTests(unittest.TestCase):
 
     def test1(self):
+        """ Simple test - testing configuration with 3 responsibilities """
         # Prepare config file
-        os.chdir(os.path.abspath(".."))
-        config = json.load(open("tests/config_test_1.json","r"))
+        config = json.load(open(os.path.join(os.path.dirname(__file__),\
+            "config_test_1.json"),"r"))
         config["home"] = os.path.abspath(os.path.join(__file__,"../../"))
-        install_node(config)
+        run_node(config)
         assert(count_services(config) == 3)
-
+        print "Terminating don corleone node"
+        os.system("../scripts/don_corleone_terminate.sh")
 
 
 if __name__ == "__main__":
