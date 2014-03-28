@@ -46,7 +46,7 @@ RESPONSIBILITIES = "node_responsibilities"
 run_node_owner = False
 terminated = False
 
-from utils import get_don_corleone_url
+from don_utils import get_don_corleone_url
 def install_node(config, run=False):
     global terminated
     """ Waits for webserver to start """
