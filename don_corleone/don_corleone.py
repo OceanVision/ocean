@@ -260,31 +260,7 @@ def cautious_run_cmd_over_ssh(user, port, cmd, address):
         @note Doesn't throw errors
     """
 
-    prog = subprocess.Popen(["ssh {user}@{0} -p{1} -o ConnectTimeout=3 ls".
-                             format(
-         address,
-         port,
-         user=user
-        )], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-
-    logger.info("SSH connection "+"ssh {user}@{0} -o ConnectTimeout=3 -p{1} ls".
-                             format(
-         address,
-         port,
-         user=user
-        ))
-
-    output = prog.communicate()
-
-    #logger.info(output)
-
-    #TODO: add "soft" trials, like 3
-    if prog.returncode != 0:
-        logger.info("Error running command " + str(ERROR_NOT_REACHABLE_SERVICE))
-        return (ERROR_NOT_REACHABLE_SERVICE, "")
-
-
-    prog = subprocess.Popen(["ssh {user}@{0} -p{1} -o ConnectTimeout=1 {2}".
+    prog = subprocess.Popen(["ssh {user}@{0} -p{1} -o ConnectTimeout=2 {2}".
                              format(address,
                                     port,
                                     cmd,
@@ -682,6 +658,7 @@ def get_configuraiton():
             config_value = services_of_node[0][SERVICE_CONFIG][config_name]
             return jsonify(result=config_value)
         except Exception, e:
+	    logger.error("Found service of given node - local or not, but missed configuration")
             return jsonify(result=(str(ERROR_NOT_RECOGNIZED_CONFIGURATION)))
 
     else:
@@ -692,8 +669,10 @@ def get_configuraiton():
         if len(services_list) > 0:
             try:
                 config_value = services_list[0][SERVICE_CONFIG][config_name]
-                return jsonify(result=json.config_value)
+                return jsonify(result=config_value)
             except Exception, e:
+		logger.error(services_list[0][SERVICE_CONFIG])
+	    	logger.error("Found global service, but missed configuration")
                 return jsonify(result=(str(ERROR_NOT_RECOGNIZED_CONFIGURATION)))
 
         else:
