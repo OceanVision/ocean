@@ -26,7 +26,7 @@ def get_don_corleone_url(config):
     if(config[MASTER_LOCAL]): return config[MASTER_LOCAL_URL]
     else: return config[MASTER]
 
-def get_configuration(service_name, config_name):
+def get_configuration(service_name, config_name, config=None):
     """
         Returns configuration config_name for service_name. 
 
@@ -34,8 +34,8 @@ def get_configuration(service_name, config_name):
         and if there is 127.0.0.1 it is replaced with localhost
 
     """
-
-    config = json.load(open(os.path.join(os.path.dirname(__file__),"config.json"),"r"))
+    if config is None:
+        config = json.load(open(os.path.join(os.path.dirname(__file__),"config.json"),"r"))
 
     try:
         params = urllib.urlencode({"service_name":service_name, "node_id":config[NODE_ID], "config_name":config_name})

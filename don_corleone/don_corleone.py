@@ -9,6 +9,10 @@ Protocol: JSONP:
 
 
 
+Services are added and not tested for accessibility first time. Services are added
+to service list which is periodically updated (terminated/running) status
+TODO: Testing server accessibiliy (ping) and terminating it if not accesible
+
 
 """
 
@@ -251,7 +255,10 @@ import time
 
 #TODO: add throwing errors here
 def cautious_run_cmd_over_ssh(user, port, cmd, address):
-    """ Returns appropriate errors if encounters problems """
+    """ 
+        Returns appropriate errors if encounters problems
+        @note Doesn't throw errors
+    """
 
     prog = subprocess.Popen(["ssh {user}@{0} -p{1} -o ConnectTimeout=3 ls".
                              format(
@@ -423,14 +430,17 @@ def _run_service(service_id):
 
     with services_lock:
         logger.info(("Running service ",service_id, "output", output, "status ",status))
+    
+    update_status(m)
 
+    """
         # Update status
         if status == OK:
             m[SERVICE_STATUS] = STATUS_RUNNING
         else:
             # If status is undetermined set it to terminated, checking status daemon should check it further
             m[SERVICE_STATUS] = STATUS_TERMINATED # Maybe even deregistered?
-
+    """
 
 
         return status
@@ -504,6 +514,7 @@ def register_service():
             local = True if 'local' in request.form or 'local' in additional_service_config\
                 else False
 
+            logger.info("Registering local="+str(local)+" service")
 
 
             #Prepare service id
@@ -518,12 +529,15 @@ def register_service():
             if not service_name or not service_id or len(service_name)==0 or len(service_id)==0:
                 return jsonify(result=str(ERROR_WRONG_METHOD_PARAMETERS))
 
+            # No duplicated service id
             if filter(lambda x: x[SERVICE_ID] == service_id, services):
                 return jsonify(result=str(ERROR_SERVICE_ID_REGISTERED))
 
-            if filter(lambda x: x[SERVICE] == service_name, services) and service_name in UNARY_SERVICES:
+            # Only one global service
+            if filter(lambda x: x[SERVICE] == service_name, services) and service_name in UNARY_SERVICES and local is False:
                 return jsonify(result=str(ERROR_ALREADY_REGISTERED_SERVICE))
 
+            # Not known service..
             if service_name not in KNOWN_SERVICES:
                 return jsonify(result=str(ERROR_NOT_RECOGNIZED_SERVICE))
 
