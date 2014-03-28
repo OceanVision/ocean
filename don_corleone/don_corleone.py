@@ -511,7 +511,7 @@ def register_service():
                     node = {NODE_ID:node_id, NODE_ADDRESS:public_url,NODE_CONFIG:config, NODE_RESPONSIBILITIES:[]}
                     registered_nodes[node_id] = node
 
-            local = True if 'local' in request.form or 'local' in additional_service_config\
+            local = True if 'local' in request.form or additional_service_config.get('local', False)\
                 else False
 
             logger.info("Registering local="+str(local)+" service")
