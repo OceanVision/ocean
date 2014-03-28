@@ -443,7 +443,7 @@ def _run_service(service_id):
     """
 
 
-        return status
+    return status
 
 def _deregister_service(service_id):
     """ Deregister service given service_id
