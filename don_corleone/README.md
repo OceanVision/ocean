@@ -29,6 +29,7 @@ machine
       **If you want to run locally don** - configure ssh so that you can fire
     for instance ssh staszek@localhost without password prompt.
 
+    3. Prepare config.json file
 
 ### Configuration file
 
