@@ -1,12 +1,6 @@
 #!/bin/bash
 source ./init.sh
-
-
-echo 'Terminating zookeper stop'
-echo `cat ocean_password` | sudo -S $KAFKA_HOME/bin/zookeper-server-stop.sh
-
-
-
+source ~/.bashrc
 
 
 list=$(ps -ef | grep kafka_2 | grep -v grep | awk '{print $2}')
