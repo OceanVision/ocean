@@ -2,9 +2,17 @@ import sys
 import os
 import logging
 import inspect
+import os,sys
 
-HOST = 'ocean-neo4j.no-ip.biz'  # 'localhost'
-PORT = 21
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone'))
+from don_utils import get_configuration 
+
+HOST = get_configuration("lionfish", "host")
+PORT = get_configuration("lionfish", "port")
+
+print "Running odm_client on ",HOST," ",PORT
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'graph_workers'))
 from graph_utils import *

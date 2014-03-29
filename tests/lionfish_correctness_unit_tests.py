@@ -3,6 +3,8 @@ import sys
 from py2neo import neo4j
 import json
 from unit_tests_interface import UnitTests
+sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone'))
+from don_utils import get_configuration
 sys.path.append(os.path.join(os.path.dirname(__file__), '../graph_workers'))
 from odm_client import ODMClient
 
@@ -15,8 +17,7 @@ class LionfishCorrectnessUnitTests(UnitTests):
         self._client.connect()
         self._batch = self._client.get_batch()
         graph_db = neo4j.GraphDatabaseService(
-            'http://ocean-neo4j.no-ip.biz:16/db/data/'
-            # 'http://localhost:7474/db/data/'
+            'http://{0}:{1}/db/data/'.format(get_configuration("neo4j","host"), get_configuration("neo4j","port"))
         )
         self._v_read_batch = neo4j.ReadBatch(graph_db)
         self._v_write_batch = neo4j.WriteBatch(graph_db)

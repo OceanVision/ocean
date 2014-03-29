@@ -17,12 +17,17 @@ from threading import Thread
 import sys
 import json
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '../graph_workers'))
+
+# DonCorleone configuration
+from don_utils import get_configuration
+
 from graph_defines import *
 from graph_utils import *
 
 HOST = ''
-PORT = 21
+PORT = get_configuration("lionfish", "port")
 
 # Defining levels to get rid of other loggers
 info_level = 100
@@ -47,8 +52,7 @@ class DatabaseManager(object):
         """ Creates DatabaseManager driver """
         logger.log(info_level, 'Created DatabaseManager object')
         self._graph_db = neo4j.GraphDatabaseService(
-            'http://localhost:16/db/data/'
-            # 'http://localhost:7474/db/data/'
+            'http://{0}:{1}/db/data/'.format(get_configuration("neo4j","host"), get_configuration("neo4j", "port"))
         )
         self._uuid_images = dict()
         self._model_name_images = dict()
