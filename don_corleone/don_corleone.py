@@ -510,7 +510,7 @@ def register_service():
                 return jsonify(result=str(ERROR_SERVICE_ID_REGISTERED))
 
             # Only one global service
-            if filter(lambda x: x[SERVICE] == service_name, services) and service_name in UNARY_SERVICES and local is False:
+            if filter(lambda x: x[SERVICE] == service_name and x[SERVICE_LOCAL]==False, services) and (service_name in UNARY_SERVICES) and (local is False):
                 return jsonify(result=str(ERROR_ALREADY_REGISTERED_SERVICE))
 
             # Not known service..
