@@ -26,7 +26,7 @@ import os
 import subprocess
 
 from don_corleone_exceptions import *
-from utils import logger
+from don_utils import logger
 
 from flask.ext.jsonpify import jsonify
 
@@ -41,14 +41,16 @@ CONFIG_USER = "ssh-user"
 
 SERVICE_ODM = "odm"
 SERVICE_LIONFISH = "lionfish"
+SERVICE_ZOOKEEPER = "zookeeper"
+SERVICE_KAFKA = "kafka"
 SERVICE_NEO4J = "neo4j"
 SERVICE_NEWS_FETCHER_MASTER = "news_fetcher_master"
 SERVICE_NEWS_FETCHER = "news_fetcher"
 
 
 
-UNARY_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH, SERVICE_NEO4J, SERVICE_NEWS_FETCHER])
-KNOWN_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH,  SERVICE_NEO4J, SERVICE_NEWS_FETCHER])
+UNARY_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH, SERVICE_NEO4J, SERVICE_NEWS_FETCHER, SERVICE_ZOOKEEPER, SERVICE_KAFKA])
+KNOWN_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH,  SERVICE_NEO4J, SERVICE_NEWS_FETCHER, SERVICE_KAFKA, SERVICE_ZOOKEPER])
 
 SERVICE = "service"
 #Service ID is in most cases the same as SERVICE, however if it is local, or if it is multiple_slave it can differ
