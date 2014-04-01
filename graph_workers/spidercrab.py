@@ -123,7 +123,7 @@ class Spidercrab(GraphWorker):
 
         logger.log(
             info_level,
-            'Started running "' + self.config['id'] + '" Spidercrab.'
+            'Started running "' + self.config['worker_id'] + '" Spidercrab.'
         )
 
         if not self.is_master:
@@ -139,7 +139,7 @@ class Spidercrab(GraphWorker):
         self.odm_client.disconnect()
         logger.log(
             info_level,
-            'Finished running "' + self.config['id'] + '" Spidercrab.'
+            'Finished running "' + self.config['worker_id'] + '" Spidercrab.'
         )
 
     def _check_and_init_db(self):
@@ -176,20 +176,26 @@ class Spidercrab(GraphWorker):
         response = self.odm_client.get_instances('Spidercrab')
         ids = []
         for instance in response:
-            ids.append(instance['id'])
-        if self.config['id'] in ids:
+            ids.append(instance['worker_id'])
+        if self.config['worker_id'] in ids:
             self.logger.log(
                 info_level,
-                'Spidercrab ' + self.config['id']
+                'Spidercrab ' + self.config['worker_id']
                 + ' already registered in the database.'
             )
         else:
             self.logger.log(
                 info_level,
-                'Registering ' + self.config['id']
+                'Registering ' + self.config['worker_id']
                 + ' Spidercrab in the database.'
             )
-            self.odm_client.create_node('Spidercrab', self.config)
+            params = {
+                'model_name': 'Spidercrab'
+            }
+            params.update(self.config)
+            self.odm_client.create_node(
+                **params
+            )
 
     def _init_config(self):
         """
@@ -201,12 +207,12 @@ class Spidercrab(GraphWorker):
                 'Please set up your newly created ' + self.CONFIG_FILE_NAME
                 + '!'
             )
-        self.config = json.load(open(self.CONFIG_FILE_NAME))
+        self.config = dict(json.load(open(self.CONFIG_FILE_NAME)))
         assert 'update_interval_min' in self.config
         assert 'use_all_sources' in self.config
         assert 'content_sources' in self.config
-        assert 'id' in self.config
-        if self.config['id'] == 'UNDEFINED':
+        assert 'worker_id' in self.config
+        if self.config['worker_id'] == 'UNDEFINED':
             raise ValueError(
                 'Please choose your id and enter it inside '
                 + self.CONFIG_FILE_NAME + '!'

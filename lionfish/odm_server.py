@@ -310,53 +310,6 @@ class DatabaseManager(object):
         return node_uuid_list
 
     @error_handle_odm
-    def create_model(self, **params):
-
-        # TODO: Improve (currently merged add_node and add_rel methods)
-
-        model_name = params['model_name']
-
-        if model_name in self._model_name_images:
-            raise Exception('Model already exists')
-
-        node_params = {
-            'model_name': str(model_name),
-            'uuid': str(uuid.uuid1()),
-        }
-        query_string = \
-            '''
-            CREATE e=({node_params})
-            RETURN id(e)
-            '''
-        node_results = self._execute_query(query_string,
-                                           node_params=node_params)
-        if len(node_results) == 0:
-            raise Exception('Executing query failed')
-
-        self._uuid_images[node_params['uuid']] = node_results[0]
-        self._model_name_images[model_name] = node_params['uuid']
-        end_node_uuid = node_params['uuid']
-
-        if end_node_uuid not in self._uuid_images:
-            raise Exception('Unknown uuid')
-
-        start_node_id = 0
-        end_node_id = self._uuid_images[end_node_uuid]
-        rel_type = '<<TYPE>>'
-        rel_params = {}
-
-        query_string = \
-            '''
-            START a=node({start_node_id}), b=node({end_node_id})
-            CREATE (a)-[r:`''' + rel_type + '''` {rel_params}]->(b)
-            '''
-        # There is a problem with node_params if they are given to _run_query
-        self._run_query(query_string, start_node_id=start_node_id,
-                        end_node_id=end_node_id, rel_params=rel_params)
-
-        self._init_model_name_images()
-
-    @error_handle_odm
     def delete_nodes(self, node_uuid_list):
         # Prepares params
         fail_list = []
@@ -397,7 +350,55 @@ class DatabaseManager(object):
             if node_uuid in self._uuid_images:
                 del self._uuid_images[node_uuid]
 
+    @error_handle_odm
+    def create_model(self, params):
 
+        # TODO: Improve (currently merged add_node and add_rel methods)
+
+        model_name = params[0]
+
+        print params
+        print model_name
+
+        if model_name in self._model_name_images:
+            raise Exception('Model already exists')
+
+        node_params = {
+            'model_name': str(model_name),
+            'uuid': str(uuid.uuid1()),
+        }
+        query_string = \
+            '''
+            CREATE (e:Node:Model {node_params})
+            RETURN id(e)
+            '''
+        node_results = self._execute_query(query_string,
+                                           node_params=node_params)
+        if len(node_results) == 0:
+            raise Exception('Executing query failed')
+
+        self._uuid_images[node_params['uuid']] = node_results[0]
+        self._model_name_images[model_name] = node_params['uuid']
+        end_node_uuid = node_params['uuid']
+
+        if end_node_uuid not in self._uuid_images:
+            raise Exception('Unknown uuid')
+
+        start_node_id = 0
+        end_node_id = self._uuid_images[end_node_uuid]
+        rel_type = '<<TYPE>>'
+        rel_params = {}
+
+        query_string = \
+            '''
+            START a=node({start_node_id}), b=node({end_node_id})
+            CREATE (a)-[r:`''' + rel_type + '''` {rel_params}]->(b)
+            '''
+        # There is a problem with node_params if they are given to _run_query
+        self._run_query(query_string, start_node_id=start_node_id,
+                        end_node_id=end_node_id, rel_params=rel_params)
+
+        self._init_model_name_images()
 
     @error_handle_odm
     # TODO: This is not a completely good function

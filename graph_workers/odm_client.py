@@ -265,14 +265,15 @@ class ODMClient(object):
         self.send(data)
         self.recv()
 
-    def create_model(self, model_name):
+    def create_model(self, model_name, **params):
         """
         Adds a new model node.
         @type model_name string
         """
-        data = {'func_name': 'add_model', 'params': {
-            'model_name': model_name
-        }}
+        data = {
+            'func_name': 'create_model',
+            'args': [model_name]
+        }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
