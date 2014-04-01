@@ -16,6 +16,10 @@ from py2neo import neo4j
 from py2neo import node, rel
 
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
+
+from don_utils import get_configuration
+
 sys.path.append('../graph_workers/')
 lib_path = os.path.abspath('./graph_workers')
 sys.path.append(lib_path)
@@ -35,9 +39,10 @@ def get_node_value(node, value):
     return ""
 
 
+
 if __name__ == "__main__":
     # Create connection
-    graph_db = neo4j.GraphDatabaseService("http://localhost:7474/db/data/")
+    graph_db = neo4j.GraphDatabaseService("http://{0}:{1}/db/data/".format(get_configuration("neo4j","host"), get_configuration("neo4j","port"))
 
     print 'With this script rss urls from', SOURCE_FILE, 'file will be added.'
     print 'NOTE: See README.md for details before running this script!!!'

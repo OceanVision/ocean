@@ -114,11 +114,7 @@ class Spidercrab(GraphWorker):
 
         if self.is_master:
             sources = self.odm_client.get_instances('ContentSource')
-            extractor = boilerpipe.extract.Extractor(
-                extractor='ArticleExtractor', url=sources[0]['link']
-            )
-            content = extractor.getText()
-            print(content)
+            print sources
 
         self._end_run()
 
@@ -161,7 +157,7 @@ class Spidercrab(GraphWorker):
                 info_level,
                 'Spidercrab model not found in the database. Creating...'
             )
-            self.odm_client.add_model('Spidercrab')
+            self.odm_client.create_model('Spidercrab')
             self.logger.log(
                 info_level,
                 'Spidercrab model created.'
@@ -193,7 +189,7 @@ class Spidercrab(GraphWorker):
                 'Registering ' + self.config['id']
                 + ' Spidercrab in the database.'
             )
-            self.odm_client.add_node('Spidercrab', self.config)
+            self.odm_client.create_node('Spidercrab', self.config)
 
     def _init_config(self):
         """
