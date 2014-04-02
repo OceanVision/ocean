@@ -31,3 +31,4 @@ virtualenv-clone==0.2.4
 virtualenvwrapper==4.2
 wsgiref==0.1.2
 boilerpipe==1.2.0.0
+feedparser=5.1.3

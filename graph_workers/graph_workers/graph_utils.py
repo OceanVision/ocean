@@ -59,13 +59,24 @@ def database_timestamp_to_datetime(timestamp):
     return dt
 
 
-def GMTdatetime_to_database_timestamp(dt):
+def datetime_to_database_timestamp(dt):
     """
         @param datetime in GMT timezone
         @returns timestamp in GMT timezone
     """
     #TODO: add checking for GMT timezone.
     return int(time.mktime(dt.timetuple()))
+
+
+def database_gmt_now():
+    return datetime_to_database_timestamp(get_datetime_gmt_now())
+
+
+def database_gmt_minutes_expired(gmt_pair, minutes):
+    """
+        True if given minutes expired between gmt_pair[0] and gmt_pair[1].
+    """
+    return (gmt_pair[1] - gmt_pair[0]) > minutes*60
 
 
 def get_domain(url_string):

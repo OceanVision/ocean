@@ -194,7 +194,7 @@ class NewsFetcher(GraphWorker):
 
         self.odm_client.set(news_website["uuid"],
             {
-                CONTENT_SOURCE_LAST_UPDATE: GMTdatetime_to_database_timestamp(newest)
+                CONTENT_SOURCE_LAST_UPDATE: datetime_to_database_timestamp(newest)
             }
         )
 
@@ -299,8 +299,8 @@ class NewsFetcher(GraphWorker):
 
             d = pubdate_to_datetime(try_get_node_value(item, "pubDate"))
 
-            news_node[CONTENT_PUBDATE_TIMESTAMP] = GMTdatetime_to_database_timestamp(d)
-            #print GMTdatetime_to_database_timestamp(d), " is ", d
+            news_node[CONTENT_PUBDATE_TIMESTAMP] = datetime_to_database_timestamp(d)
+            #print datetime_to_database_timestamp(d), " is ", d
 
             if len(news_node["title"])<5 or len(news_node["description"])<5 or len(news_node["link"])<5:
                 continue
