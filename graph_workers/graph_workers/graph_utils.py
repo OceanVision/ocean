@@ -48,6 +48,7 @@ def get_datetime_gmt_now():
     dt = dt.replace(tzinfo=timezone("GMT")) #TODO: should be UTC
     return dt
 
+
 def database_timestamp_to_datetime(timestamp):
     """
         @param timestamp from database
@@ -57,6 +58,11 @@ def database_timestamp_to_datetime(timestamp):
     dt = datetime.datetime.fromtimestamp(timestamp)
     dt = dt.replace(tzinfo=timezone("GMT")) # Otherwise it would do a conversion -1h  (if given timezone as parameter)
     return dt
+
+
+def time_struct_to_database_timestamp(time_struct):
+    dt = datetime.datetime(*list(time_struct)[0:7])
+    return datetime_to_database_timestamp(dt)
 
 
 def datetime_to_database_timestamp(dt):

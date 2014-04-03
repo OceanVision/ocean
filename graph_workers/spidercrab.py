@@ -4,13 +4,16 @@
 """
     SpiderCrab - simple, synchronized news fetching GraphWorker
 """
+from BeautifulSoup import BeautifulSoup
 import boilerpipe.extract
 import feedparser
-import multiprocessing
+import threading
 import os
 import shutil
 import threading
+import uuid
 
+from graph_workers.graph_defines import *
 from graph_workers.graph_utils import *
 from graph_workers.graph_worker import GraphWorker
 from graph_workers.privileges import construct_full_privilege
@@ -18,7 +21,7 @@ from odm_client import ODMClient
 
 SOURCES_ENQUEUE_PORTION = 10
 SOURCES_ENQUEUE_MAX = float('inf')
-WORKER_SLEEP_S = 1
+WORKER_SLEEP_S = 10
 
 # Defining levels to get rid of other loggers
 info_level = 100
@@ -27,7 +30,7 @@ error_level = 200
 logging.basicConfig(level=info_level)
 logger = logging.getLogger(__name__ + '_ocean')
 ch = logging.StreamHandler()
-formatter = logging.Formatter('%(funcName)s \t - %(asctime)s - %(message)s')
+formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
@@ -57,14 +60,20 @@ class Spidercrab(GraphWorker):
         self.required_privileges = construct_full_privilege()
         self.odm_client = ODMClient()
         self.terminate_event = threading.Event()
-        self.workers = []
+        self.runtime_id = str(uuid.uuid1())  # This uuid is not present in db!
+        self.level = 'slave'
 
         self.master = master
-        if master:
+        if master is not None:
             assert isinstance(master, Spidercrab)
             self.is_master = False
         else:
             self.is_master = True
+            self.level = 'master'
+            self.workers = []
+
+        self.fullname = '[' + self.config['worker_id'] + ' ' + self.level + \
+            ' ' + self.runtime_id + ']'
 
     def terminate(self):
         """
@@ -131,31 +140,29 @@ class Spidercrab(GraphWorker):
                     break
 
         else:  # worker case
-            time.sleep(WORKER_SLEEP_S)
+            time_left = WORKER_SLEEP_S
             while not self.terminate_event.is_set():
                 source = self._pick_pending_source()
-                if len(source) > 0:
-                    self._update_source(source)
+                if not source:
+                    # Maybe master is adding something right now? - wait.
+                    time.sleep(1)
+                    time_left -= 1
+                    if time_left < 0:
+                        self.logger.log(info_level, 'No more pending tasks.')
+                        break
                 else:
-                    break
+                    time_left = WORKER_SLEEP_S
+                    news_list = self._update_source(source)['news']
+                    self._fetch_new_news(source['uuid'], news_list)
 
         self._end_run()
 
     def _init_run(self):
         self.odm_client.connect()
 
-        if self.is_master:
-            logger.log(
-                info_level,
-                'Started running "' + self.config['worker_id'] +
-                '" master Spidercrab.'
-            )
-        else:
-            logger.log(
-                info_level,
-                'Started running "' + self.config['worker_id'] +
-                '" worker (slave) Spidercrab.'
-            )
+        logger.log(info_level, self.fullname + ' Started.')
+
+        if not self.is_master:
             return
 
         # Check database structure and init if needed
@@ -166,18 +173,7 @@ class Spidercrab(GraphWorker):
 
     def _end_run(self):
         self.odm_client.disconnect()
-        if self.is_master:
-            logger.log(
-                info_level,
-                'Spidercrab "' + self.config['worker_id'] +
-                '" master finished!'
-            )
-        else:
-            logger.log(
-                info_level,
-                'Spidercrab "' + self.config['worker_id'] +
-                '" worker (slave) finished!'
-            )
+        logger.log(info_level, self.fullname + ' Finished!')
 
     def _check_and_init_db(self):
         """
@@ -227,10 +223,15 @@ class Spidercrab(GraphWorker):
                 + ' Spidercrab in the database.'
             )
             params = {
-                'model_name': 'Spidercrab'
+                'update_interval_min': unicode(
+                    self.config['update_interval_min']),
+                'use_all_sources': unicode(self.config['use_all_sources']),
+                'content_sources': unicode(self.config['content_sources']),
+                'worker_id': unicode(self.config['worker_id'])
             }
-            params.update(self.config)
             self.odm_client.create_node(
+                model_name='Spidercrab',
+                rel_type=HAS_INSTANCE_RELATION,
                 **params
             )
 
@@ -268,11 +269,11 @@ class Spidercrab(GraphWorker):
         """
             Run workers associated with this master.
         """
-        processes = []
+        threads = []
         for worker in self.workers:
-            processes.append(multiprocessing.Process(target=worker.run))
-        for p in range(len(processes)):
-            processes[p].start()
+            threads.append(threading.Thread(target=worker.run))
+        for p in range(len(threads)):
+            threads[p].start()
 
     def _enqueue_sources_portion(self):
         """
@@ -294,6 +295,9 @@ class Spidercrab(GraphWorker):
             self.config['sources_enqueue_portion'],
         )
         result = self.odm_client.execute_query(query)
+        self.logger.log(
+            info_level, 'Master queued ' + str(len(result)) + ' sources.'
+        )
         return result
 
     def _pick_pending_source(self):
@@ -317,32 +321,63 @@ class Spidercrab(GraphWorker):
         )
         result = self.odm_client.execute_query(query)
         if len(result) > 0:
+            self.logger.log(
+                info_level,
+                self.fullname + ' Picked ' + str(result[0][0]['link'])
+            )
             return result[0][0]
         else:
-            return {}
+            return None
 
     def _update_source(self, source_node):
         """
             Update params of given node (a dict with 'uuid' and 'link' keys)
+            and return its properties.
         """
-        feed = self._parse_source(source_node['link'])
+        properties = self._parse_source(source_node['link'])
         query = """
-        MATCH (source:ContentSource {uuid: %s})
+        MATCH (source:ContentSource {uuid: '%s'})
         SET
             source.language = '%s',
             source.title = '%s',
             source.description = '%s',
-            source.source_type = '%s',
+            source.source_type = '%s'
         RETURN source
         """
         query %= (
             source_node['uuid'],
-            feed['language'],
-            feed['title'],
-            feed['description'],
-            feed['source_type']
+            properties.get('language', 'unknown'),
+            properties.get('title', 'Untitled'),
+            properties.get('description', 'No description'),
+            properties.get('source_type', 'unknown')
         )
-        result = self.odm_client.execute_query(query)
+        self.logger.log(
+            info_level,
+            self.fullname
+            + ' Updating ContentSource of ' + source_node['link']
+        )
+        self.odm_client.execute_query(query)
+
+        # Optional ContentSource properties
+        if 'image' in properties:
+            query = """
+            MATCH (source:ContentSource {uuid: '%s'})
+            SET
+                source.image_url = '%s',
+                source.image_width = '%s',
+                source.image_height = '%s',
+                source.image_link = '%s'
+            RETURN source
+            """
+            query %= (
+                source_node['uuid'],
+                properties.get('image_url'),
+                properties.get('image_width'),
+                properties.get('image_height'),
+                properties.get('image_link'),
+            )
+            self.odm_client.execute_query(query)
+        return properties
 
     @staticmethod
     def _parse_source(source_link):
@@ -351,19 +386,114 @@ class Spidercrab(GraphWorker):
             (For later use with methods for other further content sources)
         """
         data = feedparser.parse(source_link)
-        result = dict()
-        result['language'] = data['feed']['language']
-        result['title'] = data['feed']['title']
-        result['description'] = data['feed']['description']
-        result['source_type'] = 'rss'
-        result['news'] = []
-        for entry in data['entries']:
-            news = dict()
-            news['title'] = entry['title']
-            news['summary'] = entry['summary']
-            news['link'] = entry['link']
-            result['news'].append(news)
-        return result
+        version = data['version']
+        if version[:3] == 'rss':
+            return Spidercrab._parse_rss_source(data)
+
+    @staticmethod
+    def _parse_rss_source(data):
+        properties = dict()
+        try:
+            # Common RSS elements
+            properties['language'] = data['feed']['language']
+            properties['title'] = data['feed']['title']
+            properties['description'] = data['feed']['description']
+            properties['source_type'] = 'rss'
+            # Optional ContentSource properties
+            if 'image' in data['feed'] and 'href' in data['feed']['image']:
+                properties['image_url'] = data['feed']['image']['href']
+                properties['image_width'] = data['feed']['image']['width']
+                properties['image_height'] = data['feed']['image']['height']
+                properties['image_link'] = data['feed']['image']['link']
+            # News
+            properties['news'] = []
+            for entry in data['entries']:
+                news = dict()
+                news['title'] = unicode(entry['title'])
+                news['summary'] = unicode(entry['summary'])
+                news['link'] = unicode(entry['link'])
+                news['published'] = unicode(time_struct_to_database_timestamp(
+                    entry['published_parsed']))
+                properties['news'].append(news)
+        except Exception as error:
+            logger.log(error_level, 'RSS XML error - ' + str(error))
+        return properties
+
+    def _fetch_new_news(self, source_uuid, news_list):
+        """
+            Fetches news text and HTML from news_list visiting and extracting
+            website.
+        """
+        for news_props in news_list:
+            # Check if this news is already present in the database
+            query = """
+                MATCH
+                (source:ContentSource {uuid: '%s'})
+                -[:`%s`]->
+                (news:Content {link: '%s'})
+                RETURN news
+                """
+            query %= (
+                source_uuid,
+                PRODUCES_RELATION,
+                news_props['link'],
+            )
+            result = self.odm_client.execute_query(query)
+            if not result:
+                self.logger.log(
+                    info_level,
+                    self.fullname + ' extracting ' + str(news_props['link'])
+                )
+                news_props = Spidercrab._extract_news(news_props)
+                query = u"""
+                    MATCH
+                    (source:ContentSource {uuid: '%s'}),
+                    (cs_model:Model {model_name: 'Content'})
+                    CREATE UNIQUE
+                    (source)
+                    -[:`%s`]->
+                    (news:Content {
+                        title: '%s',
+                        summary: '%s',
+                        link: '%s',
+                        published: '%s',
+                        text: '%s',
+                        html: '%s'
+                    }),
+                    (cs_model)
+                    -[:`%s`]->
+                    (news)
+                    RETURN news
+                    """
+                query %= (
+                    source_uuid,
+                    PRODUCES_RELATION,
+                    news_props['title'],
+                    news_props['summary'],
+                    news_props['link'],
+                    news_props['published'],
+                    news_props['text'],
+                    'TODO',  # news_props['html'],
+                    HAS_INSTANCE_RELATION
+                )
+                result = self.odm_client.execute_query(query)
+                print result
+
+
+    @staticmethod
+    def _extract_news(news_props):
+        """
+            Extracts content of news.
+        """
+        extractor = boilerpipe.extract.Extractor(
+            extractor='ArticleExtractor', url=news_props['link']
+        )
+        news_props['text'] = unicode(extractor.getText())
+        news_props['html'] = unicode(extractor.getHTML())
+        #TODO: news images
+        # bs_html = BeautifulSoup(urllib2.urlopen(news_link))
+        #news_props['images'] = []
+        return news_props
 
 
 if __name__ == '__main__':
