@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ocean Don Corleone</title>
+
+
+    <link href="static/css/jquery-ui.css" rel="stylesheet">
+    <script src="static/js/jquery-1.10.2.min.js"></script>
+    <script src="static/js/jquery-ui.min.js"></script>
+    <!-- Bootstrap -->
+    <link href="static/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="static/css/bootstrap-theme.min.css" rel="stylesheet" type="text/css">
+
+    <script src="static/js/bootstrap.min.js"></script>
+
+    <script type="text/javascript" src="static/js/tablesorter/jquery-latest.js"></script>
+    <script type="text/javascript" src="static/js/tablesorter/jquery.tablesorter.min.js"></script>
+
+    <style>
+        body {background-image:url("static/bg_2.jpg");}
+    </style>
+
+  </head>
+  <body>
+    <h1>Ocean Don Corleone</h1>
+    <script>
+          //Download JSON with present nodes and replace json table
+          function update_services(){
+               var nodes = "";
+               //Run jquery ajax to download current nodes
+               var txt = "";
+                    jQuery.ajax({
+                         async:false,
+                         url:    "http://127.0.0.1:8882/get_services",
+                         success: function(data, status) {
+                                        fill_services(data["result"]);
+                                  },
+                            type:'GET',
+                            crossDomain:true,
+                            dataType:'jsonp'
+
+                    });
+          }
+
+            //Call to don corleone webservice functionality
+          function run_service(service_id){
+
+                    jQuery.ajax({
+                         async:false,
+                         url:    "http://127.0.0.1:8882/run_service?service_id="+service_id,
+                         success: function(data, status) {
+                                        display_alert_text(JSON.stringify(data));
+                                        update_services();
+                                  },
+                            type:'GET',
+                            crossDomain:true,
+                            dataType:'jsonp'
+
+                    });
+          }
+
+
+          //Call to don corleone webservice functionality
+          function terminate_service(service_id){
+
+                    jQuery.ajax({
+                         async:false,
+                          data: {"service_id": service_id},
+                         url:    "http://127.0.0.1:8882/terminate_service",
+                         success: function(data, status) {
+                                       display_alert_text(JSON.stringify(data));
+                                       update_services();
+                                  },
+                            type:'GET',
+                            crossDomain:true,
+                            dataType:'jsonp'
+
+                    });
+          }
+
+          //Call to don corleone webservice functionality
+          function deregister_service(service_id){
+
+                    jQuery.ajax({
+                         async:false,
+                         url:    "http://127.0.0.1:8882/deregister_service?service_id="+service_id,
+                         success: function(data, status) {
+                                        display_alert_text(JSON.stringify(data));
+                                        update_services();
+                                  },
+                            type:'GET',
+                            crossDomain:true,
+                            dataType:'jsonp'
+
+                    });
+          }
+
+
+            function fill_services(services_raw){
+
+                //Get and prepare service JSON data
+                var id = 0;
+                var services = []
+                services_raw.map(function(s){
+                    services.push( {"id":id, "service":s["service"], "service_id":s["service_id"],
+                        "node_id":s["node_id"], "node_address":s["address"],"options":"", "status":s["status"]} );
+                    id += 1
+                });
+
+                var column_names = ["id", "service", "service_id", "node_id", "node_address", "options", "state"];
+
+                // Write to table
+                json_to_table(column_names,
+                services, $("#services"));
+
+                // Add classes
+                $("#services .service_row").each(function(){
+                    if( services[parseInt($(this).attr("row"))]["status"] == "running"){
+                        console.log("Running");
+                        $(this).addClass("success");
+                    }
+                    else{
+                        //$(this).addClass("error");
+                    }
+                });
+
+                // Prepare buttons
+                var start_button=$('<button type="button" class="btn btn-labeled btn-success"><span class="btn-label"><i class="glyphicon glyphicon-play"></i></span>Start</button>');
+                var remove_button=$('<button type="button" class="btn btn-labeled btn-danger"><span class="btn-label"><i class="glyphicon glyphicon-remove"></i></span>Delete</button>');
+                var pause_button=$('<button type="button" class="btn btn-labeled btn-warning"><span class="btn-label"><i class="glyphicon glyphicon-pause"></i></span>Pause</button>');
+                var info_button=$('<button type="button" class="btn btn-labeled btn-primary"><span class="btn-label"><i class="glyphicon glyphicon-info-sign"></i></span>Info</button>');
+
+                // Add buttons
+                $("#services .service_cell").each(function(){
+                    if( $(this).attr('column') == "options"){
+                        // Prepare copies
+                        start_button_cpy = start_button.clone();
+                        remove_button_cpy = remove_button.clone();
+                        pause_button_cpy = pause_button.clone();
+                        info_button_cpy = info_button.clone();
+
+                        var current_column = "service_id";
+                        var current_row = $(this).attr('row');
+                        var current_service_id = $('#services td[row="'+current_row+'"][column="'+current_column+'"]').html();
+
+
+
+                        // Add event handlers
+                        start_button_cpy.click(function(){ run_service(current_service_id);});
+                        remove_button_cpy.click(function(){ deregister_service(current_service_id);});
+                        pause_button_cpy.click(function(){ terminate_service(current_service_id);});
+
+
+                        $(this).append(start_button_cpy);
+                        $(this).append(remove_button_cpy);
+                        $(this).append(pause_button_cpy);
+                        $(this).append(info_button_cpy);
+                    }
+                });
+            }
+    
+          //Replaces content of table (bootstrap table) with data
+          function json_to_table(column_names, rows, table){
+                $("#services").remove()
+                //Remove html content from table and replace it with empty data
+				table = $('<table class="table table-striped" id="services"></table>').html('<thead></thead>').append("<tbody></tbody>");
+				$("#services_row").append(table);
+		
+                //Add headers
+                var tr=$('<tr></tr>');
+                $.each(column_names, function(idx, x) {
+                    $('<th style="background-color:white">'+x+'</th>').appendTo(tr);
+                    table.find("thead").append(tr);
+				});
+
+                //Add cells
+                $.each(rows, function(idx, row) {
+				    var tr=$('<tr class="service_row" row="'+row["id"]+'"></tr>');
+
+                    $.each(row, function(idx2, x) {
+                        $('<td class="service_cell" value="'+x+'" row="'+idx+'" column="'+idx2+'">'+x+'</td>').appendTo(tr);
+                    });
+                    
+                    table.find("tbody").append(tr);
+				});
+        
+                //Set styles
+                table.css('opacity',0.6);
+                table.css('opacity',0.9);
+                //Use tablesorter (TODO: check if successful loading)
+    			table.tablesorter({ sortList: [[0,1]] });
+
+                //Events
+                table.find("th").hover(
+                  function(){
+                        $(this).css('background-color','#400101')
+                        $(this).css('cursor', 'pointer');
+						
+
+                    },
+                    function(){
+                         $(this).css('background-color','rgba(255,255,255,255)')
+                        $(this).css('cursor', 'default');
+                    }
+   
+               );
+       }
+
+       //Displays data in messages_div container
+       function display_alert_text(text){
+                var alert_template = "";
+                jQuery.ajax({
+                    async: false,
+                    url:'static/alert_template.html',
+                    type:'get',
+                    dataType:'html',
+                    success:function(data)
+                   {
+
+                        alert_template = $(data);
+                   }
+                });
+                alert_template.find("p").html(text);
+                $("#messages_div").append(alert_template);
+        }
+
+       //Displays data in messages_div container 
+       function display_alert(column_names, rows){
+                var alert_template = "";
+                jQuery.ajax({
+                    async: false,
+                    url:'alert_template.html',
+                    type:'get',
+                    dataType:'html',
+                    success:function(data)
+                   {
+
+                        alert_template = $(data);
+                   }
+                });
+                json_to_table(column_names, rows, alert_template.find("table"));
+                $("#messages_div").append(alert_template);
+        }
+
+        $(document).ready(function()
+            {
+                //Setup data
+                 $("#services th").css('opacity',0.6);
+                 $("#services td").css('opacity',0.9);
+
+
+                 //Register events
+                 $("#services").tablesorter({ sortList: [[1,0]] });
+
+                 $("#services th").hover(
+                    function(){
+                        $(this).css('background-color','#400101')
+                        $(this).css('cursor', 'pointer');
+
+                    },
+                    function(){
+                        $(this).css('background-color','#fff')
+                        $(this).css('cursor', 'default');
+                    }
+                 );
+
+                $("#refresh_button").click(function(){
+                    update_services();
+                });
+
+
+
+                update_services();
+
+                //Check display
+                //display_alert(["COLUMNA", "COLUMNB", "COLUMNC"], [["x","y","c"], ["a","b","z"]]);
+
+
+
+            }
+        );
+
+
+    </script>
+
+    <style>
+        .btn-label {position: relative;left: -12px;display: inline-block;padding: 6px 12px;background: rgba(0,0,0,0.15);border-radius: 3px 0 0 3px;}
+        .btn-labeled {padding-top: 0;padding-bottom: 0;}
+        .btn { margin-bottom:10px; }
+
+        #services th { opacity:0.9; }
+    </style>
+
+<div class="container">
+
+    <div class="row" id="services_row">
+
+    </div>
+    <div class="row" id="messages_div">
+
+    </div>
+
+
+        <div class="row"  style="float:right">
+         <button id="refresh_button" type="button" class="btn btn-labeled btn-info">
+        <span class="btn-label" id="refresh_button"><i class="glyphicon glyphicon-refresh"></i></span>Refresh</button>
+
+
+
+
+    </div>
+
+</div>
+  </body>
+</html>

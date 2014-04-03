@@ -79,7 +79,9 @@ class TrendingNews(GraphView):
 
         #TODO: add checking
 
+
         timestamp = GMTdatetime_to_database_timestamp(dt_threshold)
+        print "Requesting bigger than ",timestamp
 
         # TODO:
         # This query looks at every node in the graph, right : not the best idea

@@ -1,0 +1,12 @@
+{
+"master":"http://ocean-don.no-ip.biz",
+"master_local_url":"http://127.0.0.1:8881",
+"master_local":false,
+"public_ssh_domain":"ocean-don.no-ip.biz",
+"node_responsibilities":[
+],
+"node_id":"ocean-don",
+"home":"/webapps/ocean",
+"ssh-user":"ocean",
+"ssh-port":22
+}

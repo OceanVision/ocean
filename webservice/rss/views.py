@@ -1,23 +1,16 @@
-from ocean_master import OC
-from django.shortcuts import render
-from django.contrib.auth.models import User
-from models import NeoUser, NewsWebsite, News, ContentSource
-from django.http import HttpResponse
-from rss import models
-from py2neo import neo4j
-from py2neo import node, rel
-from django.contrib.auth.decorators import login_required
-from django.views.generic.detail import DetailView
-from django.template import loader
-from ocean import utils
-from graph_defines import *
 import urllib2
 import xml.dom.minidom
-import py2neo
 import json
 import random
-from odm_client import ODMClient
 
+from django.shortcuts import render
+from django.http import HttpResponse
+
+from ocean_graph_view_manager import OC
+from models import NeoUser
+from ocean import utils
+from graph_workers.graph_defines import *
+from odm_client import ODMClient
 
 
 def get_category_array(graph_display):
@@ -91,7 +84,6 @@ def unloved_it(request):
     return HttpResponse(json.dumps({}))
 
 
-import sys
 # TODO: better than is_authenticated, but we need a login page: @login_required(login_url='/accounts/login/')
 @utils.timed
 @utils.error_writing
@@ -262,6 +254,7 @@ def index(request):
     data["signed_in"] = True
     data["categories"] = get_category_array(graph_view_descriptor)
     data["rss_items"] = rss_items
+    data["sortable"] = 1
 
     data["likeable"] = graph_display_descriptor["likeable"]
     #TODO: why I cannot do graph_display_descriptor.likeable?
@@ -328,9 +321,14 @@ def manage(request, message=''):
 
 @utils.view_error_writing
 def get_news(request):
-    rss_items = get_graph(json.loads(request.GET['graph_view_descriptor']),
-                     json.loads(request.GET['graph_display_descriptor']
-                     ),
+
+    gd = json.loads(request.GET['graph_display_descriptor'])
+    gv = json.loads(request.GET['graph_view_descriptor'])
+
+
+    rss_items = get_graph(gv,
+                     gd
+                     ,
                      start=int(request.GET['start']),
                      end=int(request.GET['end']))
 

@@ -1,0 +1,17 @@
+{
+
+"master":"http://127.0.0.1:8881",
+"master_local_url":"http://127.0.0.1:8881",
+"master_local":true,
+"public_ssh_domain":"127.0.0.1",
+"node_responsibilities":[
+    ["neo4j",{"port":7474, "local":true}],
+    ["lionfish",{"port":7777, "local":true}],
+    ["news_fetcher",{}],
+    ["webservice",{}]
+],
+"node_id":"staszek",
+"home":"",
+"ssh-user":"staszek",
+"ssh-port":2215
+}
