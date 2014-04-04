@@ -33,10 +33,11 @@ from flask.ext.jsonpify import jsonify
 
 OK = "ok"
 
-CONFIG_SSH_PORT = "ssh-port"
 CONFIG_PORT = "port"
 CONFIG_HOME = "home"
-CONFIG_USER = "ssh-user"
+CONFIG_SSH_USER = "ssh-user"
+CONFIG_SSH_HOST = "public_ssh_domain"
+CONFIG_SSH_PORT = "ssh-port"
 
 
 SERVICE_ODM = "odm"
@@ -46,11 +47,13 @@ SERVICE_KAFKA = "kafka"
 SERVICE_NEO4J = "neo4j"
 SERVICE_NEWS_FETCHER_MASTER = "news_fetcher_master"
 SERVICE_NEWS_FETCHER = "news_fetcher"
+SERVICE_SPIDERCRAB_MASTER = "spidercrab_master"
+SERVICE_SPIDERCRAB_SLAVE = "spidercrab_slave"
 
 
 
-UNARY_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH, SERVICE_NEO4J, SERVICE_NEWS_FETCHER, SERVICE_ZOOKEEPER, SERVICE_KAFKA])
-KNOWN_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH,  SERVICE_NEO4J, SERVICE_NEWS_FETCHER, SERVICE_KAFKA, SERVICE_ZOOKEEPER])
+UNARY_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH, SERVICE_NEO4J, SERVICE_NEWS_FETCHER, SERVICE_ZOOKEEPER, SERVICE_KAFKA, SERVICE_SPIDERCRAB_MASTER, SERVICE_SPIDERCRAB_SLAVE])
+KNOWN_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH,  SERVICE_NEO4J, SERVICE_NEWS_FETCHER, SERVICE_KAFKA, SERVICE_ZOOKEEPER, SERVICE_SPIDERCRAB_MASTER, SERVICE_SPIDERCRAB_SLAVE])
 
 SERVICE = "service"
 #Service ID is in most cases the same as SERVICE, however if it is local, or if it is multiple_slave it can differ
@@ -60,13 +63,11 @@ SERVICE = "service"
 SERVICE_ID = "service_id"
 SERVICE_STATUS = "status"
 #Without http
-SERVICE_SSH_PORT = "ssh-port"
 SERVICE_HOME = "home"
+SERVICE_PORT = "port"
 SERVICE_RUN_CMD = "run_cmd"
 SERVICE_NAME = "service"
-SERVICE_CONFIG = "service_config"
-SERVICE_PORT = "port"
-SERVICE_USER = "user"
+SERVICE_CONFIG = "service_config" # Additional service config
 NODE_ID = "node_id" # Id for node
 SERVICE_LOCAL = "local"
 
@@ -77,6 +78,9 @@ registered_nodes = {}
 NODE_RESPONSIBILITIES = "node_responsibilities"
 NODE_ADDRESS = "node_address"
 NODE_CONFIG = "node_config"
+NODE_SSH_HOST = "node_ssh_host"
+NODE_SSH_PORT = "node_ssh_port"
+NODE_SSH_USER = "node_ssh_user"
 
 
 additional_default_options = {}
@@ -189,66 +193,6 @@ def remove_service(service_id):
         return OK
 
 
-### Exemplary data ###
-
-service_tmp = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:2231,
-               SERVICE_ID:"odm", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":7777,
-               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER,
-               NODE_ID: "acer"
-               }
-service_tmp2 = {SERVICE_NAME:"neo4j",SERVICE_SSH_PORT:2231,
-               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER,
-               NODE_ID: "acer"
-               }
-service_tmp3 = {SERVICE_NAME:"neo4j",SERVICE_SSH_PORT:2231,
-               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER,
-               NODE_ID: "acer"
-               }
-service_tmp4 = {SERVICE_NAME:"news_fetcher",SERVICE_SSH_PORT:22,
-               SERVICE_ID:"news_fetcher", "status":STATUS_TERMINATED, "address":"ocean-db.no-ip.biz", "port":7777,
-               "home":"/home/ocean/public_html/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:DEFAULT_USER,
-               NODE_ID: "acer"
-               }
-
-#Local neo4j
-service_tmp5 = {SERVICE_NAME:"neo4j",SERVICE_SSH_PORT:22,
-               SERVICE_ID:"neo4j_1", "status":STATUS_TERMINATED, "port":7471,
-               "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek",
-               NODE_ID: "staszek"
-               }
-
-service_tmp6 = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:221,
-               SERVICE_ID:"odm_1", "status":STATUS_TERMINATED, "port":7471,
-               "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek",
-               NODE_ID: "staszek"
-               }
-
-
-service_tmp7 = {SERVICE_NAME:"odm",SERVICE_SSH_PORT:222,
-               SERVICE_ID:"odm_2", "status":STATUS_TERMINATED, "port":74721,
-               "home":"/home/moje/Projekty/ocean/ocean", SERVICE_RUN_CMD: DEFAULT_COMMAND, SERVICE_USER:"staszek",
-               NODE_ID: "staszek2"
-               }
-
-#services.append(service_tmp)
-#add_service(service_tmp5)
-#add_service(service_tmp6)
-#add_service(service_tmp7)
-#services.append(service_tmp4)
-
-"""
-Each module is represented as a dictionary with fields:
-
-* name
-* service_name
-* ip/domain
-* port
-* home_folder
-* pid
-* status
-
-"""
-
 import time
 
 
@@ -256,18 +200,27 @@ import time
 
 
 #TODO: add throwing errors here
-def cautious_run_cmd_over_ssh(user, port, cmd, address):
+def cautious_run_cmd_over_ssh(cmd, node_id):
     """ 
         Returns appropriate errors if encounters problems
         @note Doesn't throw errors
     """
 
-    prog = subprocess.Popen(["ssh {user}@{0} -p{1} -o ConnectTimeout=2 {2}".
-                             format(address,
-                                    port,
-                                    cmd,
-                                    user=user
+    
+    n = registered_nodes[node_id]
+    user, port, host = n[NODE_SSH_USER], n[NODE_SSH_PORT], n[NODE_SSH_HOST]
+
+
+    cmd = "ssh {user}@{0} -p{1} -o ConnectTimeout=2 {2}".\
+                             format(host,\
+                                    port,\
+                                    cmd,\
+                                    user=user\
                                 )
+
+    logger.info("Running ssh command: "+str(cmd))
+
+    prog = subprocess.Popen([cmd
                             ],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output = prog.communicate()
@@ -287,7 +240,7 @@ def update_status(m):
                                     os.path.join(m[SERVICE_HOME],"don_corleone"),
                                     "./scripts/{0}_test.sh".format(m[SERVICE]))
 
-    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, registered_nodes[m[NODE_ID]][NODE_ADDRESS])
+    status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID])
 
     logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", str(status)))
 
@@ -338,7 +291,7 @@ def run_daemons():
 
 
 
-from utils import get_don_corleone_url
+from don_utils import get_don_corleone_url
 
 @app.route('/')
 def hello():
@@ -367,8 +320,8 @@ def _terminate_service(service_id):
                                         os.path.join(m[SERVICE_HOME],"don_corleone"),
                                         "./scripts/{0}_terminate.sh".format(m[SERVICE]))
 
-    # Non blocking ssh
-    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, registered_nodes[m[NODE_ID]][NODE_ADDRESS])
+    status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID])
+
 
     with services_lock:
         logger.info(("Terminating service ",service_id, "output", output, "status ",status))
@@ -403,8 +356,10 @@ def _run_service(service_id):
 
 
 
+    status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID])
 
-    status, output = cautious_run_cmd_over_ssh(m[SERVICE_USER], m[SERVICE_SSH_PORT], cmd, registered_nodes[m[NODE_ID]][NODE_ADDRESS])
+
+
 
     with services_lock:
         logger.info(("Running service ",service_id, "output", output, "status ",status))
@@ -462,7 +417,39 @@ def deregister_service():
 
 #q - ma wplyw : q-->0 : liczymy nie zerowe, q-->inf : rownomierne
 
+
+
+
+
 from flask import Response
+@app.route('/register_node', methods=['POST'])
+def register_node():
+    try:
+        output = OK
+        with services_lock:
+            config = json.loads(request.form['config'])
+            node_id = json.loads(request.form['node_id'])
+
+            with registered_nodes_lock:
+                if not node_id in registered_nodes:
+                    node = {NODE_ID:node_id, NODE_ADDRESS:config[CONFIG_SSH_HOST],NODE_CONFIG:config, NODE_RESPONSIBILITIES:[], NODE_SSH_HOST:config[CONFIG_SSH_HOST],
+                    NODE_SSH_PORT:config[CONFIG_SSH_PORT], NODE_SSH_USER:config[CONFIG_SSH_USER]
+                    }
+                    registered_nodes[node_id] = node
+            
+            output=OK
+
+
+        return jsonify(result=str(output))
+
+    except Exception, e:
+        logger.error("Failed registering node with "+str(e))
+        return jsonify(result=str(e))
+
+
+   
+
+
 @app.route('/register_service', methods=['POST'])
 def register_service():
     try:
@@ -486,8 +473,7 @@ def register_service():
 
             with registered_nodes_lock:
                 if not node_id in registered_nodes:
-                    node = {NODE_ID:node_id, NODE_ADDRESS:public_url,NODE_CONFIG:config, NODE_RESPONSIBILITIES:[]}
-                    registered_nodes[node_id] = node
+                    raise ERROR_NOT_REGISTERED_NODE
 
             local = True if 'local' in request.form or additional_service_config.get('local', False)\
                 else False
@@ -527,15 +513,13 @@ def register_service():
             #Prepare service
             service_dict = {SERVICE:service_name,
                        SERVICE_ID:service_id,
-                       SERVICE_USER:config.get(CONFIG_USER, DEFAULT_USER),
                        SERVICE_STATUS:STATUS_TERMINATED,
                        NODE_ID: node_id,
                        NODE_ADDRESS: public_url,
                        SERVICE_LOCAL: local,
                        SERVICE_RUN_CMD:DEFAULT_COMMAND,
-                       SERVICE_SSH_PORT:config.get(CONFIG_SSH_PORT, DEFAULT_SSH_PORT),
                        SERVICE_HOME:config[CONFIG_HOME],
-                        SERVICE_CONFIG: additional_service_config
+                       SERVICE_CONFIG: additional_service_config
                        }
 
 
@@ -576,7 +560,7 @@ def register_service():
 
     except Exception, e:
         logger.error("Failed registering with "+str(e))
-        return "error"
+        return jsonify(result=str(e))
 
 
 
@@ -741,6 +725,42 @@ def terminate_node():
         return jsonify(result=str(ERROR))
 
     return jsonify(result=OK)
+
+
+
+@app.route('/register_reversed', methods=['GET'])
+def register_reversed():
+
+    """
+        @param service_id
+        @returns [ssh user don, ssh port, ssh port don]
+    """
+
+    node_id = request.args.get("node_id")
+
+
+    if not node_id in registered_nodes:
+        logger.error("Failed register reversed: not registered node")
+        return jsonify(result=str(ERROR_NODE_NOT_REGISTERED))
+
+    node_ssh_user = request.args.get("node_ssh_user")
+    
+    config = json.loads(open("config.json").read())
+
+    ssh_user_don = config[CONFIG_SSH_USER]  
+    ssh_port_don = config[CONFIG_SSH_PORT]
+    ssh_host_don = config[CONFIG_SSH_HOST]
+
+    port = 7000
+
+    while os.system("./scripts/test_port.sh "+str(port)) == 0:
+        port += 1
+
+    with registered_nodes_lock:
+        registered_nodes[node_id].update({NODE_SSH_HOST: "127.0.0.1", NODE_SSH_PORT: port})
+
+    return jsonify(result={"ssh-user":ssh_user_don, "ssh-port":ssh_port_don, "ssh-host":ssh_host_don, "ssh-port-redirect":port})
+
 
 
 

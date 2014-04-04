@@ -40,7 +40,7 @@ MASTER = "master"
 MASTER_LOCAL = "master_local"
 NODE_ID = "node_id"
 RESPONSIBILITIES = "node_responsibilities"
-
+REVERSED_SSH = "ssh-reversed"
 
 #Does run_node own don_corleone
 run_node_owner = False
@@ -63,9 +63,24 @@ def install_node(config, run=False):
     response = urllib2.urlopen(get_don_corleone_url(config)+"/terminate_node?node_id="+config[NODE_ID]).read()
     print response
 
+   
+    logger.info("Registering the node")
+    # Register node
+    params = urllib.urlencode({"config":json.dumps(config), "node_id":json.dumps(config[NODE_ID]) })
+    response = urllib2.urlopen(get_don_corleone_url(config)+"/register_node", params).read()
+    logger.info(response)
+
+
+    # Reversed ssh support
+    if config[REVERSED_SSH]:
+        logger.info("Reversed ssh")
+        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/register_reversed?node_id="+str(config[NODE_ID])).read())
+        print response
+        os.system("./scripts/run_reversed_ssh.sh {0} {1} {2} {3}".format(response["result"]["ssh-user"], response["result"]["ssh-host"], \
+        response["result"]["ssh-port-redirect"], response["result"]["ssh-port"]))
+ 
     logger.info("Installing the node")
     print config[RESPONSIBILITIES]
-
 
 
 
@@ -162,4 +177,4 @@ if __name__ == "__main__":
     for sig in (SIGINT,):
         signal(sig, clean)
 
-    run_node(config, hang=False)
+    run_node(config, hang=True)

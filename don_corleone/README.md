@@ -85,6 +85,18 @@ Exemplary additional options.
 
 <few others >
 
+### NAT configuration
+
+Important bits: it is using reversed ssh mechanism (please see online resources
+for more information). 
+
+To use NAT support you have to complete two steps:
+
+* Add "reversed:true" to your config.json (see config.json.reversed)
+
+* Add your key from master server (run ssh-copy-id your_user@your_domain from
+  don machine)
+
 ### Running
 
 `python run_node.py` should run node accordingly to the configuration file. If it is
