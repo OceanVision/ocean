@@ -49,9 +49,9 @@ class ODMClient(object):
 
             func_name = data['funcName']
             if func_name not in self.tasks:
-                self.tasks[func_name] = [(data['args'], self.count)]
+                self.tasks[func_name] = [[data['args'], self.count]]
             else:
-                self.tasks[func_name].append((data['args'], self.count))
+                self.tasks[func_name].append([data['args'], self.count])
             self.count += 1
 
         def submit(self):
@@ -119,7 +119,9 @@ class ODMClient(object):
         """
         data = {
             'funcName': 'getByUuid',
-            'args': [node_uuid]
+            'args': {
+                'uuid', node_uuid
+            }
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
@@ -136,10 +138,10 @@ class ODMClient(object):
         """
         data = {
             'funcName': 'getByLink',
-            'args': [{
+            'args': {
                 'model_name': model_name,
                 'link': link
-            }]
+            }
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
@@ -154,7 +156,7 @@ class ODMClient(object):
         """
         data = {
             'funcName': 'getModelNodes',
-            'args': []
+            'args': {}
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
@@ -172,11 +174,11 @@ class ODMClient(object):
         """
         data = {
             'funcName': 'getChildren',
-            'args': [{
+            'args': {
                 'uuid': node_uuid,
                 'relType': rel_type,
                 'childrenParams': params
-            }]
+            }
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
@@ -193,9 +195,9 @@ class ODMClient(object):
         """
         data = {
             'funcName': 'getInstances',
-            'args': [{
+            'args': {
                 'modelName': model_name
-            }]
+            }
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
@@ -204,7 +206,7 @@ class ODMClient(object):
         results = self.recv()
         return results[0] if len(results) > 0 else []
 
-    def set(self, node_uuid, **params):
+    def set(self, node_uuid, **props):
         """
         Sets node_params to a node of given node_uuid
         @param node_uuid string
@@ -212,10 +214,10 @@ class ODMClient(object):
         """
         data = {
             'funcName': 'set',
-            'args': [{
+            'args': {
                 'uuid': node_uuid,
-                'params': params
-            }]
+                'props': props
+            }
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
@@ -223,7 +225,7 @@ class ODMClient(object):
         self.send(data)
         return self.recv()
 
-    def create_node(self, model_name, rel_type='<<INSTANCE>>', **params):
+    def create_node(self, model_name, rel_type='<<INSTANCE>>', **props):
         """
         Creates a node with node_params to the model given by model_name
         @param model_name string
@@ -232,11 +234,11 @@ class ODMClient(object):
         """
         data = {
             'funcName': 'createNodes',
-            'args': [{
+            'args': {
                 'modelName': model_name,
                 'relType': rel_type,
-                'params': params
-            }]
+                'props': props
+            }
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
@@ -253,9 +255,9 @@ class ODMClient(object):
         """
         data = {
             'funcName': 'deleteNodes',
-            'args': [{
+            'args': {
                 'uuid': node_uuid
-            }]
+            }
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
@@ -263,7 +265,7 @@ class ODMClient(object):
         self.send(data)
         self.recv()
 
-    def create_relationship(self, start_node_uuid, end_node_uuid, rel_type, **params):
+    def create_relationship(self, start_node_uuid, end_node_uuid, rel_type, **props):
         """
         Creates a relationship rel_type with rel_params
         between nodes of start_node_uuid and end_node_uuid
@@ -274,12 +276,12 @@ class ODMClient(object):
         """
         data = {
             'funcName': 'createRelationships',
-            'args': [{
+            'args': {
                 'startNodeUuid': start_node_uuid,
                 'endNodeUuid': end_node_uuid,
                 'type': rel_type,
-                'params': params
-            }]
+                'props': props
+            }
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
@@ -296,10 +298,10 @@ class ODMClient(object):
         """
         data = {
             'funcName': 'deleteRelationships',
-            'args': [{
+            'args': {
                 'startNodeUuid': start_node_uuid,
                 'endNodeUuid': end_node_uuid
-            }]
+            }
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':

@@ -80,10 +80,53 @@ class Connection(private val id: Int,
     }
   }
 
+  private def executeBatch(request: Map[String, Any]): List[Any] = {
+    try {
+      val count = request("count").asInstanceOf[Double].toInt
+      val tasks = request("tasks").asInstanceOf[Map[String, List[List[Any]]]]
+
+      var response: List[Any] = List.fill(count.toInt)(null)
+      for ((funcName, params) <- tasks) {
+        var fullArgs: List[Map[String, Any]] = List()
+        for (item <- params) {
+          fullArgs = fullArgs :+ item(0).asInstanceOf[Map[String, Any]]
+        }
+
+        // TODO: Solve this with reflection
+        var rawResult: List[Any] = null
+        funcName match {
+          case "getModelNodes" => {
+            rawResult = manager.getModelNodes()
+          }
+          case "createNodes" => {
+            rawResult = manager.createNodes(fullArgs)
+          }
+          case "deleteNodes" => {
+            rawResult = manager.deleteNodes(fullArgs)
+          }
+          case _ => throw new NoSuchMethodException(funcName)
+        }
+
+        if (rawResult != null) {
+          for (i <- 0 to rawResult.length - 1) {
+            response = response.updated(params(i)(1).asInstanceOf[Double].toInt, rawResult(i))
+          }
+        }
+      }
+
+      response
+    } catch {
+      case e: Exception => {
+        println(s"Client $id: executing batch failed. Error message: $e")
+      }
+      List()
+    }
+  }
+
   private def executeFunction(request: Map[String, Any]): Any = {
     try {
       val funcName = request("funcName").asInstanceOf[String]
-      val args = request("args").asInstanceOf[List[Map[String, Any]]]
+      val args = List(request("args").asInstanceOf[Map[String, Any]])
 
       println(s"Client $id: $funcName")
 
@@ -92,6 +135,12 @@ class Connection(private val id: Int,
       funcName match {
         case "getModelNodes" => {
           response = manager.getModelNodes()
+        }
+        case "createNodes" => {
+          response = manager.createNodes(args)
+        }
+        case "deleteNodes" => {
+          response = manager.deleteNodes(args)
         }
         case _ => throw new NoSuchMethodException(funcName)
       }
@@ -113,6 +162,8 @@ class Connection(private val id: Int,
         var response: Any = null
         if (!request.contains("tasks")) {
           response = executeFunction(request)
+        } else {
+          response = executeBatch(request)
         }
         send(response)
       }
