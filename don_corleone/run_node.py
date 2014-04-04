@@ -162,4 +162,4 @@ if __name__ == "__main__":
     for sig in (SIGINT,):
         signal(sig, clean)
 
-    run_node(config, hang=True)
+    run_node(config, hang=False)
