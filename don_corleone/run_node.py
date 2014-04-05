@@ -41,6 +41,8 @@ MASTER_LOCAL = "master_local"
 NODE_ID = "node_id"
 RESPONSIBILITIES = "node_responsibilities"
 REVERSED_SSH = "ssh-reversed"
+SSH_HOST = "public_ssh_domain"
+
 
 #Does run_node own don_corleone
 run_node_owner = False
@@ -77,7 +79,7 @@ def install_node(config, run=False):
         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/register_reversed?node_id="+str(config[NODE_ID])).read())
         print response
         cmd = "./scripts/run_reversed_ssh.sh {0} {1} {2} {3} {4}".format(response["result"]["ssh-user"], response["result"]["ssh-host"], \
-        response["result"]["ssh-port-redirect"], 2215, response['result']['ssh-port'])
+        response["result"]["ssh-port-redirect"], config[SSH_HOST], response['result']['ssh-port'])
         logger.info("Running "+cmd)
         os.system(cmd)
  
