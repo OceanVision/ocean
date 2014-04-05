@@ -76,8 +76,10 @@ def install_node(config, run=False):
         logger.info("Reversed ssh")
         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/register_reversed?node_id="+str(config[NODE_ID])).read())
         print response
-        os.system("./scripts/run_reversed_ssh.sh {0} {1} {2} {3}".format(response["result"]["ssh-user"], response["result"]["ssh-host"], \
-        response["result"]["ssh-port-redirect"], response["result"]["ssh-port"]))
+        cmd = "./scripts/run_reversed_ssh.sh {0} {1} {2} {3} {4}".format(response["result"]["ssh-user"], response["result"]["ssh-host"], \
+        response["result"]["ssh-port-redirect"], 2215, response['result']['ssh-port'])
+        logger.info("Running "+cmd)
+        os.system(cmd)
  
     logger.info("Installing the node")
     print config[RESPONSIBILITIES]

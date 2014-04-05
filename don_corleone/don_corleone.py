@@ -210,8 +210,8 @@ def cautious_run_cmd_over_ssh(cmd, node_id):
     n = registered_nodes[node_id]
     user, port, host = n[NODE_SSH_USER], n[NODE_SSH_PORT], n[NODE_SSH_HOST]
 
-
-    cmd = "ssh {user}@{0} -p{1} -o ConnectTimeout=2 {2}".\
+    # oStrictHostKeyChecking - sdisables asking for RSA key
+    cmd = "ssh -oStrictHostKeyChecking=no {user}@{0} -p{1} -o ConnectTimeout=2 {2}".\
                              format(host,\
                                     port,\
                                     cmd,\
