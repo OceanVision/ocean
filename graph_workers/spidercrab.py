@@ -1,14 +1,10 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
+"""
+    Spidercrab - simple, synchronized news fetching GraphWorker
+"""
 
-"""
-    SpiderCrab - simple, synchronized news fetching GraphWorker
-"""
-from BeautifulSoup import BeautifulSoup
+#from BeautifulSoup import BeautifulSoup
 import boilerpipe.extract
 import feedparser
-import threading
-import os
 import shutil
 import threading
 import uuid
@@ -45,32 +41,45 @@ class Spidercrab(GraphWorker):
 
     DEFAULT_CONFIG_NAME = './spidercrab.json.default'
     CONFIG_FILE_NAME = './spidercrab.json'
+    CONFIG_DEFAULTS = {
+        'update_interval_s': 1000*60*15,     # 15 minutes :)
+        'use_all_sources': True,
+        'content_sources': [],
+        'worker_id': 'undefined',
+        'sources_enqueue_portion': 10,
+        'sources_enqueue_max': float('inf'),
+        'worker_sleep_s': 10,
+    }
 
     def __init__(
             self,
-            master=None,
+            master=False,
+            config_file_name=CONFIG_FILE_NAME,
+            runtime_id=str(uuid.uuid1())[:8],
     ):
         """
         @param master: master Spidercrab object
         @type master: Spidercrab
         """
+        # Config used to be stored inside the database (only values from file)
+        self.given_config = {}
+        # Config that will be used in computing (supplemented with defaults)
         self.config = {}
-        self._init_config()
+        self._init_config(config_file_name)
+
         self.logger = logger
         self.required_privileges = construct_full_privilege()
         self.odm_client = ODMClient()
         self.terminate_event = threading.Event()
-        self.runtime_id = str(uuid.uuid1())  # This uuid is not present in db!
-        self.level = 'slave'
+        self.runtime_id = runtime_id
 
         self.master = master
-        if master is not None:
-            assert isinstance(master, Spidercrab)
-            self.is_master = False
-        else:
+        if master:
             self.is_master = True
             self.level = 'master'
-            self.workers = []
+        else:
+            self.is_master = False
+            self.level = 'slave'
 
         self.fullname = '[' + self.config['worker_id'] + ' ' + self.level + \
             ' ' + self.runtime_id + ']'
@@ -101,36 +110,30 @@ class Spidercrab(GraphWorker):
             @returns master (used in create_worker)
         """
         logger.log(info_level, 'Creating Spidercrab master...')
+        params['master'] = True
         spidercrab_master = Spidercrab(**params)
         logger.log(info_level, '... Created Spidercrab master.')
         return spidercrab_master
 
     @staticmethod
-    def create_worker(master, **params):
+    def create_worker(**params):
         """
-            @param master - master Spidercrab object
             @param **params - parameters passed to the constructor
             @returns GraphWorker object
         """
         logger.log(info_level, 'Creating Spidercrab worker...')
-        if not master:
-            raise Exception('Wrong param list!')
-        params['master'] = master
         spidercrab_worker = Spidercrab(**params)
-        master.workers.append(spidercrab_worker)
         logger.log(info_level, '... Created Spidercrab worker.')
         return spidercrab_worker
 
     def run(self):
         """
             Parameter-less run of GraphWorker object.
-            You should run master Spidercrab only.
-            (workers are run by adequate master)
+            You should run any Spidercrab (master and slave) with this method.
         """
         self._init_run()
 
         if self.is_master:
-            self._run_local_workers()
             queued_sources = 0
             while queued_sources < self.config['sources_enqueue_max']:
                 # Enqueue new sources to be browsed by workers
@@ -148,7 +151,10 @@ class Spidercrab(GraphWorker):
                     time.sleep(1)
                     time_left -= 1
                     if time_left < 0:
-                        self.logger.log(info_level, 'No more pending tasks.')
+                        self.logger.log(
+                            info_level,
+                            self.fullname + ' No more pending tasks.'
+                        )
                         break
                 else:
                     time_left = WORKER_SLEEP_S
@@ -163,6 +169,7 @@ class Spidercrab(GraphWorker):
         logger.log(info_level, self.fullname + ' Started.')
 
         if not self.is_master:
+            self._check_and_pull_config()
             return
 
         # Check database structure and init if needed
@@ -174,6 +181,28 @@ class Spidercrab(GraphWorker):
     def _end_run(self):
         self.odm_client.disconnect()
         logger.log(info_level, self.fullname + ' Finished!')
+
+    def _check_and_pull_config(self):
+        """
+            If there is a registered master Spidercrab in the database,
+            fetches its config and merges with config used by this worker
+            (not a config file). This method is used by slave workers.
+        """
+        response = self.odm_client.get_instances('Spidercrab')
+        master_node = {}
+        for instance in response:
+            if instance['worker_id'] == self.given_config['worker_id']:
+                master_node = instance
+        if len(master_node) == 0:
+            raise KeyError(
+                'There is no registered Spidercrab master with worker_id = '
+                + str(self.given_config['worker_id']) + '!')
+        master_node.pop('uuid')
+        for param in master_node.keys():
+            self.config[param] = master_node[param]
+        self.logger.log(
+            info_level, self.fullname + ' Pulled config from master.'
+        )
 
     def _check_and_init_db(self):
         """
@@ -222,62 +251,39 @@ class Spidercrab(GraphWorker):
                 'Registering ' + self.config['worker_id']
                 + ' Spidercrab in the database.'
             )
-            params = {
-                'update_interval_min': unicode(
-                    self.config['update_interval_min']),
-                'use_all_sources': unicode(self.config['use_all_sources']),
-                'content_sources': unicode(self.config['content_sources']),
-                'worker_id': unicode(self.config['worker_id'])
-            }
+            params = self.given_config
             self.odm_client.create_node(
                 model_name='Spidercrab',
                 rel_type=HAS_INSTANCE_RELATION,
                 **params
             )
 
-    def _init_config(self):
+    def _init_config(self, config_file_name=CONFIG_FILE_NAME):
         """
             Checks if there config file exists and initializes it if needed.
         """
-        if not os.path.isfile(self.CONFIG_FILE_NAME):
-            shutil.copy(self.DEFAULT_CONFIG_NAME, self.CONFIG_FILE_NAME)
+        if not os.path.isfile(config_file_name):
+            shutil.copy(self.DEFAULT_CONFIG_NAME, config_file_name)
             raise ValueError(
-                'Please set up your newly created ' + self.CONFIG_FILE_NAME
-                + '!'
+                'Please set up your config file created under '
+                + config_file_name + '!'
             )
-        self.config = dict(json.load(open(self.CONFIG_FILE_NAME)))
+        self.given_config = dict(json.load(open(config_file_name)))
 
-        # Required preferences
-        assert 'update_interval_min' in self.config
-        assert 'use_all_sources' in self.config
-        assert 'content_sources' in self.config
-        assert 'worker_id' in self.config
-
-        # Optional preferences
-        if 'sources_enqueue_portion' not in self.config:
-            self.config['sources_enqueue_portion'] = SOURCES_ENQUEUE_PORTION
-        if 'sources_enqueue_max' not in self.config:
-            self.config['sources_enqueue_max'] = SOURCES_ENQUEUE_MAX
+        self.config = dict(json.load(open(config_file_name)))
+        for param in self.CONFIG_DEFAULTS.keys():
+            if param not in self.config:
+                self.config[param] = self.CONFIG_DEFAULTS[param]
 
         if self.config['worker_id'] == 'UNDEFINED':
             raise ValueError(
                 'Please choose your id and enter it inside '
-                + self.CONFIG_FILE_NAME + '!'
+                + config_file_name + '!'
             )
-
-    def _run_local_workers(self):
-        """
-            Run workers associated with this master.
-        """
-        threads = []
-        for worker in self.workers:
-            threads.append(threading.Thread(target=worker.run))
-        for p in range(len(threads)):
-            threads[p].start()
 
     def _enqueue_sources_portion(self):
         """
-            Fetch <sources_enqueue_portion> sources and immediately assign
+            Fetch portion of sources defined in config and immediately assign
             them 'pending' relation with own Spidercrab node. Method used by
             master.
         """
@@ -285,13 +291,16 @@ class Spidercrab(GraphWorker):
         MATCH
             (source:ContentSource),
             (crab:Spidercrab {worker_id: '%s'})
-        WHERE NOT source-[:pending]-crab
+        WHERE %s - source.last_updated > %s
+            AND NOT crab-[:pending]->source
         CREATE (crab)-[:pending]->(source)
         RETURN source
         LIMIT %s
         """
         query %= (
             self.config['worker_id'],
+            database_gmt_now(),
+            self.config['update_interval_s'],
             self.config['sources_enqueue_portion'],
         )
         result = self.odm_client.execute_query(query)
@@ -309,7 +318,7 @@ class Spidercrab(GraphWorker):
         MATCH
             (crab:Spidercrab {worker_id: '%s'})
             -[r:pending]->
-            (source:ContentSource)          //TODO: Add test if time passed
+            (source:ContentSource)
         SET source.last_updated = %s
         DELETE r
         RETURN source
@@ -439,6 +448,7 @@ class Spidercrab(GraphWorker):
                 news_props['link'],
             )
             result = self.odm_client.execute_query(query)
+
             if not result:
                 self.logger.log(
                     info_level,
@@ -456,7 +466,7 @@ class Spidercrab(GraphWorker):
                         title: '%s',
                         summary: '%s',
                         link: '%s',
-                        published: '%s',
+                        published: %s,
                         text: '%s',
                         html: '%s'
                     }),
@@ -476,9 +486,7 @@ class Spidercrab(GraphWorker):
                     'TODO',  # news_props['html'],
                     HAS_INSTANCE_RELATION
                 )
-                result = self.odm_client.execute_query(query)
-                print result
-
+                self.odm_client.execute_query(query)
 
     @staticmethod
     def _extract_news(news_props):
@@ -497,8 +505,14 @@ class Spidercrab(GraphWorker):
 
 
 if __name__ == '__main__':
+    print "Please run spidercrab_master.py or spidercrab_slaves.py in order " \
+          "to run a proper graph worker(s)."
     spidercrab = Spidercrab.create_master()
-    Spidercrab.create_worker(spidercrab)
-    Spidercrab.create_worker(spidercrab)
-    Spidercrab.create_worker(spidercrab)
     spidercrab.run()
+
+    worker_1 = Spidercrab.create_worker()
+    worker_2 = Spidercrab.create_worker()
+    worker_3 = Spidercrab.create_worker()
+    worker_1.run()
+    worker_2.run()
+    worker_3.run()

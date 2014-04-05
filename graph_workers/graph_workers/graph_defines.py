@@ -9,8 +9,6 @@ CONTENT_MODEL = {"loved_counter": 0, "last_updated": 0, "pubdate_timestamp": 0}
 GRAPH_MODELS = {"Content":CONTENT_MODEL}
 
 
-
-
 CONTENT_SOURCE_LAST_UPDATE = "last_updated"
 CONTENT_SOURCE_LINK = "link"
 CONTENT_SOURCE_RSS_TYPE = "source_type"
