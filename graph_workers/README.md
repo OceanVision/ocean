@@ -7,16 +7,18 @@ and `graph_workers` Python package with modules used in them.
 graph_worker_manager.py
 -----------------------
 
+(deprecated)
+
 Use this script to start workers (it manages for example news_fetcher).
 
-web_crawler_exporter.py
+web_crawler_export.py
 -----------------------
 
 Use this script to instant crawl from any website.
 
 Example:
 
-    python2 web_crawler_exporter.py https://news.google.com
+    ./web_crawler_export.py https://news.google.com
 
 It will start from `https://news.google.com` and crawl from there. The results
 will be saved as python dictionaries in (as default) `rss_feeds` file.

@@ -43,12 +43,11 @@ class Spidercrab(GraphWorker):
     CONFIG_FILE_NAME = './spidercrab.json'
     CONFIG_DEFAULTS = {
         'update_interval_s': 1000*60*15,     # 15 minutes :)
-        'use_all_sources': True,
-        'content_sources': [],
         'worker_id': 'undefined',
         'sources_enqueue_portion': 10,
         'sources_enqueue_max': float('inf'),
         'worker_sleep_s': 10,
+        'do_not_fetch': 0,
     }
 
     def __init__(
@@ -56,6 +55,8 @@ class Spidercrab(GraphWorker):
             master=False,
             config_file_name=CONFIG_FILE_NAME,
             runtime_id=str(uuid.uuid1())[:8],
+            master_sources_urls_file='',
+            export_cs_to=None,
     ):
         """
         @param master: master Spidercrab object
@@ -72,11 +73,17 @@ class Spidercrab(GraphWorker):
         self.odm_client = ODMClient()
         self.terminate_event = threading.Event()
         self.runtime_id = runtime_id
+        self.master_sources_urls_file = master_sources_urls_file
+        self.export_cs_to = export_cs_to
 
         self.master = master
         if master:
             self.is_master = True
             self.level = 'master'
+            if self.master_sources_urls_file:
+                self.content_sources_urls = self._read_file(
+                    self.master_sources_urls_file
+                )
         else:
             self.is_master = False
             self.level = 'slave'
@@ -136,13 +143,18 @@ class Spidercrab(GraphWorker):
         if self.is_master:
             queued_sources = 0
             while queued_sources < self.config['sources_enqueue_max']:
-                # Enqueue new sources to be browsed by workers
-                result = self._enqueue_sources_portion()
-                queued_sources += len(result)
-                if len(result) == 0 or self.terminate_event.is_set():
-                    break
+                if self.master_sources_urls_file:
+                    # Enqueue from file new sources to be browsed by slaves
+                    self._enqueue_source_line()
+                    queued_sources += 1
+                else:
+                    # Enqueue existing sources to be browsed by workers
+                    result = self._enqueue_sources_portion()
+                    queued_sources += len(result)
+                    if len(result) == 0 or self.terminate_event.is_set():
+                        break
 
-        else:  # worker case
+        else:  # slave case
             time_left = WORKER_SLEEP_S
             while not self.terminate_event.is_set():
                 source = self._pick_pending_source()
@@ -152,14 +164,22 @@ class Spidercrab(GraphWorker):
                     time_left -= 1
                     if time_left < 0:
                         self.logger.log(
-                            info_level,
-                            self.fullname + ' No more pending tasks.'
-                        )
+                            info_level, self.fullname + ' No more tasks.')
                         break
                 else:
                     time_left = WORKER_SLEEP_S
-                    news_list = self._update_source(source)['news']
-                    self._fetch_new_news(source['uuid'], news_list)
+                    source_props = self._update_source(source)
+                    if self.config['do_not_fetch']:
+                        continue
+                    if 'news' in source_props:
+                        self._fetch_new_news(
+                            source['uuid'], source_props['news'])
+                    else:
+                        self.logger.log(
+                            error_level,
+                            'No news for ' + source['link'] + ' ... '
+                            + 'Parsed source properties: '
+                            + str(source_props))
 
         self._end_run()
 
@@ -195,8 +215,8 @@ class Spidercrab(GraphWorker):
                 master_node = instance
         if len(master_node) == 0:
             raise KeyError(
-                'There is no registered Spidercrab master with worker_id = '
-                + str(self.given_config['worker_id']) + '!')
+                'There is no registered Spidercrab master with worker_id = \''
+                + str(self.given_config['worker_id']) + '\'!')
         master_node.pop('uuid')
         for param in master_node.keys():
             self.config[param] = master_node[param]
@@ -268,8 +288,11 @@ class Spidercrab(GraphWorker):
                 'Please set up your config file created under '
                 + config_file_name + '!'
             )
+
+        # Load user defined config file
         self.given_config = dict(json.load(open(config_file_name)))
 
+        # Create a final dictionary with default values
         self.config = dict(json.load(open(config_file_name)))
         for param in self.CONFIG_DEFAULTS.keys():
             if param not in self.config:
@@ -281,11 +304,97 @@ class Spidercrab(GraphWorker):
                 + config_file_name + '!'
             )
 
+    @staticmethod
+    def _read_file(file_name):
+        """
+            Read lines of file and return them as list.
+        """
+        lines = []
+        try:
+            f = open(file_name, 'r')
+            try:
+                lines = f.readlines()
+            finally:
+                f.close()
+        except IOError as e:
+            print e
+            exit()
+        return lines
+
+    def _enqueue_source_line(self):
+        """
+            Read one line of content source url from master_sources_urls_file,
+            insert it into the database and assign it 'pending' relation
+            with own Spidercrab node.
+
+            Method used by master.
+        """
+        count = len(self.content_sources_urls)
+        n = 0
+        for line in self.content_sources_urls:
+            n += 1
+            self.logger.log(
+                info_level,
+                self.fullname + ' Adding (' + str(n) + '/' + str(count) + ') '
+                + line[:-1] + ' ...'
+            )
+            # Check if not in database
+            query = """
+            MATCH
+                (source:ContentSource {link: '%s'}),
+                (crab:Spidercrab {worker_id: '%s'})
+            CREATE (crab)-[:pending]->(source)
+            RETURN source
+            """
+            query %= (
+                line[:-1],
+                self.config['worker_id']
+            )
+            result = self.odm_client.execute_query(query)
+            if result:
+                self.logger.log(
+                    info_level,
+                    self.fullname + ' Source ' + line[:-1]
+                    + ' already present - queuing only.'
+                )
+                continue
+            try:
+                # Try adding url from this line
+                params = {
+                    'source_type': 'unknown',
+                    'link': line[:-1],
+                }
+                self.odm_client.create_node(
+                    CONTENT_SOURCE_TYPE_MODEL_NAME,
+                    HAS_INSTANCE_RELATION,
+                    **params
+                )
+                # Create a `pending` relation
+                query = """
+                MATCH
+                    (source:ContentSource {link: '%s'}),
+                    (crab:Spidercrab {worker_id: '%s'})
+                CREATE (crab)-[:pending]->(source)
+                RETURN source
+                """
+                query %= (
+                    line[:-1],
+                    self.config['worker_id']
+                )
+                self.odm_client.execute_query(query)
+            except Exception as error:
+                self.logger.log(
+                    error_level,
+                    self.fullname + ' Error occurred with adding `'
+                    + line[:-1] + '`:\n' + str(error) + '\nContinuing...\n'
+                )
+
     def _enqueue_sources_portion(self):
         """
             Fetch portion of sources defined in config and immediately assign
-            them 'pending' relation with own Spidercrab node. Method used by
-            master.
+            them 'pending' relation with own Spidercrab node.
+
+            Method used by master.
         """
         query = """
         MATCH
@@ -344,6 +453,10 @@ class Spidercrab(GraphWorker):
             and return its properties.
         """
         properties = self._parse_source(source_node['link'])
+
+        if self.export_cs_to and len(properties) > 1:
+            self._export_cs(properties)
+
         query = """
         MATCH (source:ContentSource {uuid: '%s'})
         SET
@@ -356,8 +469,8 @@ class Spidercrab(GraphWorker):
         query %= (
             source_node['uuid'],
             properties.get('language', 'unknown'),
-            properties.get('title', 'Untitled'),
-            properties.get('description', 'No description'),
+            properties.get('title', 'unknown'),
+            properties.get('description', 'unknown'),
             properties.get('source_type', 'unknown')
         )
         self.logger.log(
@@ -394,35 +507,54 @@ class Spidercrab(GraphWorker):
             Parse source properties to a dictionary using various methods.
             (For later use with methods for other further content sources)
         """
+        # Default values
+        properties = {
+            'description': 'unknown',
+            'language': 'unknown',
+            'link': source_link,
+            'source_type': 'unknown',
+            'title': 'unknown'
+        }
         data = feedparser.parse(source_link)
-        version = data['version']
-        if version[:3] == 'rss':
-            return Spidercrab._parse_rss_source(data)
+
+        version = data.get('version', 'unknown')
+        if version[:3] == 'rss' or version == 'unknown':
+            parsed_properties = Spidercrab._parse_rss_source(data)
+            properties.update(parsed_properties)
+        return properties
 
     @staticmethod
     def _parse_rss_source(data):
         properties = dict()
         try:
             # Common RSS elements
-            properties['language'] = data['feed']['language']
-            properties['title'] = data['feed']['title']
-            properties['description'] = data['feed']['description']
+            feed = data['feed']
+            properties['description'] = feed.get('description', 'unknown')
+            properties['language'] = feed.get('language', 'unknown')
             properties['source_type'] = 'rss'
+            properties['title'] = feed.get('title', 'unknown')
             # Optional ContentSource properties
-            if 'image' in data['feed'] and 'href' in data['feed']['image']:
-                properties['image_url'] = data['feed']['image']['href']
-                properties['image_width'] = data['feed']['image']['width']
-                properties['image_height'] = data['feed']['image']['height']
-                properties['image_link'] = data['feed']['image']['link']
+            if 'image' in feed and 'href' in feed['image']:
+                image = feed['image']
+                if 'href' in image:
+                    properties['image_url'] = image['href']
+                if 'width' in image:
+                    properties['image_width'] = image['width']
+                if 'height' in image:
+                    properties['image_height'] = image['height']
+                if 'link' in image:
+                    properties['image_link'] = image['link']
             # News
             properties['news'] = []
             for entry in data['entries']:
                 news = dict()
-                news['title'] = unicode(entry['title'])
-                news['summary'] = unicode(entry['summary'])
-                news['link'] = unicode(entry['link'])
-                news['published'] = unicode(time_struct_to_database_timestamp(
-                    entry['published_parsed']))
+                news['title'] = unicode(entry.get('title', 'unknown'))
+                news['summary'] = unicode(entry.get('summary', 'unknown'))
+                news['link'] = unicode(entry.get('link', 'unknown'))
+                news['published'] = unicode(
+                    time_struct_to_database_timestamp(
+                        entry.get('published_parsed', 'unknown'))
+                )
                 properties['news'].append(news)
         except Exception as error:
             logger.log(error_level, 'RSS XML error - ' + str(error))
@@ -493,26 +625,61 @@ class Spidercrab(GraphWorker):
         """
             Extracts content of news.
         """
-        extractor = boilerpipe.extract.Extractor(
-            extractor='ArticleExtractor', url=news_props['link']
-        )
-        news_props['text'] = unicode(extractor.getText())
-        news_props['html'] = unicode(extractor.getHTML())
+        news_props['text'] = 'unknown'
+        news_props['html'] = 'unknown'
+        try:
+            extractor = boilerpipe.extract.Extractor(
+                extractor='ArticleExtractor', url=news_props['link']
+            )
+            news_props['text'] = unicode(extractor.getText())
+            news_props['html'] = unicode(extractor.getHTML())
+        except Exception as error:
+            logger.log(error_level, error)
         #TODO: news images
         # bs_html = BeautifulSoup(urllib2.urlopen(news_link))
         #news_props['images'] = []
         return news_props
 
+    @staticmethod
+    def _export_line(line, file_name):
+        """ Export line to file """
+        try:
+            f = open(file_name, 'a')
+            try:
+                f.write(line + '\n')
+            finally:
+                f.close()
+        except IOError as e:
+            print e
+            pass
+        return True
+
+    def _export_cs(self, properties):
+        exported = {
+            'source_type': properties['source_type'],
+            'link': properties['link'],
+            'description': properties['description'],
+            'title': properties['title'],
+            'language': properties['language']
+        }
+        Spidercrab._export_line(str(exported), self.export_cs_to)
+
 
 if __name__ == '__main__':
     print "Please run spidercrab_master.py or spidercrab_slaves.py in order " \
           "to run a proper graph worker(s)."
-    spidercrab = Spidercrab.create_master()
-    spidercrab.run()
+    print "Press Enter to create one master with 5 slaves."
+    enter = raw_input()
 
-    worker_1 = Spidercrab.create_worker()
-    worker_2 = Spidercrab.create_worker()
-    worker_3 = Spidercrab.create_worker()
-    worker_1.run()
-    worker_2.run()
-    worker_3.run()
+    master_sc = Spidercrab.create_master()
+    thread = threading.Thread(target=master_sc.run)
+    thread.start()
+
+    time.sleep(3)
+    for i in range(5):
+        worker = Spidercrab.create_worker(
+            runtime_id=str(i),
+            export_cs_to='content_sources'
+        )
+        thread = threading.Thread(target=worker.run)
+        thread.start()

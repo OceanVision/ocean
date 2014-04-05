@@ -21,10 +21,21 @@ if __name__ == '__main__':
              'NOTE: If there is no such a file, Spidercrab will create'
              'it for you there, based on spidercrab.json.default.'
     )
+    parser.add_option(
+        '-s',
+        '--sources-urls-file',
+        dest='sources_file_name',
+        default='',
+        help='Path to file, where every line contains url address to new '
+             'ContentSources that will be added to the database and '
+             'flagged as pending to update (checks if url already exist in '
+             'the database).'
+    )
     (options, args) = parser.parse_args()
 
     # Spidercrab master launch is simple as hell
     spidercrab_master = Spidercrab.create_master(
-        config_file_name=options.config_file_name
+        config_file_name=options.config_file_name,
+        master_sources_urls_file=options.sources_file_name,
     )
     spidercrab_master.run()
