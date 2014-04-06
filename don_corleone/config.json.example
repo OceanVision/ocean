@@ -4,7 +4,12 @@
 "master_local":false,
 "public_ssh_domain":"ocean-db.no-ip.biz",
 "node_responsibilities":[
-    ["neo4j",{"port":32, "host":"192.168.0.15", "local":false}]
+    ["neo4j",{"port":32, "host":"192.168.0.15", "local":false}],
+    ["spidercrab", {
+            "local": true,
+            "update_interval_s": 900,
+            "worker_id": "oceanic_crab"
+        }]
 ],
 "node_id":"staszek",
 "home":"/home/moje/Projekty/ocean/ocean",

@@ -16,10 +16,11 @@ if __name__ == '__main__':
         '-c',
         '--config',
         dest='config_file_name',
-        default=Spidercrab.CONFIG_FILE_NAME,
-        help='Use other config file than default spidercrab.json.\n'
+        default='',
+        help='Use other config file than from Don Corleone.\n'
              'NOTE: If there is no such a file, Spidercrab will create'
-             'it for you there, based on spidercrab.json.default.'
+             'it for you there, based on spidercrab.json.template. (It will '
+             'also generate a config in Don Corleone if not present.)'
     )
     parser.add_option(
         '-s',

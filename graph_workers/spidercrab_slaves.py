@@ -26,8 +26,8 @@ if __name__ == '__main__':
         '-c',
         '--config',
         dest='config_file_name',
-        default=Spidercrab.CONFIG_FILE_NAME,
-        help='Use other config file than default spidercrab.json.\n'
+        default='',
+        help='Use other config file than from Don Corleone.\n'
              'NOTE: If there is no such a file, Spidercrab will create '
              'it for you there, based on spidercrab.json.default.\n'
              'NOTE: Remember that configuration can be partially overwritten '
@@ -41,7 +41,9 @@ if __name__ == '__main__':
         default=None,
         help='Export ContentSource nodes properties dictionaries to a '
              'file, where every line is a property dictionary (File '
-             'can be later used by ocean_exemplary_data.py)'
+             'can be later used by ocean_exemplary_data.py)\n'
+             'NOTE: Lines will be APPENDED, which is good for threading. Be '
+             'careful not to append the same data to existing file.'
     )
     (options, args) = parser.parse_args()
 

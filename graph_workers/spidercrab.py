@@ -5,9 +5,14 @@
 #from BeautifulSoup import BeautifulSoup
 import boilerpipe.extract
 import feedparser
+import os
 import shutil
+import sys
 import threading
 import uuid
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
+from don_utils import get_configuration
 
 from graph_workers.graph_defines import *
 from graph_workers.graph_utils import *
@@ -39,11 +44,10 @@ logger.addHandler(ch_file)
 
 class Spidercrab(GraphWorker):
 
-    DEFAULT_CONFIG_NAME = './spidercrab.json.default'
-    CONFIG_FILE_NAME = './spidercrab.json'
+    TEMPLATE_CONFIG_NAME = './spidercrab.json.template'
     CONFIG_DEFAULTS = {
         'update_interval_s': 1000*60*15,     # 15 minutes :)
-        'worker_id': 'undefined',
+        'worker_id': 'UNDEFINED',
         'sources_enqueue_portion': 10,
         'sources_enqueue_max': float('inf'),
         'worker_sleep_s': 10,
@@ -53,7 +57,7 @@ class Spidercrab(GraphWorker):
     def __init__(
             self,
             master=False,
-            config_file_name=CONFIG_FILE_NAME,
+            config_file_name='',
             runtime_id=str(uuid.uuid1())[:8],
             master_sources_urls_file='',
             export_cs_to=None,
@@ -62,13 +66,13 @@ class Spidercrab(GraphWorker):
         @param master: master Spidercrab object
         @type master: Spidercrab
         """
+        self.logger = logger
         # Config used to be stored inside the database (only values from file)
         self.given_config = {}
         # Config that will be used in computing (supplemented with defaults)
         self.config = {}
         self._init_config(config_file_name)
 
-        self.logger = logger
         self.required_privileges = construct_full_privilege()
         self.odm_client = ODMClient()
         self.terminate_event = threading.Event()
@@ -278,22 +282,43 @@ class Spidercrab(GraphWorker):
                 **params
             )
 
-    def _init_config(self, config_file_name=CONFIG_FILE_NAME):
+    def _init_config(self, config_file_name=''):
         """
             Checks if there config file exists and initializes it if needed.
         """
-        if not os.path.isfile(config_file_name):
-            shutil.copy(self.DEFAULT_CONFIG_NAME, config_file_name)
-            raise ValueError(
-                'Please set up your config file created under '
-                + config_file_name + '!'
-            )
+        if config_file_name == '':
+            # No config file - load from Don Corleone
+            for param in self.CONFIG_DEFAULTS.keys():
+                try:
+                    self.given_config[param] = get_configuration(
+                        'spidercrab', param)
+                    self.config[param] = self.given_config[param]
+                except Exception as error:
+                    self.logger.log(
+                        error_level, 'Don Corleone error: ' + str(error)
+                    )
+                    self.config[param] = self.CONFIG_DEFAULTS[param]
+            if not self.given_config.get('worker_id'):
+                # Bad or no config in Don Corleone
+                raise KeyError(
+                    'Please set up your Spidercrab config inside Don '
+                    'Corleone config.json or use your own spidercrab.json '
+                    'separate config file! (Check if you have set the '
+                    '"worker_id" property)'
+                )
+        else:
+            if not os.path.isfile(config_file_name):
+                shutil.copy(self.TEMPLATE_CONFIG_NAME, config_file_name)
+                raise ValueError(
+                    'Please set up your config file created under '
+                    + config_file_name + '!'
+                )
 
-        # Load user defined config file
-        self.given_config = dict(json.load(open(config_file_name)))
+            # Load user defined config file
+            self.given_config = dict(json.load(open(config_file_name)))
+            self.config = dict(json.load(open(config_file_name)))
 
         # Create a final dictionary with default values
-        self.config = dict(json.load(open(config_file_name)))
         for param in self.CONFIG_DEFAULTS.keys():
             if param not in self.config:
                 self.config[param] = self.CONFIG_DEFAULTS[param]

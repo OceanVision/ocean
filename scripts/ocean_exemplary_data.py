@@ -7,16 +7,13 @@
     Connection done using RESTApi and wrapper for python py2neo
 """
 
-import time
 import sys
-import uuid
 import os
+from optparse import OptionParser
 
 from py2neo import neo4j
-from py2neo import node, rel
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
-
 from don_utils import get_configuration
 
 sys.path.append('../graph_workers/')
@@ -25,19 +22,23 @@ sys.path.append(lib_path)
 from graph_workers.graph_defines import *
 from odm_client import ODMClient
 
-SOURCE_FILE = 'data/content_sources'
-
-# TODO: Po co?
-def get_node_value(node, value):
-    searched_nodes = node.getElementsByTagName(value)
-    if searched_nodes:
-        childs = searched_nodes[0].childNodes
-        if childs:
-            return childs[0].nodeValue.strip()
-    return ""
+SOURCE_FILE = '../data/content_sources'
 
 
 if __name__ == '__main__':
+
+    parser = OptionParser()
+    parser.add_option(
+        '-d',
+        '--dicts-file',
+        dest='content_sources_file',
+        default=SOURCE_FILE,
+        help='Input file, where every line is a ContentSource node '
+             'properties dictionary. You can generate this file with '
+             'spidercrab_slaves.py, webcrawler_export.py, write it yourself '
+             'or get it from Ocean Don Corleone server. More info on wiki.'
+    )
+    (options, args) = parser.parse_args()
 
     print 'Running', __file__
     print 'With this script ContentSource nodes dicts from', SOURCE_FILE,\
@@ -68,10 +69,10 @@ if __name__ == '__main__':
     # Read file contents
     content_sources_list = []
 
-    print 'Reading source file', SOURCE_FILE, '...'
+    print 'Reading source file', options.content_sources_file, '...'
 
     try:
-        f = open(SOURCE_FILE, 'r')
+        f = open(options.content_sources_file, 'r')
         try:
             content_sources_list = f.readlines()
         finally:
@@ -87,7 +88,6 @@ if __name__ == '__main__':
     for cs in content_sources_list:
         i += 1
         print 'Add', str(i)+'/'+str(len(content_sources_list)), cs[:-1], '...'
-        # TODO: Gather metadata with web_crawler and read from file
         try:
             cs_node = eval(cs)
             cs_node['last_updated'] = 0
@@ -105,5 +105,4 @@ if __name__ == '__main__':
 
     odm_client.disconnect()
 
-    print 'Graph populated successfully. GOODBYE AND GOOD LUCK!'
-
+    print 'Graph populated successfully. GOOD NIGHT AND GOOD LUCK!'

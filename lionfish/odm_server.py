@@ -1,3 +1,6 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+
 """
 Lionfish (formerly Ocean Database Manager)
 
