@@ -33,7 +33,7 @@ if __name__ == '__main__':
     print 'Press enter to proceed...'
     enter = raw_input()
 
-    os.system('./ocean_init_graph.py')
+    os.system('python2 ocean_init_graph.py')
 
     # Create connection
     graph_db = neo4j.GraphDatabaseService(

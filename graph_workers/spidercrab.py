@@ -149,8 +149,8 @@ class Spidercrab(GraphWorker):
             while queued_sources < self.config['sources_enqueue_max']:
                 if self.master_sources_urls_file:
                     # Enqueue from file new sources to be browsed by slaves
-                    self._enqueue_source_line()
-                    queued_sources += 1
+                    self._enqueue_source_lines()
+                    break
                 else:
                     # Enqueue existing sources to be browsed by workers
                     result = self._enqueue_sources_portion()
@@ -346,7 +346,7 @@ class Spidercrab(GraphWorker):
             exit()
         return lines
 
-    def _enqueue_source_line(self):
+    def _enqueue_source_lines(self):
         """
             Read one line of content source url from master_sources_urls_file,
             insert it into the database and assign it 'pending' relation
@@ -358,6 +358,8 @@ class Spidercrab(GraphWorker):
         n = 0
         for line in self.content_sources_urls:
             n += 1
+            if n > self.config['sources_enqueue_max']:
+                break
             self.logger.log(
                 info_level,
                 self.fullname + ' Adding (' + str(n) + '/' + str(count) + ') '

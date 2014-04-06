@@ -45,11 +45,10 @@ if __name__ == '__main__':
         'file will be added.'
     print 'This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*'
     print 'NOTE: See README.md for details before running this script.'
-    print '\nPlease turn *OFF* the odm_server (Lionfish).'
     print 'Press Enter to continue or Ctrl+C to abort.'
     enter = raw_input()
 
-    os.system('./ocean_init_graph.py')
+    os.system('python2 ocean_init_graph.py')
 
     # Create connection
     graph_db = neo4j.GraphDatabaseService(
@@ -59,7 +58,7 @@ if __name__ == '__main__':
         )
     )
 
-    print '\nPlease turn *ON* the ODM now and press Enter.'
+    print '\nPlease *(RE)START* the Lionfish ODM now and press Enter.'
     print '(You are permitted to run whole system too during this process)'
     enter = raw_input()
 
