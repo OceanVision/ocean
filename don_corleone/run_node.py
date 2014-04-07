@@ -26,6 +26,13 @@ import urllib2, urllib
 from signal import *
 import sys
 
+
+
+from terminate_node import terminate_node
+from don_utils import get_don_corleone_url, has_succeded
+
+
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 ch = logging.StreamHandler()
@@ -42,13 +49,13 @@ NODE_ID = "node_id"
 RESPONSIBILITIES = "node_responsibilities"
 REVERSED_SSH = "ssh-reversed"
 SSH_HOST = "public_ssh_domain"
+SSH_PORT = "ssh-port"
 
 
 #Does run_node own don_corleone
 run_node_owner = False
 terminated = False
 
-from don_utils import get_don_corleone_url
 def install_node(config, run=False):
     global terminated
     """ Waits for webserver to start """
@@ -74,19 +81,17 @@ def install_node(config, run=False):
 
 
     # Reversed ssh support
-    if config[REVERSED_SSH]:
+    if config.get(REVERSED_SSH, False):
         logger.info("Reversed ssh")
         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/register_reversed?node_id="+str(config[NODE_ID])).read())
         print response
         cmd = "./scripts/run_reversed_ssh.sh {0} {1} {2} {3} {4}".format(response["result"]["ssh-user"], response["result"]["ssh-host"], \
-        response["result"]["ssh-port-redirect"], config[SSH_HOST], response['result']['ssh-port'])
+        response["result"]["ssh-port-redirect"], config[SSH_PORT], response['result']['ssh-port'])
         logger.info("Running "+cmd)
         os.system(cmd)
  
     logger.info("Installing the node")
     print config[RESPONSIBILITIES]
-
-
 
     if not run:
         logger.info("WARNING: Only installing not running services")
@@ -94,14 +99,8 @@ def install_node(config, run=False):
 
     for id, responsibility in enumerate(config[RESPONSIBILITIES]):
         logger.info("Registering "+str(id)+" responsibility "+str(responsibility))
-
-
-
         service = responsibility[0]
-
         additional_config = responsibility[1]
-
-
         params = urllib.urlencode\
                 ({"service":json.dumps(service),"run":json.dumps(run) , "config":json.dumps(config),
                   "additional_config":json.dumps(additional_config), "node_id":json.dumps(config[NODE_ID]), "public_url":json.dumps(config[PUBLIC_URL])
@@ -110,25 +109,23 @@ def install_node(config, run=False):
 
         print get_don_corleone_url(config)
         response = urllib2.urlopen(get_don_corleone_url(config)+"/register_service", params).read()
-
-
-
         print response
 
         response = urllib2.urlopen(get_don_corleone_url(config)+"/get_services").read()
 
-        print json.loads(response)['result']
+        print "Succeded = ", has_succeded(response)
 
 config = []
+
 
 def clean(*args):
     global terminated
 
     try:
         logger.info("Terminating node by terminating node in DonCorleone and terminating DonCorleone if local")
-        ret = os.system("python terminate_node.py")
+        ret = terminate_node(config)
 
-        if ret != 0:
+        if ret is False:
             logger.error("Failed terminating node")
         else:
             logger.info("Terminated node successfully")
@@ -149,7 +146,11 @@ def clean(*args):
 
 
 def run_node(config, hang=False):
-
+    """ Run node
+        @param config Loaded json configuration
+        @param hang is true while true at the end (register signal if used 
+            in code)
+    """
     #Check if run_node should create Don Corleone
     if config.get(MASTER_LOCAL, False):
         logger.info("Checking if run_node should run the don_corleone service")
@@ -161,7 +162,6 @@ def run_node(config, hang=False):
 
     #Install
     install_node(config)    
-
 
     if hang:
         while True:

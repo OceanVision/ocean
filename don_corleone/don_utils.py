@@ -26,6 +26,16 @@ def get_don_corleone_url(config):
     if(config[MASTER_LOCAL]): return config[MASTER_LOCAL_URL]
     else: return config[MASTER]
 
+def run_procedure(config, name):
+    response = urllib2.urlopen(get_don_corleone_url(config)
+                               +"/"+name).read()
+    return response
+
+
+
+def has_succeded(response): 
+    return 'result' in response
+
 def get_configuration(service_name, config_name, config=None):
     """
         Returns configuration config_name for service_name. 
@@ -42,16 +52,13 @@ def get_configuration(service_name, config_name, config=None):
         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/get_configuration?%s" % params).read())['result']
 
        # Sometimes it is incompatible
-        if isinstance(response, str) or isinstance(response, unicode):
+        if has_succeded(response):
             response = response.replace("http","")
             response = response.replace("127.0.0.1", "localhost")
+            return response
+        else:
+            raise response['error']
 
-
-        # Check if error
-        if isinstance(response, str) or isinstance(response, unicode) and response[0:5] == "error": #ya, pretty lame;)
-            raise response
-
-        return response
     except:
         for node in config["node_responsibilities"]:
             if node[0] == service_name:

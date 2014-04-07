@@ -47,31 +47,17 @@ You have to specify following items:
 
     * neo4j
 
-    * **temporary**: news_fetcher
-
-    * news_fetcher_master (not implemented, pending)
-
-    * news_fetcher_slave (not implemented, pending, can specify many slaves)
-
-    * web_crawler_master (implemented, but not as a service)
-
-    * web_crawler_slave (implemented, but not as a service, can specify many slaves)
-
-    * web_service
-
     * lionfish
-
-    * puffer (not implemented, main backend service running jobs on hadoop, etc.)
-
-    * hadoop_cluster_master (not implemented)
-
-    * hadoop_cluster_slave (not implemented)
 
     * kafka (not implemented)
 
 Each responsibility is a list of name and additional options.
 
 **Important note**: You add option local: this will make this service local (and accessible only by your computer)
+
+Don corleone additional options:
+    
+    * service_id - it overrides default service id
 
 Exemplary additional options.
 
@@ -109,7 +95,9 @@ to the master responsibilities.
 The main idea is that modules can fetch configuration from the webserivce. The function
 is defined in ocean_admin/utils.py
 
-Usage: fetch_configuration(service_name, config_name). For exemplary usage see lionfish
+Usage: get_configuration(service_name, config_name). For exemplary usage see lionfish
+Usage: get_configuration_service_id(service_id, config_name). Gets configuration using precise service_id, not service_name (
+you would use it after having overriden service_id in config.json)
 
 ### Stoping
 
