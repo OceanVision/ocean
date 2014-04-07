@@ -5,7 +5,7 @@ ocean_exemplary_data.py
 -----------------------
 
 With this script graph database will be erased and ContentSource node
-dictionaries from `data/content_sources` (default) file will be added.
+dictionaries from `/data/content_sources` (default) file will be added.
 
 You can get `content_sources` file from Ocean Don Corleone server or generate
 it yourself with `/graph_workers/spidercrab_slaves.py` or

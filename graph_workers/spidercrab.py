@@ -46,7 +46,7 @@ class Spidercrab(GraphWorker):
 
     TEMPLATE_CONFIG_NAME = './spidercrab.json.template'
     CONFIG_DEFAULTS = {
-        'update_interval_s': 1000*60*15,     # 15 minutes :)
+        'update_interval_s': 60*15,     # 15 minutes :)
         'worker_id': 'UNDEFINED',
         'sources_enqueue_portion': 10,
         'sources_enqueue_max': float('inf'),
@@ -71,7 +71,7 @@ class Spidercrab(GraphWorker):
         self.given_config = {}
         # Config that will be used in computing (supplemented with defaults)
         self.config = {}
-        self._init_config(config_file_name)
+        self._init_config(master, config_file_name)
 
         self.required_privileges = construct_full_privilege()
         self.odm_client = ODMClient()
@@ -282,16 +282,19 @@ class Spidercrab(GraphWorker):
                 **params
             )
 
-    def _init_config(self, config_file_name=''):
+    def _init_config(self, master, config_file_name='',):
         """
             Checks if there config file exists and initializes it if needed.
         """
+        service_name = 'spidercrab_slaves'
+        if master:
+            service_name = 'spidercrab_master'
         if config_file_name == '':
             # No config file - load from Don Corleone
             for param in self.CONFIG_DEFAULTS.keys():
                 try:
                     self.given_config[param] = get_configuration(
-                        'spidercrab', param)
+                        service_name, param)
                     self.config[param] = self.given_config[param]
                 except Exception as error:
                     self.logger.log(
@@ -370,7 +373,7 @@ class Spidercrab(GraphWorker):
             MATCH
                 (source:ContentSource {link: '%s'}),
                 (crab:Spidercrab {worker_id: '%s'})
-            CREATE (crab)-[:pending]->(source)
+            CREATE UNIQUE (crab)-[:pending]->(source)
             RETURN source
             """
             query %= (
@@ -382,7 +385,7 @@ class Spidercrab(GraphWorker):
                 self.logger.log(
                     info_level,
                     self.fullname + ' Source ' + line[:-1]
-                    + ' already present - queuing only.'
+                    + ' already present - queuing.'
                 )
                 continue
             try:
@@ -401,7 +404,7 @@ class Spidercrab(GraphWorker):
                 MATCH
                     (source:ContentSource {link: '%s'}),
                     (crab:Spidercrab {worker_id: '%s'})
-                CREATE (crab)-[:pending]->(source)
+                CREATE UNIQUE (crab)-[:pending]->(source)
                 RETURN source
                 """
                 query %= (
@@ -428,7 +431,7 @@ class Spidercrab(GraphWorker):
             (source:ContentSource),
             (crab:Spidercrab {worker_id: '%s'})
         WHERE %s - source.last_updated > %s
-            AND NOT crab-[:pending]->source
+            AND NOT (crab)-[:pending]->(source)
         CREATE (crab)-[:pending]->(source)
         RETURN source
         LIMIT %s

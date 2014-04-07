@@ -137,5 +137,5 @@ if __name__ == '__main__':
         rel(types[1], HAS_INSTANCE_RELATION, users[3])
     )
 
-    print 'Graph populated successfully'
-
+    print 'Graph populated successfully.'
+    print 'NOTE: Remember to restart Lionfish ODM server.'

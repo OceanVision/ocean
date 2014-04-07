@@ -7,20 +7,43 @@
     can be partially overwritten (merged) with parameters given from master.
 """
 
+import os
+import sys
+
 from optparse import OptionParser
 from threading import Thread
 
 from spidercrab import Spidercrab
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
+from don_utils import get_configuration
+
 if __name__ == '__main__':
+
+    default_number = 1
+
+    try:
+        default_number = get_configuration('spidercrab_slaves', 'number')
+    except Exception as error:
+        print error
+
+    default_export_file_name = None
+
+    try:
+        default_export_file_name = get_configuration(
+            'spidercrab_slaves', 'export_cs_to')
+    except Exception as error:
+        print error
+
     parser = OptionParser()
     parser.add_option(
         '-n',
         '--number',
         dest='number',
-        default=1,
+        default=default_number,
         type='int',
-        help='Number of slaves to launch'
+        help='Number of slaves to launch. \nNOTE: You can set this option in '
+             'Don Corleone config under the "number" key.'
     )
     parser.add_option(
         '-c',
@@ -38,12 +61,14 @@ if __name__ == '__main__':
         '-e',
         '--export-cs-to',
         dest='export_file_name',
-        default=None,
+        default=default_export_file_name,
         help='Export ContentSource nodes properties dictionaries to a '
              'file, where every line is a property dictionary (File '
              'can be later used by ocean_exemplary_data.py)\n'
              'NOTE: Lines will be APPENDED, which is good for threading. Be '
-             'careful not to append the same data to existing file.'
+             'careful not to append the same data to existing file. \nNOTE: '
+             'You can set this option in Don Corleone config under the '
+             '"export_cs_to" key.'
     )
     (options, args) = parser.parse_args()
 
