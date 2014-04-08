@@ -1,3 +1,3 @@
 #!/bin/bash
 source ./init.sh
-echo `cat ocean_password` | sudo -S service neo4j-service status
+echo `cat ocean_password` | sudo -S neo4j status
