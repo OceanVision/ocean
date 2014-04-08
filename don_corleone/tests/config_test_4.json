@@ -4,7 +4,9 @@
 "master_local":true,
 "node_responsibilities":[
     ["neo4j",{"port":7474, "host":"192.168.0.15", "local":true, "service_id":"moj_neo4j"}],
-    ["lionfish",{"port":7777, "host":"192.168.0.15", "local":true}]
+    ["lionfish",{"port":7777, "host":"192.168.0.15", "local":true}],
+    ["spidercrab_master",{"port":7779, "host":"192.168.0.15", "local":true}],
+    ["spidercrab_master",{"port":7710, "host":"192.168.0.15", "local":false}]
 ],
 "node_id":"staszek",
 "home":"/home/moje/Projekty/ocean/ocean",

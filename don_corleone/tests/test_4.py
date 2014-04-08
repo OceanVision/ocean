@@ -33,7 +33,7 @@ class BasicTests(unittest.TestCase):
         print response
         assert(response['result']==7474)
         print count_services(config)
-        assert(count_services(config) == 2)
+        assert(count_services(config) == 4)
         print "Terminating don corleone node"
         # Terminate
         os.system("scripts/don_corleone_terminate.sh")

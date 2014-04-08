@@ -1,5 +1,5 @@
 #!/bin/bash
 
-source /usr/local/bin/virtualenvwrapper.sh
+source virtualenvwrapper.sh
 source ~/.bashrc
 workon ocean

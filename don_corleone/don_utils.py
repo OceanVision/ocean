@@ -49,17 +49,18 @@ def get_configuration(service_name, config_name, config=None):
 
     try:
         params = urllib.urlencode({"service_name":service_name, "node_id":config[NODE_ID], "config_name":config_name})
-        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/get_configuration?%s" % params).read())['result']
+        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/get_configuration?%s" % params).read())
 
        # Sometimes it is incompatible
         if has_succeded(response):
-            response = response.replace("http","")
-            response = response.replace("127.0.0.1", "localhost")
-            return response
-        else:
-            raise response['error']
+            response['result'] = response['result'].replace("http","")
+            response['result'] = response['result'].replace("127.0.0.1", "localhost")
+            return response['result']
+
+        return response['error']
 
     except:
+        # Failed because no config on server, or no server connection
         for node in config["node_responsibilities"]:
             if node[0] == service_name:
                 if config_name in node[1]:
