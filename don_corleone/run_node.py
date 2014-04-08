@@ -61,11 +61,11 @@ def install_node(config, run=False):
     """ Waits for webserver to start """
 
     while config[MASTER_LOCAL] and os.system("./scripts/don_corleone_test.sh") != 0 and not terminated:
+        logger.info("Still don corleone not running. Try running it yourself using ./scripts/don_corleone_run.sh")
         time.sleep(1)
 
     if terminated:
         exit(0)
-
 
     # Terminating node
     logger.info("Terminating old responsibilities")
