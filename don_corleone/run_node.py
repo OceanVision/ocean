@@ -56,7 +56,7 @@ SSH_PORT = "ssh-port"
 run_node_owner = False
 terminated = False
 
-def install_node(config, run=False):
+def install_node(config, run=True):
     global terminated
     """ Waits for webserver to start """
 
