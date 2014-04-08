@@ -9,7 +9,7 @@ from django.http import HttpResponse
 from ocean_graph_view_manager import OC
 from models import NeoUser
 from ocean import utils
-from graph_defines import *
+from graph_workers.graph_defines import *
 from odm_client import ODMClient
 
 

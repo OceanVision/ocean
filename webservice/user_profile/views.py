@@ -1,12 +1,10 @@
 from django.shortcuts import render
-from django.http import HttpResponseRedirect, HttpResponse
-from django.core.urlresolvers import reverse
+from django.http import HttpResponse
 from django.contrib.auth.models import User
-import django.contrib.auth
 
-from rss.models import NeoUser, NewsWebsite, News, UserProfile
 from odm_client import ODMClient
-from graph_defines import *
+from graph_workers.graph_defines import *
+
 
 def index(request):
     # Logged in

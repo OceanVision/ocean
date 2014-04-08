@@ -13,27 +13,17 @@ Web-crawling graph worker
     - update database with new content (RSS feeds urls)
 """
 
-import sys
-import threading
-import random
-import urllib2
-import urlparse
 from HTMLParser import HTMLParser
-import socket
-import httplib
 import multiprocessing
-import time
-import re
 
 from py2neo import neo4j
-from py2neo import node, rel
 
-sys.path.append("..")
-from graph_worker import GraphWorker
-from graph_utils import *
-from privileges import construct_full_privilege, privileges_bigger_or_equal
-# import defines for fields
-from graph_defines import *
+
+from graph_workers.graph_worker import GraphWorker
+from graph_workers.graph_utils import *
+from graph_workers.privileges import \
+    construct_full_privilege, privileges_bigger_or_equal
+from graph_workers.graph_defines import *  # import defines for fields
 #from utils import logger
 
 from odm_client import ODMClient
@@ -43,15 +33,18 @@ from odm_client import ODMClient
 #      (f.e. mute py2neo from WebCrawler class)
 _print_logger_ = True
 
+
 class LoggerReplacement():
 
+    def __init__(self):
+        pass
 
-    def date(self):
+    @staticmethod
+    def date():
         string = unicode(time.localtime()[0]) + '-'
         string += unicode(time.localtime()[1]) + '-'
         string += unicode(time.localtime()[2]) + ' ' + unicode(time.time())
         return string
-
 
     def info(self, string):
         if _print_logger_:

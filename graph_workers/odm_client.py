@@ -265,6 +265,21 @@ class ODMClient(object):
         self.send(data)
         self.recv()
 
+    def create_model(self, model_name, **params):
+        """
+        Adds a new model node.
+        @type model_name string
+        """
+        data = {
+            'func_name': 'create_model',
+            'args': [model_name]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(data)
+        self.recv()
+
     def create_relationship(self, start_node_uuid, end_node_uuid, rel_type, **params):
         """
         Creates a relationship rel_type with rel_params
