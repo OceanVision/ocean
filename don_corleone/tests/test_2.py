@@ -2,13 +2,14 @@ import json
 import os
 import sys
 import unittest
-
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from run_node import install_node, run_node
-from don_utils import get_configuration
-from test_util import count_services
+
+# Don Corleone imports
+from run_node import run_node
+from don_utils import get_configuration, run_procedure
+from test_util import count_services, get_test_config
 
 class MediumTests(unittest.TestCase):
 
@@ -18,16 +19,15 @@ class MediumTests(unittest.TestCase):
         os.chdir(os.path.abspath(".."))
 
         # Prepare config filu
-        config = json.load(open(os.path.join(os.path.dirname(__file__),\
-            "tests/config_test_2_a.json"),"r"))
-        config["home"] = os.path.abspath(os.path.join(__file__,"../../"))
-        run_node(config)
+        config = get_test_config("config_test_2_a.json")
+        run_node(config, hang=False)
 
-        config = json.load(open(os.path.join(os.path.dirname(__file__),\
-            "tests/config_test_2_b.json"),"r"))
+        config = get_test_config("config_test_2_b.json")
         config_b = config
-        config["home"] = os.path.abspath(os.path.join(__file__,"../../"))
-        run_node(config)
+        run_node(config, hang=False)
+
+        print count_services(config) 
+        print run_procedure(config, "get_services")
 
         assert(count_services(config) == 3) # Services count = 3
         assert(get_configuration("neo4j","port", config_b) == 7476) # Local neo4j port
