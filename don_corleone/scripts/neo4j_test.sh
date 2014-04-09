@@ -1,3 +1,14 @@
 #!/bin/bash
 source ./init.sh
-echo `cat ocean_password` | sudo -S service neo4j-service status
+
+
+list=$(ps ax | grep neo4j.*java | grep -v grep )
+
+
+if [ -n "$list" ]
+then
+    echo "Neo4j is running"
+    exit 0    
+fi
+exit 1
+

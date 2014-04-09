@@ -7,6 +7,6 @@
 ],
 "node_id":"ocean-don",
 "home":"/webapps/ocean",
-"ssh-user":"ocean",
+"ssh-user":"root",
 "ssh-port":22
 }

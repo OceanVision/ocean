@@ -26,6 +26,16 @@ def get_don_corleone_url(config):
     if(config[MASTER_LOCAL]): return config[MASTER_LOCAL_URL]
     else: return config[MASTER]
 
+def run_procedure(config, name):
+    response = urllib2.urlopen(get_don_corleone_url(config)
+                               +"/"+name).read()
+    return response
+
+
+
+def has_succeded(response): 
+    return 'result' in response
+
 def get_configuration(service_name, config_name, config=None):
     """
         Returns configuration config_name for service_name. 
@@ -39,20 +49,18 @@ def get_configuration(service_name, config_name, config=None):
 
     try:
         params = urllib.urlencode({"service_name":service_name, "node_id":config[NODE_ID], "config_name":config_name})
-        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/get_configuration?%s" % params).read())['result']
+        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/get_configuration?%s" % params).read())
 
        # Sometimes it is incompatible
-        if isinstance(response, str) or isinstance(response, unicode):
-            response = response.replace("http","")
-            response = response.replace("127.0.0.1", "localhost")
+        if has_succeded(response):
+            response['result'] = response['result'].replace("http","")
+            response['result'] = response['result'].replace("127.0.0.1", "localhost")
+            return response['result']
 
+        return response['error']
 
-        # Check if error
-        if isinstance(response, str) or isinstance(response, unicode) and response[0:5] == "error": #ya, pretty lame;)
-            raise response
-
-        return response
     except:
+        # Failed because no config on server, or no server connection
         for node in config["node_responsibilities"]:
             if node[0] == service_name:
                 if config_name in node[1]:
