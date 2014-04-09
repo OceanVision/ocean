@@ -80,10 +80,11 @@ To use NAT support you have to complete two steps:
   don machine)
 
 ### Running
-
-`python run_node.py` should run node accordingly to the configuration file. If it is
+`sudo -E python2 run_node.py` should run node accordingly to the configuration file. If it is
 a master it will run the master service. And for every configuration it will register
 to the master responsibilities.
+
+-E option in sudo preserves environment. It is very important !
 
 
 ### Fetching configuration
