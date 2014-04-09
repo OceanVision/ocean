@@ -1,3 +1,4 @@
+import time
 import urllib2
 import json
 import os
@@ -6,7 +7,7 @@ import unittest
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from run_node import install_node, run_node
+from run_node import run_node
 from don_utils import get_configuration, run_procedure, get_don_corleone_url
 from test_util import count_services, get_test_config
 
@@ -30,10 +31,33 @@ class BasicTests(unittest.TestCase):
                                +"/get_configuration?service_id=moj_neo4j&node_id=staszek&config_name=port").read())
 
 
+        # Check config and number of services
         print response
         assert(response['result']==7474)
         print count_services(config)
         assert(count_services(config) == 4)
+        
+#         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)
+#                                +"/terminate_service?service_id=moj_neo4j").read())
+#         
+#         #Non deterministic :(
+#         time.sleep(10)
+# 
+#         ret = os.system("./scripts/neo4j_test.sh")
+# 
+#         assert(ret!=0)
+# 
+# 
+#         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)
+#                                +"/run_service?service_id=moj_neo4j").read())
+# 
+#         #Non deterministic :(
+#         time.sleep(10)
+# 
+#         ret = os.system("./scripts/neo4j_test.sh")
+# 
+#         assert(ret==0)
+
         print "Terminating don corleone node"
         # Terminate
         os.system("scripts/don_corleone_terminate.sh")

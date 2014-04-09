@@ -18,6 +18,10 @@ RESPONSIBILITIES = "node_responsibilities"
 
 
 def terminate_node(config):
+    print "Terminating"
+    print get_don_corleone_url(config)
+    print get_don_corleone_url(config) +"/terminate_node?node_id="\
+            +config["node_id"]
     response = urllib2.urlopen(get_don_corleone_url(config)
                                +"/terminate_node?node_id="+config["node_id"]).read()
     print "Terminating node response ",response

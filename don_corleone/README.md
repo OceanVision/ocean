@@ -20,16 +20,12 @@ node_responsibilities
 
 ### Installation
 
-    1. Add file ocean_password to don_corleone folder with your password to ocean
-account. Otherwise ocean_don_corleone won't be able to run scripts on your
-machine
-
-    2. Configure ssh (as in wiki) - basically add your key from ocean don
+    1. Configure ssh (as in wiki) - basically add your key from ocean don
        server to your computer and create ssh user with access to your ocean directory.
       **If you want to run locally don** - configure ssh so that you can fire
     for instance ssh staszek@localhost without password prompt.
 
-    3. Prepare config.json file
+    2. Prepare config.json file
 
 ### Configuration file
 

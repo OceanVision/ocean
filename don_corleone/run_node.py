@@ -1,7 +1,22 @@
 """
 Simple script for running node given node configuration
 """
+import os
+import json
+import threading
+import time
+import logging
+import urllib2, urllib
+from signal import *
+import sys
+
+
+
+from terminate_node import terminate_node
 from optparse import OptionParser
+from don_corleone_client import run_client, logger
+config = []
+
 
 def create_parser():
     """ Configure options and return parser object """
@@ -16,114 +31,34 @@ def create_parser():
     )
     return parser
 
+def run_node(config, hang=True):
+    """ Run node
+        @param config Loaded json configuration
+        @param hang is true while true at the end (register signal if used 
+            in code)
+    """
 
-import os
-import json
-import threading
-import time
-import logging
-import urllib2, urllib
-from signal import *
-import sys
+    state_callback = {'value':False}
 
+    if not hang:
+        import threading
+        t = threading.Thread(target=run_client, args=(config, state_callback))
+        t.daemon = True
+        t.start()
 
+        # Wait for installation finish
+        while state_callback['value'] is False:
+            time.sleep(0.1)
 
-from terminate_node import terminate_node
-from don_utils import get_don_corleone_url, has_succeded
-
-
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-ch = logging.StreamHandler()
-formatter = logging.Formatter('%(funcName)s - %(asctime)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-logger.propagate = False
-
-
-PUBLIC_URL = "public_ssh_domain"
-MASTER = "master"
-MASTER_LOCAL = "master_local"
-NODE_ID = "node_id"
-RESPONSIBILITIES = "node_responsibilities"
-REVERSED_SSH = "ssh-reversed"
-SSH_HOST = "public_ssh_domain"
-SSH_PORT = "ssh-port"
-
-
-#Does run_node own don_corleone
-run_node_owner = False
-terminated = False
-
-def install_node(config, run=True):
-    global terminated
-    """ Waits for webserver to start """
-
-    while config[MASTER_LOCAL] and os.system("./scripts/don_corleone_test.sh") != 0 and not terminated:
-        logger.info("Still don corleone not running. Try running it yourself using ./scripts/don_corleone_run.sh")
-        time.sleep(1)
-
-    if terminated:
-        exit(0)
-
-    # Terminating node
-    logger.info("Terminating old responsibilities")
-    response = urllib2.urlopen(get_don_corleone_url(config)+"/terminate_node?node_id="+config[NODE_ID]).read()
-    print response
-
-   
-    logger.info("Registering the node")
-    # Register node
-    params = urllib.urlencode({"config":json.dumps(config), "node_id":json.dumps(config[NODE_ID]) })
-    response = urllib2.urlopen(get_don_corleone_url(config)+"/register_node", params).read()
-    logger.info(response)
-
-
-    # Reversed ssh support
-    if config.get(REVERSED_SSH, False):
-        logger.info("Reversed ssh")
-        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/register_reversed?node_id="+str(config[NODE_ID])).read())
-        print response
-        cmd = "./scripts/run_reversed_ssh.sh {0} {1} {2} {3} {4}".format(response["result"]["ssh-user"], response["result"]["ssh-host"], \
-        response["result"]["ssh-port-redirect"], config[SSH_PORT], response['result']['ssh-port'])
-        logger.info("Running "+cmd)
-        os.system(cmd)
- 
-    logger.info("Installing the node")
-    print config[RESPONSIBILITIES]
-
-    if not run:
-        logger.info("WARNING: Only installing not running services")
-
-
-    for id, responsibility in enumerate(config[RESPONSIBILITIES]):
-        logger.info("Registering "+str(id)+" responsibility "+str(responsibility))
-        service = responsibility[0]
-        additional_config = responsibility[1]
-        params = urllib.urlencode\
-                ({"service":json.dumps(service),"run":json.dumps(run) , "config":json.dumps(config),
-                  "additional_config":json.dumps(additional_config), "node_id":json.dumps(config[NODE_ID]), "public_url":json.dumps(config[PUBLIC_URL])
-                  })
-
-
-        print get_don_corleone_url(config)
-        response = urllib2.urlopen(get_don_corleone_url(config)+"/register_service", params).read()
-        print response
-
-        response = urllib2.urlopen(get_don_corleone_url(config)+"/get_services").read()
-
-        print "Succeded = ", has_succeded(response)
-
-config = []
+    else:
+        run_client(config, state_callback)
 
 
 def clean(*args):
-    global terminated
-
     try:
         logger.info("Terminating node by terminating node in DonCorleone and terminating DonCorleone if local")
         ret = terminate_node(config)
+        print "Termianted?"
 
         if ret is False:
             logger.error("Failed terminating node")
@@ -141,33 +76,16 @@ def clean(*args):
     except Exception, e:
         pass
     finally:
-        terminated=True
         exit(0)
 
 
-def run_node(config, hang=False):
-    """ Run node
-        @param config Loaded json configuration
-        @param hang is true while true at the end (register signal if used 
-            in code)
-    """
-    #Check if run_node should create Don Corleone
-    if config.get(MASTER_LOCAL, False):
-        logger.info("Checking if run_node should run the don_corleone service")
-        if os.system("./scripts/don_corleone_test.sh") != 0:
-            logger.info("Running DonCorleone on master setting")
-            run_node_owner = True
-            os.system("./scripts/run.sh don ./scripts/don_corleone_run.sh")
-
-
-    #Install
-    install_node(config)    
-
-    if hang:
-        while True:
-            time.sleep(1)
 
 if __name__ == "__main__":
+    #Clean shutdown
+    for sig in (SIGINT,):
+        signal(sig, clean) 
+
+
     # Read in parameters
     parser = create_parser()
     (opt, args) = parser.parse_args()
@@ -177,8 +95,5 @@ if __name__ == "__main__":
 
     logger.info(("Configuration file ", config))
 
-    #Clean shutdown
-    for sig in (SIGINT,):
-        signal(sig, clean)
-
     run_node(config, hang=True)
+

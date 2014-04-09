@@ -1,11 +1,10 @@
 #!/bin/bash
 source ./init.sh
-source ./run_bg_job.sh
-
+source ./run_bg_job.shE
 source ~/.bashrc
 
 echo "Running Zookeper"
-echo `cat ocean_password` | sudo -S $KAFKA_HOME/bin/zookeeper-server-start.sh $KAFKA_HOME/config/zookeeper.properties
+sudo -E $KAFKA_HOME/bin/zookeeper-server-start.sh $KAFKA_HOME/config/zookeeper.properties
 
 
 

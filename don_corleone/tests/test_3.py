@@ -5,7 +5,7 @@ import unittest
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from run_node import install_node, run_node
+from run_node import run_node
 from don_utils import get_configuration, run_procedure
 from test_util import count_services, get_test_config
 

@@ -3,15 +3,25 @@ Ocean admin should be run on every node of our Ocean cluster.
 
 
 Protocol: JSONP:
+if succeeded:
     {
         result: JSON(data)
     }
-
+if error:
+     {
+        error: JSON(data)
+    }
 
 
 Services are added and not tested for accessibility first time. Services are added
 to service list which is periodically updated (terminated/running) status
 TODO: Testing server accessibiliy (ping) and terminating it if not accesible
+
+
+Assumptions:
+* SSH is non blocking (should timeout) NOTE: not timeouting right now
+---------------
+* Every command can fail - it is ok if terminate/run fails
 
 
 """
@@ -203,11 +213,11 @@ import time
 
 
 
-
 #TODO: add throwing errors here
-def cautious_run_cmd_over_ssh(cmd, node_id):
+def cautious_run_cmd_over_ssh(cmd, node_id, m, sudo_queue=True):
     """ 
         Returns appropriate errors if encounters problems
+        @note if sudo_queue is on it won't return proper errors :(
         @note Doesn't throw errors
     """
 
@@ -215,13 +225,27 @@ def cautious_run_cmd_over_ssh(cmd, node_id):
     n = registered_nodes[node_id]
     user, port, host = n[NODE_SSH_USER], n[NODE_SSH_PORT], n[NODE_SSH_HOST]
 
+
     # oStrictHostKeyChecking - sdisables asking for RSA key
-    cmd = "ssh -oStrictHostKeyChecking=no {user}@{0} -p{1} -o ConnectTimeout=2 {2}".\
-                             format(host,\
-                                    port,\
-                                    cmd,\
-                                    user=user\
-                                )
+    # note command_queue is only a prototype for communication between
+    # daemon and script
+    if sudo_queue:
+        cmd = "ssh -oStrictHostKeyChecking=no {user}@{0} -p{1} -o ConnectTimeout=2 \"cd {3} && {4} '{2}'\"".\
+                                format(host,\
+                                        port,\
+                                        cmd,\
+                                        os.path.join(m[SERVICE_HOME], "don_corleone"),\
+                                        "./scripts/enqueue_command.sh",\
+                                        user=user\
+                                    )
+    else:
+        cmd = "ssh -oStrictHostKeyChecking=no {user}@{0} -p{1} -o ConnectTimeout=2 \"{2}\"".\
+                                format(host,\
+                                        port,\
+                                        cmd,\
+                                        user=user
+                                    )
+ 
 
     logger.info("Running ssh command: "+str(cmd))
 
@@ -241,11 +265,12 @@ def cautious_run_cmd_over_ssh(cmd, node_id):
 def update_status(m):
     """ Checks and updates status of given service  """
     logger.info("Updating status for " + str(m))
-    cmd = "\"(cd {0} && {1})\"".format(
+    cmd = "(cd {0} && {1})".format(
                                     os.path.join(m[SERVICE_HOME],"don_corleone"),
                                     "./scripts/{0}_test.sh".format(m[SERVICE]))
 
-    status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID])
+    
+    status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID], m, sudo_queue=False)
 
     logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", str(status)))
 
@@ -321,11 +346,11 @@ def _terminate_service(service_id):
             exit(1)
 
 
-        cmd = "\"(cd {0} && {1})\"".format(
+        cmd = "(cd {0} && {1})".format(
                                         os.path.join(m[SERVICE_HOME],"don_corleone"),
                                         "./scripts/{0}_terminate.sh".format(m[SERVICE]))
 
-    status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID])
+    status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID],m)
 
 
     with services_lock:
@@ -351,11 +376,11 @@ def _run_service(service_id):
             logger.error("Wrong service status")
             exit(1)
 
-        cmd = "\"(cd {0} && {1})\"".format(
+        cmd = "(cd {0} && {1})".format(
                                         os.path.join(m[SERVICE_HOME],"don_corleone"),
                                         "./scripts/run.sh {1} ./scripts/{0}_run.sh".format(m[SERVICE], m[SERVICE_ID]))
     
-    status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID])
+    status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID],m)
 
     with services_lock:
         logger.info(("Running service ",service_id, "output", output, "status ",status))
@@ -378,8 +403,8 @@ def _deregister_service(service_id):
             logger.error("Duplicated service id")
             raise ERROR
 
-        logger.info("Terminating service")
-        _terminate_service(service_id)
+#        logger.info("Terminating service")
+#        _terminate_service(service_id)
         logger.info("Removing service")
         remove_service(service_id)
 
