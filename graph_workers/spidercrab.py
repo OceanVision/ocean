@@ -259,16 +259,21 @@ class Spidercrab(GraphWorker):
             Checks if this Spidercrab instance is registered in the database.
             If not - registers it.
         """
-        response = self.odm_client.get_instances('Spidercrab')
-        ids = []
-        for instance in response:
-            ids.append(instance['worker_id'])
-        if self.config['worker_id'] in ids:
+        instances = self.odm_client.get_instances('Spidercrab')
+        master_uuid = ''
+        for instance in instances:
+            if instance['worker_id'] == self.config['worker_id']:
+                master_uuid = instance['uuid']
+        if master_uuid:
+            # TODO: OVERWRITE the whole config in database (Lionfish update)
             self.logger.log(
                 info_level,
                 'Spidercrab ' + self.config['worker_id']
-                + ' already registered in the database.'
+                + ' already registered in the database. '
+                + ' Updating config...'
             )
+            params = self.given_config
+            self.odm_client.set(master_uuid, **params)
         else:
             self.logger.log(
                 info_level,
@@ -624,7 +629,7 @@ class Spidercrab(GraphWorker):
                     CREATE UNIQUE
                     (source)
                     -[:`%s`]->
-                    (news:Content {
+                    (news:Content:NotYetTagged {
                         title: '%s',
                         summary: '%s',
                         link: '%s',
