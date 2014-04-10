@@ -13,6 +13,7 @@ ERROR_NOT_RUNNING_SERVICE = DonCorleoneException("error_not_running_service_erro
 ERROR_ALREADY_REGISTERED_SERVICE = DonCorleoneException("error_already_registered_service")
 ERROR_ALREADY_EXISTING_SERVICE = DonCorleoneException("error_already_existing_service")
 ERROR_NOT_REGISTERED_SERVICE = DonCorleoneException("error_not_registered_service_error")
+ERROR_NOT_REGISTERED_NODE = DonCorleoneException("error_not_registered_service_node")
 ERROR_NOT_RECOGNIZED_CONFIGURATION = DonCorleoneException("error_not_recognized_configuration")
 ERROR_NOT_REACHABLE_SERVICE = DonCorleoneException("error_not_reachable_service")
 ERROR_FAILED_SERVICE_RUN = DonCorleoneException("error_failed_service_run")

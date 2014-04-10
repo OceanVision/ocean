@@ -1,5 +1,5 @@
 #!/bin/sh
-list=$(pgrep -f "odm_server.py")
+list=$(pgrep -f "spidercrab_slaves.py")
 
 for proc in $list
 do
@@ -8,6 +8,6 @@ done
 
 if [ "${#list[@]}" -gt 0 ]
 then
-    echo "Terminating Lionfish server... OK"
+    echo "Terminating Spidercrab slaves... OK"
 fi
 

@@ -20,16 +20,12 @@ node_responsibilities
 
 ### Installation
 
-    1. Add file ocean_password to don_corleone folder with your password to ocean
-account. Otherwise ocean_don_corleone won't be able to run scripts on your
-machine
-
-    2. Configure ssh (as in wiki) - basically add your key from ocean don
+    1. Configure ssh (as in wiki) - basically add your key from ocean don
        server to your computer and create ssh user with access to your ocean directory.
       **If you want to run locally don** - configure ssh so that you can fire
     for instance ssh staszek@localhost without password prompt.
 
-    3. Prepare config.json file
+    2. Prepare config.json file
 
 ### Configuration file
 
@@ -47,31 +43,17 @@ You have to specify following items:
 
     * neo4j
 
-    * **temporary**: news_fetcher
-
-    * news_fetcher_master (not implemented, pending)
-
-    * news_fetcher_slave (not implemented, pending, can specify many slaves)
-
-    * web_crawler_master (implemented, but not as a service)
-
-    * web_crawler_slave (implemented, but not as a service, can specify many slaves)
-
-    * web_service
-
     * lionfish
-
-    * puffer (not implemented, main backend service running jobs on hadoop, etc.)
-
-    * hadoop_cluster_master (not implemented)
-
-    * hadoop_cluster_slave (not implemented)
 
     * kafka (not implemented)
 
 Each responsibility is a list of name and additional options.
 
 **Important note**: You add option local: this will make this service local (and accessible only by your computer)
+
+Don corleone additional options:
+    
+    * service_id - it overrides default service id
 
 Exemplary additional options.
 
@@ -85,11 +67,24 @@ Exemplary additional options.
 
 <few others >
 
-### Running
+### NAT configuration
 
-`python run_node.py` should run node accordingly to the configuration file. If it is
+Important bits: it is using reversed ssh mechanism (please see online resources
+for more information). 
+
+To use NAT support you have to complete two steps:
+
+* Add "reversed:true" to your config.json (see config.json.reversed)
+
+* Add your key from master server (run ssh-copy-id your_user@your_domain from
+  don machine)
+
+### Running
+`sudo -E python2 run_node.py` should run node accordingly to the configuration file. If it is
 a master it will run the master service. And for every configuration it will register
 to the master responsibilities.
+
+-E option in sudo preserves environment. It is very important !
 
 
 ### Fetching configuration
@@ -97,7 +92,9 @@ to the master responsibilities.
 The main idea is that modules can fetch configuration from the webserivce. The function
 is defined in ocean_admin/utils.py
 
-Usage: fetch_configuration(service_name, config_name). For exemplary usage see lionfish
+Usage: get_configuration(service_name, config_name). For exemplary usage see lionfish
+Usage: get_configuration_service_id(service_id, config_name). Gets configuration using precise service_id, not service_name (
+you would use it after having overriden service_id in config.json)
 
 ### Stoping
 

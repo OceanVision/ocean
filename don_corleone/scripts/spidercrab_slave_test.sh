@@ -1,13 +1,11 @@
 #!/bin/bash
 source ./init.sh
 
-
-list=$(ps ax | grep neo4j.*java | grep -v grep )
-
+list=$(pgrep -f "spidercrab_slaves.py")
 
 if [ -n "$list" ]
 then
-    echo "Neo4j is running"
+    echo "Running Spidercrab slaves"
     exit 0    
 fi
 exit 1
