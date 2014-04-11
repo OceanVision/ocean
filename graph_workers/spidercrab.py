@@ -47,7 +47,7 @@ class Spidercrab(GraphWorker):
     TEMPLATE_CONFIG_NAME = './spidercrab.json.template'
     CONFIG_DEFAULTS = {
         'update_interval_s': 60*15,     # 15 minutes :)
-        'worker_id': 'UNDEFINED',
+        'graph_worker_id': 'UNDEFINED',
         'sources_enqueue_portion': 10,
         'sources_enqueue_max': float('inf'),
         'worker_sleep_s': 10,
@@ -92,8 +92,8 @@ class Spidercrab(GraphWorker):
             self.is_master = False
             self.level = 'slave'
 
-        self.fullname = '[' + self.config['worker_id'] + ' ' + self.level + \
-            ' ' + self.runtime_id + ']'
+        self.fullname = '[' + self.config['graph_worker_id'] + ' ' + \
+            self.level + ' ' + self.runtime_id + ']'
 
     def terminate(self):
         """
@@ -215,12 +215,14 @@ class Spidercrab(GraphWorker):
         response = self.odm_client.get_instances('Spidercrab')
         master_node = {}
         for instance in response:
-            if instance['worker_id'] == self.given_config['worker_id']:
+            if instance['graph_worker_id'] == \
+                    self.given_config['graph_worker_id']:
                 master_node = instance
         if len(master_node) == 0:
             raise KeyError(
-                'There is no registered Spidercrab master with worker_id = \''
-                + str(self.given_config['worker_id']) + '\'!')
+                'There is no registered Spidercrab master with '
+                'graph_worker_id = \''
+                + str(self.given_config['graph_worker_id']) + '\'!')
         master_node.pop('uuid')
         for param in master_node.keys():
             self.config[param] = master_node[param]
@@ -262,13 +264,13 @@ class Spidercrab(GraphWorker):
         instances = self.odm_client.get_instances('Spidercrab')
         master_uuid = ''
         for instance in instances:
-            if instance['worker_id'] == self.config['worker_id']:
+            if instance['graph_worker_id'] == self.config['graph_worker_id']:
                 master_uuid = instance['uuid']
         if master_uuid:
             # TODO: OVERWRITE the whole config in database (Lionfish update)
             self.logger.log(
                 info_level,
-                'Spidercrab ' + self.config['worker_id']
+                'Spidercrab ' + self.config['graph_worker_id']
                 + ' already registered in the database. '
                 + ' Updating config...'
             )
@@ -277,7 +279,7 @@ class Spidercrab(GraphWorker):
         else:
             self.logger.log(
                 info_level,
-                'Registering ' + self.config['worker_id']
+                'Registering ' + self.config['graph_worker_id']
                 + ' Spidercrab in the database.'
             )
             params = self.given_config
@@ -291,7 +293,7 @@ class Spidercrab(GraphWorker):
         """
             Checks if there config file exists and initializes it if needed.
         """
-        service_name = 'spidercrab_slaves'
+        service_name = 'spidercrab_slave'
         if master:
             service_name = 'spidercrab_master'
         if config_file_name == '':
@@ -306,13 +308,13 @@ class Spidercrab(GraphWorker):
                         error_level, 'Don Corleone error: ' + str(error)
                     )
                     self.config[param] = self.CONFIG_DEFAULTS[param]
-            if not self.given_config.get('worker_id'):
+            if not self.given_config.get('graph_worker_id'):
                 # Bad or no config in Don Corleone
                 raise KeyError(
                     'Please set up your Spidercrab config inside Don '
                     'Corleone config.json or use your own spidercrab.json '
                     'separate config file! (Check if you have set the '
-                    '"worker_id" property)'
+                    '"graph_worker_id" property)'
                 )
         else:
             if not os.path.isfile(config_file_name):
@@ -331,7 +333,7 @@ class Spidercrab(GraphWorker):
             if param not in self.config:
                 self.config[param] = self.CONFIG_DEFAULTS[param]
 
-        if self.config['worker_id'] == 'UNDEFINED':
+        if self.config['graph_worker_id'] == 'UNDEFINED':
             raise ValueError(
                 'Please choose your id and enter it inside '
                 + config_file_name + '!'
@@ -377,13 +379,13 @@ class Spidercrab(GraphWorker):
             query = """
             MATCH
                 (source:ContentSource {link: '%s'}),
-                (crab:Spidercrab {worker_id: '%s'})
+                (crab:Spidercrab {graph_worker_id: '%s'})
             CREATE UNIQUE (crab)-[:pending]->(source)
             RETURN source
             """
             query %= (
                 line[:-1],
-                self.config['worker_id']
+                self.config['graph_worker_id']
             )
             result = self.odm_client.execute_query(query)
             if result:
@@ -408,13 +410,13 @@ class Spidercrab(GraphWorker):
                 query = """
                 MATCH
                     (source:ContentSource {link: '%s'}),
-                    (crab:Spidercrab {worker_id: '%s'})
+                    (crab:Spidercrab {graph_worker_id: '%s'})
                 CREATE UNIQUE (crab)-[:pending]->(source)
                 RETURN source
                 """
                 query %= (
                     line[:-1],
-                    self.config['worker_id']
+                    self.config['graph_worker_id']
                 )
                 self.odm_client.execute_query(query)
             except Exception as error:
@@ -434,7 +436,7 @@ class Spidercrab(GraphWorker):
         query = """
         MATCH
             (source:ContentSource),
-            (crab:Spidercrab {worker_id: '%s'})
+            (crab:Spidercrab {graph_worker_id: '%s'})
         WHERE %s - source.last_updated > %s
             AND NOT (crab)-[:pending]->(source)
         CREATE (crab)-[:pending]->(source)
@@ -442,7 +444,7 @@ class Spidercrab(GraphWorker):
         LIMIT %s
         """
         query %= (
-            self.config['worker_id'],
+            self.config['graph_worker_id'],
             database_gmt_now(),
             self.config['update_interval_s'],
             self.config['sources_enqueue_portion'],
@@ -460,7 +462,7 @@ class Spidercrab(GraphWorker):
         """
         query = """
         MATCH
-            (crab:Spidercrab {worker_id: '%s'})
+            (crab:Spidercrab {graph_worker_id: '%s'})
             -[r:pending]->
             (source:ContentSource)
         SET source.last_updated = %s
@@ -469,7 +471,7 @@ class Spidercrab(GraphWorker):
         LIMIT 1
         """
         query %= (
-            self.config['worker_id'],
+            self.config['graph_worker_id'],
             database_gmt_now(),
         )
         result = self.odm_client.execute_query(query)
@@ -701,7 +703,7 @@ class Spidercrab(GraphWorker):
 
 
 if __name__ == '__main__':
-    print "Please run spidercrab_master.py or spidercrab_slaves.py in order " \
+    print "Please run spidercrab_master.py or spidercrab_slave.py in order " \
           "to run a proper graph worker(s)."
     print "Press Enter to create one master with 5 slaves."
     enter = raw_input()
@@ -712,9 +714,6 @@ if __name__ == '__main__':
 
     time.sleep(3)
     for i in range(5):
-        worker = Spidercrab.create_worker(
-            runtime_id=str(i),
-            export_cs_to='content_sources'
-        )
+        worker = Spidercrab.create_worker(runtime_id=str(i))
         thread = threading.Thread(target=worker.run)
         thread.start()
