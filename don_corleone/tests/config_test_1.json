@@ -6,8 +6,7 @@
 "node_responsibilities":[
     ["neo4j",{"port":7474, "local":true}],
     ["lionfish",{"port":7777, "local":true}],
-    ["news_fetcher",{}],
-    ["webservice",{}]
+    ["news_fetcher",{}]
 ],
 "node_id":"staszek"
 }
