@@ -90,6 +90,9 @@ def install_node(config, run=True):
         response["result"]["ssh-port-redirect"], config[SSH_PORT], response['result']['ssh-port'])
         logger.info("Running "+cmd)
         os.system(cmd)
+
+
+    time.sleep(1)
  
     logger.info("Installing the node")
     print config[RESPONSIBILITIES]

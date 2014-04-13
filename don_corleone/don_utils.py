@@ -92,7 +92,7 @@ def get_running_service(service_id=None, service_name=None, service_config={}, c
         logger.error("WARNING: don corleone is not running !! Pulling config from config.json")
         services = []
         for node_resp in config["node_responsibilities"]:
-            s.append({SERVICE:node_resp[0], SERVICE_ID:node_resp[0], SERVICE_CONFIG:node_resp[1]})
+            services.append({"local":True, SERVICE:node_resp[0], SERVICE_ID:node_resp[0], SERVICE_CONFIG:node_resp[1]})
         return get_service(services, service_id = service_id, service_name=service_name, service_config=service_config)
 
     # Get running services from don corleone
@@ -143,6 +143,16 @@ def get_configuration_query(config_name, service_id=None, service_name=None, ser
         logger.error("Not found requested service!")
         return None
 
+
+    # Special handling for config.json
+    if s.get("local", False) is True:
+        logger.error("WARNING: don corleone is not running !! Pulling config from config.json")
+        if config_name in s[SERVICE_CONFIG]:
+            return s[SERVICE_CONFIG][config_name]
+        else:
+            raise "Not found configuration. Try adding it to don_corleone/config.json" 
+   
+    # Handles request back to server
     return _get_configuration_by_id(s[SERVICE_ID], config_name, config)
 
 
@@ -167,11 +177,21 @@ def get_configuration(service_name, config_name, config=None, service_config={})
             enforce_local=True
             )
 
-
     if s is None: 
         logger.error("Not found requested service!")
         return None
 
+
+    # Special handling for config.json
+    if s.get("local", False) is True:
+        logger.error("WARNING: don corleone is not running !! Pulling config from config.json")
+        if config_name in s[SERVICE_CONFIG]:
+            return s[SERVICE_CONFIG][config_name]
+        else:
+            raise "Not found configuration. Try adding it to don_corleone/config.json" 
+
+
+    # Handles request back to server
     return _get_configuration_by_id(s[SERVICE_ID], config_name, config)
    
    
@@ -183,14 +203,7 @@ def _get_configuration_by_id(service_id, config_name, config=None):
 
 
     if config[MASTER_LOCAL] and os.system("./scripts/don_corleone_test.sh") != 0:
-        logger.error("WARNING: don corleone is not running !! Pulling config from config.json")
-        for node in config["node_responsibilities"]:
-            if node[0] == service_name:
-                if config_name in node[1]:
-                    return node[1][config_name]
-                else:
-                    raise "Not found configuration. Try adding it to don_corleone/config.json" 
-
+        raise "Error - not running don - should nt call _get_configuration_by_id"
  
     try:
         params = urllib.urlencode({"service_id":service_id, "node_id":config[NODE_ID], "config_name":config_name})
