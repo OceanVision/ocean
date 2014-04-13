@@ -392,7 +392,7 @@ class Spidercrab(GraphWorker):
                 self.logger.log(
                     info_level,
                     self.fullname + ' Source ' + line[:-1]
-                    + ' already present - queuing.'
+                    + ' already present - queuing if not queued.'
                 )
                 continue
             try:

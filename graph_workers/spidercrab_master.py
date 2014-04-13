@@ -39,10 +39,10 @@ if __name__ == '__main__':
     parser.add_option(
         '-s',
         '--sources-urls-file',
-        dest='sources_file_name',
+        dest='sources_urls_file',
         default=default_sources_url_file,
         help='Path to file, where every line contains url address to new '
-             'ContentSources that will be added to the database and '
+             'ContentSource that will be added to the database and '
              'flagged as pending to update (checks if url already exist in '
              'the database).\nNOTE: You can set this option in Don Corleone '
              'config under the "sources_urls_file" key.'

@@ -22,7 +22,7 @@ sys.path.append(lib_path)
 from graph_workers.graph_defines import *
 from odm_client import ODMClient
 
-SOURCE_FILE = '../data/contentsource_nodes'
+SOURCE_FILE = '../data/contentsource_nodes_exemplary'
 
 
 if __name__ == '__main__':
@@ -30,13 +30,13 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option(
         '-s',
-        '--sources-nodes-file',
-        dest='contentsources_file',
+        '--contentsource-nodes-file',
+        dest='contentsource_nodes_file',
         default=SOURCE_FILE,
         help='Input file, where every line is a ContentSource node '
              '(in a dictionary form). You can generate this file with '
              'spidercrab_slave.py, webcrawler_export.py, write it yourself '
-             'or get it from Ocean Database server. More info on wiki. '
+             'or get it from Ocean Don Corleone server. More info on wiki. '
              '(Default: ' + SOURCE_FILE + ')'
     )
     (options, args) = parser.parse_args()
@@ -69,10 +69,10 @@ if __name__ == '__main__':
     # Read file contents
     content_sources_list = []
 
-    print 'Reading source file', options.content_sources_file, '...'
+    print 'Reading source file', options.contentsource_nodes_file, '...'
 
     try:
-        f = open(options.content_sources_file, 'r')
+        f = open(options.contentsource_nodes_file, 'r')
         try:
             content_sources_list = f.readlines()
         finally:
