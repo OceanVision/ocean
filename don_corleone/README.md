@@ -86,6 +86,7 @@ to the master responsibilities.
 
 -E option in sudo preserves environment. It is very important !
 
+In case of problems see wiki, and run test_don_corleone_slave.py file.
 
 ### Fetching configuration
 

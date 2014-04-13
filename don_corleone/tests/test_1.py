@@ -6,7 +6,7 @@ import unittest
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from run_node import run_node
-from don_utils import get_configuration
+from don_utils import get_configuration, run_procedure
 from test_util import count_services, get_test_config
 
 class BasicTests(unittest.TestCase):
@@ -19,6 +19,8 @@ class BasicTests(unittest.TestCase):
         # Prepare config file
         config = get_test_config("config_test_1.json")
         run_node(config, hang=False)
+
+        print run_procedure(config, "get_services")
 
         assert(count_services(config) == 3)
         print "Terminating don corleone node"
