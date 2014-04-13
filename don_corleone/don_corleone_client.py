@@ -112,7 +112,7 @@ def install_node(config, run=True):
         response = urllib2.urlopen(get_don_corleone_url(config)+"/register_service", params).read()
         print response
 
-        response = urllib2.urlopen(get_don_corleone_url(config)+"/get_services").read()
+        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/get_services").read())
 
         print "Succeded = ", has_succeded(response)
 
