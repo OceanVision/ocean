@@ -90,6 +90,9 @@ def install_node(config, run=True):
         response["result"]["ssh-port-redirect"], config[SSH_PORT], response['result']['ssh-port'])
         logger.info("Running "+cmd)
         os.system(cmd)
+
+
+    time.sleep(1)
  
     logger.info("Installing the node")
     print config[RESPONSIBILITIES]
@@ -112,7 +115,7 @@ def install_node(config, run=True):
         response = urllib2.urlopen(get_don_corleone_url(config)+"/register_service", params).read()
         print response
 
-        response = urllib2.urlopen(get_don_corleone_url(config)+"/get_services").read()
+        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/get_services").read())
 
         print "Succeded = ", has_succeded(response)
 
