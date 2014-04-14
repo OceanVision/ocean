@@ -4,7 +4,6 @@
 """
     Exemplary data *from JSON* for neo4j database
     NOTE: wipes database !
-    Connection done using RESTApi and wrapper for python py2neo
 """
 
 import sys
