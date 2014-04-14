@@ -489,7 +489,13 @@ class Spidercrab(GraphWorker):
             Update params of given node (a dict with 'uuid' and 'link' keys)
             and return its properties.
         """
-        properties = self._parse_source(source_node['link'])
+        try:
+            properties = self._parse_source(source_node['link'])
+        except Exception as error:
+            self.logger.log(
+                error_level,
+                source_node['link'] + ' - Parsing error: ' + str(error)
+            )
 
         if self.export_cs_to and len(properties) > 1:
             self._export_cs(properties)
@@ -623,7 +629,13 @@ class Spidercrab(GraphWorker):
                     info_level,
                     self.fullname + ' extracting ' + str(news_props['link'])
                 )
-                news_props = Spidercrab._extract_news(news_props)
+                try:
+                    news_props = Spidercrab._extract_news(news_props)
+                except Exception as error:
+                    self.logger.log(
+                        error_level,
+                        news_props['link'] + ' - Fetching error: ' + str(error)
+                    )
                 query = u"""
                     MATCH
                     (source:ContentSource {uuid: '%s'}),

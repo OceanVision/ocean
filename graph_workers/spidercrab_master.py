@@ -52,6 +52,6 @@ if __name__ == '__main__':
     # Spidercrab master launch is simple as hell
     spidercrab_master = Spidercrab.create_master(
         config_file_name=options.config_file_name,
-        master_sources_urls_file=options.sources_file_name,
+        master_sources_urls_file=options.sources_urls_file,
     )
     spidercrab_master.run()
