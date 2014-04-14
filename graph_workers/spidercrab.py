@@ -12,7 +12,7 @@ import threading
 import uuid
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
-from don_utils import get_configuration
+from don_utils import get_configuration, get_running_service
 
 from graph_workers.graph_defines import *
 from graph_workers.graph_utils import *
@@ -212,6 +212,30 @@ class Spidercrab(GraphWorker):
             fetches its config and merges with config used by this worker
             (not a config file). This method is used by slave workers.
         """
+        if not self._is_master_registered():
+            raise KeyError(
+                'There is no registered Spidercrab master with '
+                'graph_worker_id = \''
+                + str(self.given_config['graph_worker_id']) + '\'!')
+
+        master_config = get_running_service(
+            service_config={
+                'graph_worker_id': self.given_config['graph_worker_id']
+            },
+            enforce_running=False
+        )['service_config']
+        if master_config is None:
+            self.logger.log(
+                error_level,
+                self.fullname + ' Error Corleone get_running_service().'
+            )
+        for param in master_config.keys():
+            self.config[param] = master_config[param]
+        self.logger.log(
+            info_level, self.fullname + ' Pulled config from master.'
+        )
+
+    def _is_master_registered(self):
         response = self.odm_client.get_instances('Spidercrab')
         master_node = {}
         for instance in response:
@@ -219,16 +243,8 @@ class Spidercrab(GraphWorker):
                     self.given_config['graph_worker_id']:
                 master_node = instance
         if len(master_node) == 0:
-            raise KeyError(
-                'There is no registered Spidercrab master with '
-                'graph_worker_id = \''
-                + str(self.given_config['graph_worker_id']) + '\'!')
-        master_node.pop('uuid')
-        for param in master_node.keys():
-            self.config[param] = master_node[param]
-        self.logger.log(
-            info_level, self.fullname + ' Pulled config from master.'
-        )
+            return False
+        return True
 
     def _check_and_init_db(self):
         """
