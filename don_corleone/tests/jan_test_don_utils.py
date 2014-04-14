@@ -3,6 +3,8 @@ if __name__=="__main__":
 
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+    os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
     from don_utils import *
     print get_running_service(service_name="spidercrab_master")
 
