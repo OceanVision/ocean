@@ -16,15 +16,14 @@ from threading import Thread
 import sys
 import json
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
-sys.path.append(os.path.join(os.path.dirname(__file__),
-                             '../graph_workers/graph_workers'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../don_corleone/'))
 
 from don_utils import get_configuration
 
+print get_configuration("kafka", "port")
+print get_configuration("kafka", "host")
 
-
-kafka = KafkaClient("{0}:{1}".format(get_configuration("kafka","host"),get_configuration("kafka","port"))
+kafka = KafkaClient("{0}:{1}".format(get_configuration("kafka","host"),get_configuration("kafka","port")))
 
 
 producer = SimpleProducer(kafka, batch_send=True,
@@ -64,7 +63,7 @@ producer = SimpleProducer(kafka, batch_send=True,
                           batch_send_every_t=60)
 
 # To consume messages
-consumer = SimpleConsumer(kafka, "my-group2", "my-topic3")
+consumer = SimpleConsumer(kafka, "my-group", "my-topic3")
 for message in consumer:
     print(message)
 
