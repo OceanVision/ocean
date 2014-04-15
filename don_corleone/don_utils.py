@@ -75,7 +75,7 @@ def get_service(services, service_id=None, service_name=None, node_id=None, serv
 
     return None
 
-def get_running_service(service_id=None, service_name=None, service_config={}, \
+def get_running_service(service_id=None, node_id=None, service_name=None, service_config={}, \
                         config=None, enforce_running=True, enforce_local=False):
     """ 
         @returns given service if service is running with given optionally service_id
@@ -97,7 +97,7 @@ def get_running_service(service_id=None, service_name=None, service_config={}, \
         services = []
         for node_resp in config["node_responsibilities"]:
             services.append({"local":True, SERVICE:node_resp[0], SERVICE_ID:node_resp[0], SERVICE_CONFIG:node_resp[1]})
-        return get_service(services, service_id = service_id, service_name=service_name, service_config=service_config)
+        return get_service(services, service_id = service_id, node_id=node_id,  service_name=service_name, service_config=service_config)
 
     # Get running services from don corleone
     
@@ -114,7 +114,7 @@ def get_running_service(service_id=None, service_name=None, service_config={}, \
     else:    
         services = [s for s in json.loads(run_procedure(config, "get_services"))['result']]
     
-    return get_service(services, service_id = service_id, service_name=service_name, service_config=service_config)
+    return get_service(services, service_id = service_id, node_id=node_id, service_name=service_name, service_config=service_config)
 
     
 
