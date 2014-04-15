@@ -56,11 +56,13 @@ def run_procedure(config, name):
 
 
 
-def get_service(services, service_id=None, service_name=None, service_config={}):
+def get_service(services, service_id=None, service_name=None, node_id=None, service_config={}):
     for s in services:
         if service_id is not None and s[SERVICE_ID] != service_id:
             continue
         if service_name is not None and s[SERVICE] != service_name:
+            continue
+        if node_id is not None and s[NODE_ID] != node_id:
             continue
 
         config_cpy = dict(s[SERVICE_CONFIG])
@@ -73,7 +75,8 @@ def get_service(services, service_id=None, service_name=None, service_config={})
 
     return None
 
-def get_running_service(service_id=None, service_name=None, service_config={}, config=None, enforce_running=True, enforce_local=False):
+def get_running_service(service_id=None, service_name=None, service_config={}, \
+                        config=None, enforce_running=True, enforce_local=False):
     """ 
         @returns given service if service is running with given optionally service_id
         or service_name and having parameters specified in params 
@@ -89,6 +92,7 @@ def get_running_service(service_id=None, service_name=None, service_config={}, c
         config = json.load(open(os.path.join(os.path.dirname(__file__),"config.json"),"r"))
     
     if (config[MASTER_LOCAL] and os.system("./scripts/don_corleone_test.sh") != 0) or enforce_local:
+        logger.error(os.system("./scripts/don_corleone_test.sh"))
         logger.error("WARNING: don corleone is not running !! Pulling config from config.json")
         services = []
         for node_resp in config["node_responsibilities"]:
@@ -120,7 +124,7 @@ def has_succeded(response):
 
 
 
-def get_configuration_query(config_name, service_id=None, service_name=None, service_config={}, config=None):
+def get_configuration_query(config_name, node_id=None, service_id=None, service_name=None, service_config={}, config=None):
     """ 
         More complicated version of get_configuration 
 
@@ -131,12 +135,12 @@ def get_configuration_query(config_name, service_id=None, service_name=None, ser
     """
     
 
-    s = get_running_service(service_id=service_id, service_name=service_name, \
+    s = get_running_service(service_id=service_id, node_id=node_id,  service_name=service_name, \
         service_config=service_config, config=config, enforce_running=False)
 
     # Try local
     if s is None:
-        s = get_running_service(service_id=service_id, service_name=service_name, \
+        s = get_running_service(service_id=service_id, node_id=node_id, service_name=service_name, \
             service_config=service_config, config=config, enforce_running=False,\
             enforce_local=True
             ) 
@@ -178,9 +182,12 @@ def get_configuration(service_name, config_name, config=None, service_config={})
 
     s = get_running_service(service_id=None, service_name=service_name, \
         service_config=service_config, config=config, enforce_running=False)
- 
+
+
+
     # Try local 
     if s is None:
+        logger.info("No given service registered on don corleone!")
         s = get_running_service(service_id=None, service_name=service_name, \
             service_config=service_config, config=config, enforce_running=False,\
             enforce_local=True
@@ -193,7 +200,6 @@ def get_configuration(service_name, config_name, config=None, service_config={})
 
     # Special handling for config.json
     if s.get("local", False) is True:
-        logger.error("WARNING: don corleone is not running !! Pulling config from config.json")
         if config_name in s[SERVICE_CONFIG]:
             return s[SERVICE_CONFIG][config_name]
         else:
