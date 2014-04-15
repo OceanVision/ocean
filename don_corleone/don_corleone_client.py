@@ -101,6 +101,7 @@ def install_node(config, run=True):
         logger.info("WARNING: Only installing not running services")
 
 
+    service_ids = []
     for id, responsibility in enumerate(config[RESPONSIBILITIES]):
         logger.info("Registering "+str(id)+" responsibility "+str(responsibility))
         service = responsibility[0]
@@ -115,10 +116,21 @@ def install_node(config, run=True):
         response = urllib2.urlopen(get_don_corleone_url(config)+"/register_service", params).read()
         print response
 
+	if has_succeded(response):
+	    service_ids.append(json.loads(response)['result'])
+	else:
+	    logger.error("NOT REGISTERED SERVICE "+str(responsibility))
+
         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/get_services").read())
 
         print "Succeded = ", has_succeded(response)
 
+    if run: 
+        for service_id in service_ids:
+            response = urllib2.urlopen(get_don_corleone_url(config)+\
+		"/run_service?service_id="+str(service_id)).read()
+	    if not has_succeded(response):
+	        logger.error("SHOULDNT HAPPEN FAILED RUNNING")
 
 #    for id, responsibility in enumerate(config[RESPONSIBILITIES]):
 
