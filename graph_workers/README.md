@@ -4,6 +4,16 @@ graph_workers
 This directory contains *Graph Workers* implementations
 and `graph_workers` Python package with modules used in them.
 
+spidercrab_master.py
+--------------------
+
+See wiki or use `-h` option for details
+
+spidercrab_slave.py
+-------------------
+
+See wiki or use `-h` option for details
+
 graph_worker_manager.py
 -----------------------
 
