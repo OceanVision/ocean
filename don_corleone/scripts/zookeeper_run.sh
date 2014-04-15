@@ -1,6 +1,6 @@
 #!/bin/bash
 source ./init.sh
-source ./run_bg_job.shE
+source ./run_bg_job.sh
 source ~/.bashrc
 
 echo "Running Zookeper"

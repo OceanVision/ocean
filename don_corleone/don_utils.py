@@ -118,6 +118,8 @@ def has_succeded(response):
     return 'result' in response
 
 
+
+
 def get_configuration_query(config_name, service_id=None, service_name=None, service_config={}, config=None):
     """ 
         More complicated version of get_configuration 
@@ -155,6 +157,13 @@ def get_configuration_query(config_name, service_id=None, service_name=None, ser
     # Handles request back to server
     return _get_configuration_by_id(s[SERVICE_ID], config_name, config)
 
+
+def get_your_config():
+    return json.load(open(os.path.join(os.path.dirname(__file__),"config.json"),"r"))
+
+def get_your_node_id():
+    config = json.load(open(os.path.join(os.path.dirname(__file__),"config.json"),"r"))
+    return config['node_id']
 
 
 def get_configuration(service_name, config_name, config=None, service_config={}):

@@ -1,5 +1,8 @@
 #!/bin/bash
 source ./init.sh
+
+source ~/.bashrc
+
 list=$(ps -ef | grep zookeeper-server-start | grep -v grep | awk '{print $2}')
 
 if [ -n "$list" ]
