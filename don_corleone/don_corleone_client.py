@@ -106,7 +106,7 @@ def install_node(config, run=True):
         service = responsibility[0]
         additional_config = responsibility[1]
         params = urllib.urlencode\
-                ({"service":json.dumps(service),"run":json.dumps(run) , "config":json.dumps(config),
+                ({"service":json.dumps(service),"run":json.dumps(False) , "config":json.dumps(config),
                   "additional_config":json.dumps(additional_config), "node_id":json.dumps(config[NODE_ID]), "public_url":json.dumps(config[PUBLIC_URL])
                   })
 
@@ -118,6 +118,9 @@ def install_node(config, run=True):
         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/get_services").read())
 
         print "Succeded = ", has_succeded(response)
+
+
+#    for id, responsibility in enumerate(config[RESPONSIBILITIES]):
 
 
 def timeout_command(command, timeout):

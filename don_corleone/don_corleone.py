@@ -567,9 +567,9 @@ def register_service():
                 if service_dict[SERVICE_STATUS] != STATUS_RUNNING:
                     output = ERROR_FAILED_SERVICE_RUN
                 else:
-                    output = OK
+                    output = service_id
             else:
-                output=OK
+                output=service_id
 
 
         return jsonify(result=str(output))
