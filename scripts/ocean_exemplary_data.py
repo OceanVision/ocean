@@ -64,6 +64,7 @@ if __name__ == '__main__':
 
     odm_client = ODMClient()
     odm_client.connect()
+    odm_batch = odm_client.get_batch()
 
     # Read file contents
     content_sources_list = []
@@ -86,17 +87,21 @@ if __name__ == '__main__':
     i = 0
     for cs in content_sources_list:
         i += 1
-        print 'Add', str(i)+'/'+str(len(content_sources_list)), cs[:-1], '...'
+        print 'Adding ' + str(i) + '/' + str(len(content_sources_list)) +\
+            ' ' + str(cs[:-1]) + ' to batch...'
         try:
             cs_node = eval(cs)
             cs_node['last_updated'] = 0
 
-            content_source_response = odm_client.create_node(
+            odm_batch.append(
+                odm_client.create_node,
                 CONTENT_SOURCE_TYPE_MODEL_NAME,
                 HAS_INSTANCE_RELATION,
                 **cs_node
             )
-
+            if i % 200 == 0 or i == len(content_sources_list)-1:
+                print 'Submitting batch... Please have patience...'
+                odm_batch.submit()
         except Exception as e:
             print '... Error occurred with adding `', cs[:-1], '`:'
             print e
