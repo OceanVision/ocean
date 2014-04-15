@@ -12,7 +12,7 @@ import threading
 import uuid
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
-from don_utils import get_configuration, get_running_service
+from don_utils import get_running_service, get_your_node_id
 
 from graph_workers.graph_defines import *
 from graph_workers.graph_utils import *
@@ -283,7 +283,6 @@ class Spidercrab(GraphWorker):
             if instance['graph_worker_id'] == self.config['graph_worker_id']:
                 master_uuid = instance['uuid']
         if master_uuid:
-            # TODO: OVERWRITE the whole config in database (Lionfish update)
             self.logger.log(
                 info_level,
                 'Spidercrab ' + self.config['graph_worker_id']
@@ -314,14 +313,19 @@ class Spidercrab(GraphWorker):
             service_name = 'spidercrab_master'
         if config_file_name == '':
             # No config file - load from Don Corleone
+            don_config = get_running_service(
+                service_name=service_name,
+                node_id=None,
+                enforce_running=False
+            )['service_config']
+
             for param in self.CONFIG_DEFAULTS.keys():
                 try:
-                    self.given_config[param] = get_configuration(
-                        service_name, param)
+                    self.given_config[param] = don_config[param]
                     self.config[param] = self.given_config[param]
                 except Exception as error:
                     self.logger.log(
-                        error_level, 'Don Corleone error: ' + str(error)
+                        error_level, 'Don Corleone: ' + str(error)
                     )
                     self.config[param] = self.CONFIG_DEFAULTS[param]
             if not self.given_config.get('graph_worker_id'):
