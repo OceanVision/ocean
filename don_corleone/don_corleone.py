@@ -61,6 +61,7 @@ SERVICE_SPIDERCRAB_MASTER = "spidercrab_master"
 SERVICE_SPIDERCRAB_SLAVE = "spidercrab_slave"
 
 
+PARAMETRIZED_SERVICES = set([SERVICE_LIONFISH])
 
 UNARY_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH, SERVICE_NEO4J, SERVICE_NEWS_FETCHER, SERVICE_ZOOKEEPER, SERVICE_KAFKA])
 NONUNARY_SERVICES = set([SERVICE_SPIDERCRAB_SLAVE, SERVICE_SPIDERCRAB_MASTER])
@@ -277,14 +278,6 @@ def update_status(m):
     logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", str(status)))
 
     with services_lock:
-        
-        # Not removing 
-        """
-        if status == ERROR_NOT_REACHABLE_SERVICE:
-            remove_service(m[SERVICE_ID])
-            logger.info("Service not reachable")
-            return
-        """
 
         logger.info(("Checking server availability for ",m[SERVICE_ID], "result ", str(status)))
         logger.info(output)
@@ -378,10 +371,22 @@ def _run_service(service_id):
             logger.error("Wrong service status")
             exit(1)
 
-        cmd = "(cd {0} && {1})".format(
-                                        os.path.join(m[SERVICE_HOME],"don_corleone"),
-                                        "./scripts/run.sh {1} ./scripts/{0}_run.sh".format(m[SERVICE], m[SERVICE_ID]))
-    
+        cmd = ""
+        ### Pass parameters?
+        if m[SERVICE] in PARAMETRIZED_SERVICES:
+            params = ""
+            for config_name in m[SERVICE_CONFIG]:
+                params += "--"+config_name+"="+str(m[SERVICE_CONFIG][config_name])+ " "
+            params += "--don_corleone_service_id="+str(service_id)
+
+            cmd = "(cd {0} && {1})".format(
+                                            os.path.join(m[SERVICE_HOME],"don_corleone"),
+                                            "./scripts/run.sh {1} ./scripts/{0}_run.sh {2}".format(m[SERVICE], m[SERVICE_ID], params))
+        else:
+            cmd = "(cd {0} && {1})".format(
+                                            os.path.join(m[SERVICE_HOME],"don_corleone"),
+                                            "./scripts/run.sh {1} ./scripts/{0}_run.sh".format(m[SERVICE], m[SERVICE_ID]))
+
     status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID],m)
 
     with services_lock:
@@ -548,11 +553,12 @@ def register_service():
 
             logger.info(("Registering " if not run else "Running and registering ")+str(service_dict))
 
-            logger.info("Running service "+service_id)
 
             update_status(service_dict)
 
+
             if run:
+                logger.info("Running service "+service_id)
                 service_id = service_dict[SERVICE_ID]
                 try:
                     output_run_service = _run_service(service_dict[SERVICE_ID])

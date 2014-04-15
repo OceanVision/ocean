@@ -10,7 +10,6 @@ import os
 import sys
 
 from optparse import OptionParser
-
 from spidercrab import Spidercrab
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))

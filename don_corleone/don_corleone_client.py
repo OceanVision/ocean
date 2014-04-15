@@ -131,6 +131,7 @@ def install_node(config, run=True):
 		"/run_service?service_id="+str(service_id)).read()
 	    if not has_succeded(response):
 	        logger.error("SHOULDNT HAPPEN FAILED RUNNING")
+            logger.error(response)
 
 #    for id, responsibility in enumerate(config[RESPONSIBILITIES]):
 
