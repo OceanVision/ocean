@@ -33,8 +33,8 @@ producer = SimpleProducer(kafka, batch_send=True,
 
 # To send messages synchronously
 producer = SimpleProducer(kafka)
-producer.send_messages("my-topic3", "some message")
-producer.send_messages("my-topic3", "this method", "is variadic")
+producer.send_messages("mantis:nottagged", "some message")
+producer.send_messages("mantis:nottagged", "this method")
 
 
 # To wait for acknowledgements
@@ -45,25 +45,14 @@ producer.send_messages("my-topic3", "this method", "is variadic")
 producer = SimpleProducer(kafka, async=False,
                           req_acks=SimpleProducer.ACK_AFTER_LOCAL_WRITE,
                           ack_timeout=2000)
-response = producer.send_messages("my-topic3", "async message")
 
+response = producer.send_messages("mantis:nontagged", "async message")
 if response:
     print(response[0].error)
     print(response[0].offset)
-
-# To send messages in batch. You can use any of the available
-# producers for doing this. The following producer will collect
-# messages in batch and send them to Kafka after 20 messages are
-# collected or every 60 seconds
-# Notes:
-# * If the producer dies before the messages are sent, there will be losses
-# * Call producer.stop() to send the messages and cleanup
-producer = SimpleProducer(kafka, batch_send=True,
-                          batch_send_every_n=20,
-                          batch_send_every_t=60)
-
 # To consume messages
-consumer = SimpleConsumer(kafka, "my-group", "my-topic3")
+
+consumer = SimpleConsumer(kafka, "mantis", "mantis:nottagged")
 for message in consumer:
     print(message)
 

@@ -23,7 +23,7 @@ if __name__ == '__main__':
     default_number = 1
 
     try:
-        default_number = get_configuration('spidercrab_slaves', 'number')
+        default_number = get_configuration('spidercrab_slave', 'number')
     except Exception as error:
         print error
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     try:
         default_export_file_name = get_configuration(
-            'spidercrab_slaves', 'export_cs_to')
+            'spidercrab_slave', 'export_cs_to')
     except Exception as error:
         print error
 

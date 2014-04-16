@@ -8,11 +8,11 @@
     ["spidercrab_master", {
             "local": true,
             "update_interval_s": 900,
-            "worker_id": "oceanic_crab"
+            "graph_worker_id": "oceanic_crab"
         }],
-    ["spidercrab_slaves", {
+    ["spidercrab_slave", {
             "local": true,
-            "worker_id": "oceanic_crab",
+            "graph_worker_id": "oceanic_crab",
             "number": 5
         }]
 ],

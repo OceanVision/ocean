@@ -36,6 +36,29 @@ class BasicTests(unittest.TestCase):
         assert(response['result']==7474)
         print count_services(config)
         assert(count_services(config) == 4)
+
+
+        time.sleep(2)        
+        # Run neo4j
+        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)
+                               +"/run_service?service_id=moj_neo4j").read())
+
+        print response
+
+        # Run lionfish
+        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)
+                               +"/run_service?service_id=lionfish_0").read())
+
+        print response
+
+
+        # Non deterministic :(
+        time.sleep(20)        
+
+        print run_procedure(config, "get_services")
+        
+        assert( get_running_service(service_name="neo4j", config=config) is not None )
+        assert( get_running_service(service_name="lionfish", config=config) is not None )
         
 #         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)
 #                                +"/terminate_service?service_id=moj_neo4j").read())
