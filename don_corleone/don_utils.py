@@ -54,6 +54,15 @@ def run_procedure(config, name):
                                +"/"+name).read()
     return response
 
+def get_all_services(config=None):
+    if config is None:
+        config = json.load(open(os.path.join(os.path.dirname(__file__),"config.json"),"r"))
+    
+    resp = json.loads(run_procedure(config, "get_services"))
+    if not has_succeded(resp):
+        return None
+
+    return resp['result']        
 
 
 def get_service(services, service_id=None, service_name=None, node_id=None, service_config={}):
