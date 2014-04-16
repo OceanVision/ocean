@@ -12,7 +12,7 @@ import threading
 import uuid
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
-from don_utils import get_running_service, get_your_node_id
+from don_utils import get_running_service, get_my_node_id
 
 from graph_workers.graph_defines import *
 from graph_workers.graph_utils import *
