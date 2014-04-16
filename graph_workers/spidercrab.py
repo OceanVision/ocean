@@ -20,10 +20,6 @@ from graph_workers.graph_worker import GraphWorker
 from graph_workers.privileges import construct_full_privilege
 from odm_client import ODMClient
 
-SOURCES_ENQUEUE_PORTION = 10
-SOURCES_ENQUEUE_MAX = float('inf')
-WORKER_SLEEP_S = 10
-
 # Defining levels to get rid of other loggers
 info_level = 100
 error_level = 200
@@ -45,13 +41,26 @@ logger.addHandler(ch_file)
 class Spidercrab(GraphWorker):
 
     TEMPLATE_CONFIG_NAME = './spidercrab.json.template'
+
+    # Config variable names
+    C_UPDATE_INTERVAL_S = 'update_interval_s'
+    C_GRAPH_WORKER_ID = 'graph_worker_id'
+    C_SOURCES_ENQUEUE_PORTION = 'sources_enqueue_portion'
+    C_SOURCES_ENQUEUE_MAX = 'sources_enqueue_max'
+    C_MASTER_SLEEP_S = 'master_sleep_s'
+    C_SLAVE_SLEEP_S = 'worker_sleep_s'
+    C_DO_NOT_FETCH = 'do_not_fetch'
+    C_TERMINATE_ON_END = 'terminate_on_end'
+
     CONFIG_DEFAULTS = {
-        'update_interval_s': 60*15,     # 15 minutes :)
-        'graph_worker_id': 'UNDEFINED',
-        'sources_enqueue_portion': 10,
-        'sources_enqueue_max': float('inf'),
-        'worker_sleep_s': 10,
-        'do_not_fetch': 0,
+        C_UPDATE_INTERVAL_S: 60*15,     # 15 minutes :)
+        C_GRAPH_WORKER_ID: 'UNDEFINED',
+        C_SOURCES_ENQUEUE_PORTION: 10,
+        C_SOURCES_ENQUEUE_MAX: float('inf'),
+        C_MASTER_SLEEP_S: 10,
+        C_SLAVE_SLEEP_S: 10,
+        C_DO_NOT_FETCH: 0,
+        C_TERMINATE_ON_END: 0
     }
 
     def __init__(
@@ -155,11 +164,16 @@ class Spidercrab(GraphWorker):
                     # Enqueue existing sources to be browsed by workers
                     result = self._enqueue_sources_portion()
                     queued_sources += len(result)
-                    if len(result) == 0 or self.terminate_event.is_set():
+                    if len(result) == 0:
+                        if self.config[self.C_TERMINATE_ON_END]:
+                            break
+                        else:
+                            time.sleep(self.config[self.C_MASTER_SLEEP_S])
+                    if self.terminate_event.is_set():
                         break
 
         else:  # slave case
-            time_left = WORKER_SLEEP_S
+            time_left = self.config[self.C_SLAVE_SLEEP_S]
             while not self.terminate_event.is_set():
                 source = self._pick_pending_source()
                 if not source:
@@ -171,7 +185,7 @@ class Spidercrab(GraphWorker):
                             info_level, self.fullname + ' No more tasks.')
                         break
                 else:
-                    time_left = WORKER_SLEEP_S
+                    time_left = self.config[self.C_SLAVE_SLEEP_S]
                     source_props = self._update_source(source)
                     if self.config['do_not_fetch']:
                         continue
@@ -256,6 +270,7 @@ class Spidercrab(GraphWorker):
         models = []
         logger.info("Response get_model_nodes(): "+str(response))
         for model in response:
+            # NOTE: Workaround - no 'model_name' property in Model node...
             if 'model_name' in model:
                 models.append(model['model_name'])
             else:
@@ -692,7 +707,13 @@ class Spidercrab(GraphWorker):
                     'TODO',  # news_props['html'],
                     HAS_INSTANCE_RELATION
                 )
-                self.odm_client.execute_query(query)
+                result = self.odm_client.execute_query(query)
+                if not result:
+                    self.logger.log(
+                        error_level,
+                        self.fullname + ' Not added ' + news_props['link']
+                        + ' !!!'
+                    )
 
     @staticmethod
     def _extract_news(news_props):
@@ -750,7 +771,7 @@ if __name__ == '__main__':
     thread.start()
 
     time.sleep(3)
-    for i in range(5):
+    for i in range(1):
         worker = Spidercrab.create_worker(runtime_id=str(i))
         thread = threading.Thread(target=worker.run)
         thread.start()
