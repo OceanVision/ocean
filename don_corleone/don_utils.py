@@ -96,7 +96,7 @@ def get_running_service(service_id=None, node_id=None, service_name=None, servic
         logger.error("WARNING: don corleone is not running !! Pulling config from config.json")
         services = []
         for node_resp in config["node_responsibilities"]:
-            services.append({"local":True, SERVICE:node_resp[0], SERVICE_ID:node_resp[0], SERVICE_CONFIG:node_resp[1]})
+            services.append({"local":True, SERVICE:node_resp[0], SERVICE_ID:node_resp[0], SERVICE_CONFIG:node_resp[1], NODE_ID:node_id})
         return get_service(services, service_id = service_id, node_id=node_id,  service_name=service_name, service_config=service_config)
 
     # Get running services from don corleone
