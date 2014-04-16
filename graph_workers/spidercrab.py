@@ -338,7 +338,7 @@ class Spidercrab(GraphWorker):
             # No config file - load from Don Corleone
             don_config = get_running_service(
                 service_name=service_name,
-                node_id=None,
+                node_id=get_my_node_id(),
                 enforce_running=False
             )['service_config']
 
