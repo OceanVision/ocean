@@ -159,7 +159,8 @@ class Spidercrab(GraphWorker):
                 if self.master_sources_urls_file:
                     # Enqueue from file new sources to be browsed by slaves
                     self._enqueue_source_lines()
-                    break
+                    if self.config[self.C_TERMINATE_ON_END]:
+                        break
                 else:
                     # Enqueue existing sources to be browsed by workers
                     result = self._enqueue_sources_portion()
@@ -183,7 +184,10 @@ class Spidercrab(GraphWorker):
                     if time_left < 0:
                         self.logger.log(
                             info_level, self.fullname + ' No more tasks.')
-                        break
+                        if self.config[self.C_TERMINATE_ON_END]:
+                            break
+                        else:
+                            time.sleep(self.config[self.C_SLAVE_SLEEP_S])
                 else:
                     time_left = self.config[self.C_SLAVE_SLEEP_S]
                     source_props = self._update_source(source)
