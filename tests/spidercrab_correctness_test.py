@@ -15,12 +15,12 @@ if __name__ == '__main__':
 
     TEMP_URL_LIST_FILE = '../data/spidercrab_correctness_test_urls'
     TEMP_SPIDERCRAB_CONFIG = '../data/spidercrab_correctness_test_config'
-    TEMP_SLAVES_EXPORT_FILE = '../data/spidercrab_correctness_test_export'
+    TEMP_SLAVE_EXPORT_FILE = '../data/spidercrab_correctness_test_export'
 
     files = [
         TEMP_URL_LIST_FILE,
         TEMP_SPIDERCRAB_CONFIG,
-        TEMP_SLAVES_EXPORT_FILE
+        TEMP_SLAVE_EXPORT_FILE
     ]
 
     print 'Running', __file__
@@ -65,7 +65,8 @@ if __name__ == '__main__':
         """
         {
             \\"update_interval_s\\": 600,
-            \\"graph_worker_id\\": \\"spidercrab_correctness_test_worker\\"
+            \\"graph_worker_id\\": \\"spidercrab_correctness_test_worker\\",
+            \\"terminate_on_end\\": 1
         }
         """,
         TEMP_SPIDERCRAB_CONFIG
@@ -88,13 +89,13 @@ if __name__ == '__main__':
 
     print '\nRunning 10 slaves (One ContentSource for every slave)...'
     command = '../graph_workers/spidercrab_slave.py -n 10 -c %s -e %s'
-    command %= (TEMP_SPIDERCRAB_CONFIG, TEMP_SLAVES_EXPORT_FILE)
+    command %= (TEMP_SPIDERCRAB_CONFIG, TEMP_SLAVE_EXPORT_FILE)
     print command
     time.sleep(1)
     os.system(command)
 
     print '\nFinished! spidercrab_slave.py export file contents:'
-    os.system('cat ' + TEMP_SLAVES_EXPORT_FILE)
+    os.system('cat ' + TEMP_SLAVE_EXPORT_FILE)
 
     print '\nResult files created under following paths:'
     for temp_file in files:

@@ -846,7 +846,7 @@ if __name__ == '__main__':
     thread.start()
 
     time.sleep(3)
-    for i in range(1):
+    for i in range(5):
         worker = Spidercrab.create_worker(runtime_id=str(i))
         thread = threading.Thread(target=worker.run)
         thread.start()
