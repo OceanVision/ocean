@@ -254,8 +254,13 @@ class Spidercrab(GraphWorker):
         # Check if our model is present
         response = self.odm_client.get_model_nodes()
         models = []
+        logger.info("Response get_model_nodes(): "+str(response))
         for model in response:
-            models.append(model['model_name'])
+            if 'model_name' in model:
+                models.append(model['model_name'])
+            else:
+                self.logger.error("No model_name in model pulled \
+                    from neo4j!")
         if not 'Spidercrab' in models:
             self.logger.log(
                 info_level,
