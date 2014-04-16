@@ -162,10 +162,10 @@ def get_configuration_query(config_name, node_id=None, service_id=None, service_
     return _get_configuration_by_id(s[SERVICE_ID], config_name, config)
 
 
-def get_your_config():
+def get_my_config():
     return json.load(open(os.path.join(os.path.dirname(__file__),"config.json"),"r"))
 
-def get_your_node_id():
+def get_my_node_id():
     config = json.load(open(os.path.join(os.path.dirname(__file__),"config.json"),"r"))
     return config['node_id']
 
