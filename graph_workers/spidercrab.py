@@ -713,7 +713,7 @@ class Spidercrab(GraphWorker):
             Fetches news text and HTML from news_list visiting and extracting
             website.
         """
-        news_list = source_props['news_list']
+        news_list = source_props['news']
         fetched_news = 0
         for news_props in news_list:
             # Check if this news is already present in the database
