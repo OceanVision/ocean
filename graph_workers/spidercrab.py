@@ -190,13 +190,12 @@ class Spidercrab(GraphWorker):
                     if self.config['do_not_fetch']:
                         continue
                     if 'news' in source_props:
-                        self._fetch_new_news(
-                            source['uuid'], source_props['news'])
+                        self._fetch_new_news(source_props)
                     else:
                         self.logger.log(
                             error_level,
-                            'No news for ' + source['link'] + ' ... '
-                            + 'Parsed source properties: '
+                            self.fullname + ' No news for ' + source['link']
+                            + ' ... Parsed source properties: '
                             + str(source_props))
 
         self._end_run()
@@ -529,22 +528,52 @@ class Spidercrab(GraphWorker):
             Update params of given node (a dict with 'uuid' and 'link' keys)
             and return its properties.
         """
+        properties = dict()
+        source_link = source_node['link']
         try:
-            properties = self._parse_source(source_node['link'])
+            properties = self._parse_source(source_link)
         except Exception as error:
             self.logger.log(
                 error_level,
-                source_node['link'] + ' - Parsing error: ' + str(error)
+                self.fullname + ' ' + source_link
+                + ' - Parsing error: ' + str(error)
             )
 
         if self.export_cs_to and len(properties) > 1:
             self._export_cs(properties)
+
+        if 'link' not in properties:
+            self.logger.log(
+                info_level,
+                self.fullname + ' There is no valid feed url for wrong url '
+                + source_link + ' - aborting update...'
+            )
+            return properties
+
+        if properties['link'] != source_link:
+            self.logger.log(
+                info_level,
+                self.fullname + ' url ' + source_link + ' changed to '
+                + properties['link'] + ' ... (web page forwarding/transfer?)'
+                + ' Checking if this source already exists...'
+            )
+            destination_node = self.odm_client.get_by_link(
+                CONTENT_SOURCE_TYPE_MODEL_NAME,
+                properties['link']
+            )
+            if destination_node:
+                self.logger.log(
+                    info_level,
+                    self.fullname + ' This source already exists - updating.'
+                )
+                source_node['uuid'] = destination_node['uuid']
 
         query = """
         MATCH (source:ContentSource {uuid: '%s'})
         SET
             source.language = '%s',
             source.title = '%s',
+            source.link = '%s',
             source.description = '%s',
             source.source_type = '%s'
         RETURN source
@@ -553,13 +582,14 @@ class Spidercrab(GraphWorker):
             source_node['uuid'],
             properties.get('language', 'unknown'),
             properties.get('title', 'unknown'),
+            properties.get('link', 'unknown'),
             properties.get('description', 'unknown'),
             properties.get('source_type', 'unknown')
         )
         self.logger.log(
             info_level,
             self.fullname
-            + ' Updating ContentSource of ' + source_node['link']
+            + ' Updating ContentSource of ' + properties['link']
         )
         self.odm_client.execute_query(query)
 
@@ -582,6 +612,7 @@ class Spidercrab(GraphWorker):
                 properties.get('image_link'),
             )
             self.odm_client.execute_query(query)
+        properties['uuid'] = source_node['uuid']
         return properties
 
     @staticmethod
@@ -600,11 +631,24 @@ class Spidercrab(GraphWorker):
         }
         data = feedparser.parse(source_link)
 
+        if not Spidercrab._source_has_entries(data):
+            logger.log(
+                error_level,
+                data.get('href', '(Unknown url)') + ' is not a feed!')
+            return Spidercrab._try_another_source_link(data)
+
         version = data.get('version', 'unknown')
-        if version[:3] == 'rss' or version == 'unknown':
+        if version[:3] == 'rss' or version == 'unknown' or not version:
             parsed_properties = Spidercrab._parse_rss_source(data)
             properties.update(parsed_properties)
         return properties
+
+    @staticmethod
+    def _source_has_entries(data):
+        """
+            Check if there are entries in this source data dictionary.
+        """
+        return len(data.get('entries', [])) != 0
 
     @staticmethod
     def _parse_rss_source(data):
@@ -616,6 +660,7 @@ class Spidercrab(GraphWorker):
             properties['language'] = feed.get('language', 'unknown')
             properties['source_type'] = 'rss'
             properties['title'] = feed.get('title', 'unknown')
+            properties['link'] = data.get('href', 'unknown')
             # Optional ContentSource properties
             if 'image' in feed and 'href' in feed['image']:
                 image = feed['image']
@@ -643,11 +688,29 @@ class Spidercrab(GraphWorker):
             logger.log(error_level, 'RSS XML error - ' + str(error))
         return properties
 
-    def _fetch_new_news(self, source_uuid, news_list):
+    @staticmethod
+    def _try_another_source_link(data):
+        feed = data['feed']
+        properties = dict()
+        try:
+            for link in feed.get('links', []):
+                # TODO: Other feeds
+                if 'rss' in link.get('type', ''):
+                    logger.log(
+                        info_level, 'Trying ' + link['href'] + ' ...'
+                    )
+                    properties = Spidercrab._parse_source(link['href'])
+        except Exception as error:
+            logger.log(error_level, 'RSS XML error - ' + str(error))
+        return properties
+
+    def _fetch_new_news(self, source_props):
         """
             Fetches news text and HTML from news_list visiting and extracting
             website.
         """
+        news_list = source_props['news_list']
+        fetched_news = 0
         for news_props in news_list:
             # Check if this news is already present in the database
             query = """
@@ -658,7 +721,7 @@ class Spidercrab(GraphWorker):
                 RETURN news
                 """
             query %= (
-                source_uuid,
+                source_props['uuid'],
                 PRODUCES_RELATION,
                 news_props['link'],
             )
@@ -676,6 +739,7 @@ class Spidercrab(GraphWorker):
                         error_level,
                         news_props['link'] + ' - Fetching error: ' + str(error)
                     )
+                fetched_news += 1
                 query = u"""
                     MATCH
                     (source:ContentSource {uuid: '%s'}),
@@ -697,7 +761,7 @@ class Spidercrab(GraphWorker):
                     RETURN news
                     """
                 query %= (
-                    source_uuid,
+                    source_props['uuid'],
                     PRODUCES_RELATION,
                     news_props['title'],
                     news_props['summary'],
@@ -712,14 +776,19 @@ class Spidercrab(GraphWorker):
                     self.logger.log(
                         error_level,
                         self.fullname + ' Not added ' + news_props['link']
-                        + ' !!!'
+                        + ' !!! - check Lionfish logs!'
                     )
+            self.logger.log(
+                info_level,
+                self.fullname + ' Fetched ' + str(fetched_news) + '. news'
+                + ' for ' + source_props['link'])
 
     @staticmethod
     def _extract_news(news_props):
         """
             Extracts content of news.
         """
+        # TODO: Fix encoding
         news_props['text'] = 'unknown'
         news_props['html'] = 'unknown'
         try:
@@ -766,7 +835,9 @@ if __name__ == '__main__':
     print "Press Enter to create one master with 5 slaves."
     enter = raw_input()
 
-    master_sc = Spidercrab.create_master()
+    master_sc = Spidercrab.create_master(
+        #master_sources_urls_file='../data/bad_contentsource'
+    )
     thread = threading.Thread(target=master_sc.run)
     thread.start()
 
