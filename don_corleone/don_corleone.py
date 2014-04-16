@@ -390,8 +390,9 @@ def _run_service(service_id):
         if m[SERVICE] in PARAMETRIZED_SERVICES:
             params = ""
             for config_name in m[SERVICE_CONFIG]:
-                params += "--"+config_name+"="+str(m[SERVICE_CONFIG][config_name])+ " "
-            params += "--don_corleone_service_id="+str(service_id)
+                if config_name != "local":
+                    params += "--"+config_name+"="+str(m[SERVICE_CONFIG][config_name])+ " "
+            #params += "--don_corleone_service_id="+str(service_id)
 
             cmd = "(cd {0} && {1})".format(
                                             os.path.join(m[SERVICE_HOME],"don_corleone"),

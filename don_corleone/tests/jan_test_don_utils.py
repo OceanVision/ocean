@@ -20,3 +20,6 @@ if __name__=="__main__":
     print get_configuration_query("port", service_name="neo4j")
     print get_configuration("neo4j","port")
     print get_configuration("neo4j","host")
+
+    print "GET NODE ID"
+    print get_my_node_id() 
