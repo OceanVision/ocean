@@ -1,7 +1,10 @@
+import time
+import json
 from flask import Flask
 from flask import request, redirect, Response, url_for
-import json
+from cryptography import Cryptography
 app = Flask(__name__)
+crypto = None
 
 @app.route('/')
 def index():
@@ -11,12 +14,52 @@ def index():
 def about():
     return 'Coral Service for Ocean'
 
-@app.route('/get_article_list', methods=['GET', 'POST'])
+# Webservice methods
+
+@app.route('/handshake', methods=['POST'])
+def handshake():
+    request_data = request.get_json()
+    client_key = request_data['client_key']
+
+    response_data = {
+        'coral_key': crypto.get_coral_key(),
+        'client_id': crypto.register_client_key(client_key)
+    }
+    return Response(json.dumps(response_data), mimetype='application/json')
+
+@app.route('/sign_in', methods=['POST'])
+def sign_in():
+    request_data = request.get_json()
+    username = request_data['username']
+    password = request_data['password']
+    client_id = request_data['client_id']
+
+    # TODO: implementation
+
+    response_data = True
+
+    response_data = {'status': response_data}
+    return Response(json.dumps(response_data), mimetype='application/json')
+
+@app.route('/sign_out', methods=['POST'])
+def sign_out():
+    request_data = request.get_json()
+    client_id = request_data['client_id']
+
+    # TODO: implementation
+
+    response_data = True
+
+    response_data = {'status': response_data}
+    return Response(json.dumps(response_data), mimetype='application/json')
+
+@app.route('/get_article_list', methods=['POST'])
 def get_article_list():
     request_data = request.get_json()
     last_news_id = request_data['last_news_id']
     count = request_data['count']
     feed_id = request_data['feed_id']
+    client_id = request_data['client_id']
 
     # TODO: implementation
 
@@ -33,13 +76,13 @@ def get_article_list():
         })
 
     response_data = {'article_list': response_data}
-    response = Response(json.dumps(response_data), mimetype='application/json')
-    return response
+    return Response(json.dumps(response_data), mimetype='application/json')
 
-@app.route('/get_article_details', methods=['GET', 'POST'])
+@app.route('/get_article_details', methods=['POST'])
 def get_article_details():
     request_data = request.get_json()
     article_id = request_data['article_id']
+    client_id = request_data['client_id']
 
     # TODO: implementation
 
@@ -50,13 +93,12 @@ def get_article_details():
     })
 
     response_data = {'article_details': response_data}
-    response = Response(json.dumps(response_data), mimetype='application/json')
-    return response
+    return Response(json.dumps(response_data), mimetype='application/json')
 
-@app.route('/get_feed_list', methods=['GET', 'POST'])
+@app.route('/get_feed_list', methods=['POST'])
 def get_feed_list():
     request_data = request.get_json()
-    user_id = request_data['user_id']
+    client_id = request_data['client_id']
 
     # TODO: implementation
 
@@ -71,50 +113,24 @@ def get_feed_list():
     })
 
     response_data = {'feed_list': response_data}
-    response = Response(json.dumps(response_data), mimetype='application/json')
-    return response
+    return Response(json.dumps(response_data), mimetype='application/json')
 
-@app.route('/add_feed', methods=['POST'])
-def add_feed():
+@app.route('/create_feed', methods=['POST'])
+def create_feed():
     request_data = request.get_json()
-    user_id = request_data['user_id']
     feed_tags = request_data['feed_tags']
+    client_id = request_data['client_id']
 
     # TODO: implementation
 
     response_data = True
 
     response_data = {'status': response_data}
-    response = Response(json.dumps(response_data), mimetype='application/json')
-    return response
-
-@app.route('/sign_in', methods=['GET', 'POST'])
-def sign_in():
-    request_data = request.get_json()
-    username = request_data['username']
-    password = request_data['password']
-
-    # TODO: implementation
-
-    response_data = '974eeacc-a07d-11e3-9f3a-2cd05ae1c39b'
-
-    response_data = {'user_id': response_data}
-    response = Response(json.dumps(response_data), mimetype='application/json')
-    return response
-
-@app.route('/sign_out', methods=['GET', 'POST'])
-def sign_out():
-    request_data = request.get_json()
-    user_id = request_data['user_id']
-
-    # TODO: implementation
-
-    response_data = True
-
-    response_data = {'status': response_data}
-    response = Response(json.dumps(response_data), mimetype='application/json')
-    return response
+    return Response(json.dumps(response_data), mimetype='application/json')
 
 if __name__ == '__main__':
+    if not crypto:
+        crypto = Cryptography()
+
     app.debug = True
     app.run(host='0.0.0.0', port=14)
