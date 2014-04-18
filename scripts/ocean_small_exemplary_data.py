@@ -19,7 +19,7 @@ APP_LABEL = 'rss'
 
 if __name__ == '__main__':
     # Create connection
-    graph_db = neo4j.GraphDatabaseService('http://ocean-neo4j.no-ip.biz:16/db/data/')
+    graph_db = neo4j.GraphDatabaseService('http://ocean-lionfish.no-ip.biz:16/db/data/')
     # graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
 
     print 'This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*\
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     my_batch = neo4j.WriteBatch(graph_db)
     my_batch.append_cypher('match (a)-[r]-(b) delete r;')
     # fix: do not delete the root
-    my_batch.append_cypher('match (n) WHERE ID(n) <> 0 delete n ;')
+    my_batch.append_cypher('match (n) WHERE ID(n) <> 1 delete n ;')
     my_batch.submit()
 
     my_batch = neo4j.ReadBatch(graph_db)
@@ -47,7 +47,7 @@ if __name__ == '__main__':
         exit(1)
 
 
-    root = graph_db.node(0)
+    root = graph_db.node(1)
 
     my_batch = neo4j.WriteBatch(graph_db)
     my_batch.append_cypher('match (e:Root) set e.root=1;')

@@ -1,8 +1,8 @@
 # Binary files
 *.pyc
-lionfish/server/project/
-lionfish/server/target/
-lionfish/server/lib/
+lionfish/project/
+lionfish/target/
+lionfish/lib/
 
 # Temporary files
 *.~lock*

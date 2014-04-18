@@ -1,4 +1,4 @@
-package lionfish
+package lionfish.server
 import java.util.UUID
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb._
@@ -8,7 +8,7 @@ import org.neo4j.tooling.GlobalGraphOperations
 // TODO: logging, nicer way of handling errors
 
 class DatabaseManager {
-  private val DB_PATH = "/usr/local/lib/neo4j/data/graph.db"
+  private val DB_PATH = "/usr/lib/neo4j/data/graph.db"
   private val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(DB_PATH)
 
   private val globalOperations = GlobalGraphOperations.at(graphDB)

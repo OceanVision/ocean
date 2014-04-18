@@ -1,6 +1,8 @@
-package lionfish
+package lionfish.server
 import java.net.ServerSocket
-import lionfish.{Connection, DatabaseManager}
+import rapture.json.jsonParsers
+import jsonParsers.scalaJson._
+import lionfish.server.{Connection, DatabaseManager}
 
 object Server {
   private val port = 21

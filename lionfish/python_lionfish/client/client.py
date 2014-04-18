@@ -6,10 +6,10 @@ import inspect
 # The new Lionfish client (works properly only with the new server which is
 # based on Scala).
 
-HOST = 'ocean-neo4j.no-ip.biz'  # 'localhost'
+HOST = 'ocean-lionfish.no-ip.biz'  # 'localhost'
 PORT = 21
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../graph_workers'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../graph_workers'))
 from graph_utils import *
 
 # Defining levels to get rid of other loggers
@@ -24,7 +24,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
 ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),
-                                           '../../logs/odm_server.log'))
+                                           '../../../logs/odm_server.log'))
 ch_file.setLevel(info_level)
 logger.addHandler(ch_file)
 
@@ -342,15 +342,3 @@ class ODMClient(object):
     #     self.send(data)
     #     self.recv()
 
-    def __getattr__(self, item):
-        """
-        Generic function calling in case there is no explicitly defined function
-        """
-        try:
-            return getattr(self, item)
-        except:
-            def generic_result(**params):
-                data = {'funcName': item, 'params': params}
-                self.send(data)
-                return self.recv()
-            return generic_result

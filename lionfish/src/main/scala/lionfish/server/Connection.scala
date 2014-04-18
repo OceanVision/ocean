@@ -1,9 +1,11 @@
-package lionfish
+package lionfish.server
 import java.net.Socket
 import java.nio.ByteBuffer
-import rapture.io._
+import rapture.core._
+import rapture.json._
 import strategy.throwExceptions
-import lionfish.DatabaseManager
+import jsonParsers.scalaJson._
+import lionfish.server.DatabaseManager
 
 class Connection(private val id: Int,
                  private val socket: Socket,
@@ -27,7 +29,7 @@ class Connection(private val id: Int,
   private def send(rawData: Any) = {
     try {
       // Serializes the data
-      val serialisedMsg = Json.serialize(json"${rawData}")
+      val serialisedMsg = json"$rawData".toString()
 
       // Prepares length of a outcoming array
       val byteBuffer = ByteBuffer.allocate(4)
@@ -69,7 +71,7 @@ class Connection(private val id: Int,
       }
 
       // Parses msg to data
-      val data = Json.parse(msg).get[Map[String, Any]]
+      val data = JsonBuffer.parse(msg).as[Map[String, Any]]
       data
     } catch {
       case e: Exception => {
