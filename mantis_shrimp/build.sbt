@@ -17,3 +17,12 @@ libraryDependencies ++= Seq("com.propensive" %% "rapture-json" % "0.9.1")
 libraryDependencies ++= Seq("com.propensive" %% "rapture-io" % "0.9.1")
 
 libraryDependencies ++= Seq("com.propensive" %% "rapture-io" % "0.9.1" classifier "javadoc")
+
+libraryDependencies ++= Seq("com.propensive" %% "rapture-net" % "0.9.0")
+
+libraryDependencies ++= Seq("com.propensive" %% "rapture-net" % "0.9.0" classifier "javadoc")
+
+libraryDependencies ++= Seq("com.propensive" %% "rapture-fs" % "0.9.0")
+
+libraryDependencies ++= Seq("com.propensive" %% "rapture-fs" % "0.9.0" classifier "javadoc")
+
