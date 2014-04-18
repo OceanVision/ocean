@@ -70,6 +70,16 @@ if __name__ == '__main__':
              'You can set this option in Don Corleone config under the '
              '"export_cs_to" key.'
     )
+    parser.add_option(
+        '-o',
+        '--no-corleone',
+        dest='no_corleone',
+        action='store_true',
+        default=False,
+        help='Tells this Spidercrab that there is no Corleone running (That '
+             'means an "offline" mode on).\nNOTE: Remember to pass a '
+             'separate config file with `-c` option!'
+    )
     (options, args) = parser.parse_args()
 
     # Simplicity at its best
@@ -78,6 +88,7 @@ if __name__ == '__main__':
             config_file_name=options.config_file_name,
             runtime_id=str(i),
             export_cs_to=options.export_file_name,
+            no_corleone=options.no_corleone,
         )
         thread = Thread(target=worker.run)
         thread.start()

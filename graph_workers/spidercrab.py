@@ -70,6 +70,7 @@ class Spidercrab(GraphWorker):
             runtime_id=str(uuid.uuid1())[:8],
             master_sources_urls_file='',
             export_cs_to=None,
+            no_corleone=False,
     ):
         """
         @param master: master Spidercrab object
@@ -88,6 +89,7 @@ class Spidercrab(GraphWorker):
         self.runtime_id = runtime_id
         self.master_sources_urls_file = master_sources_urls_file
         self.export_cs_to = export_cs_to
+        self.no_corleone = no_corleone
 
         self.master = master
         if master:
@@ -209,7 +211,7 @@ class Spidercrab(GraphWorker):
 
         logger.log(info_level, self.fullname + ' Started.')
 
-        if not self.is_master:
+        if not self.is_master and not self.no_corleone:
             self._check_and_pull_config()
             return
 

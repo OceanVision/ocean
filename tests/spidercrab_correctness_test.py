@@ -81,14 +81,14 @@ if __name__ == '__main__':
     enter = raw_input()
 
     print '\nRunning Spidercrab master with option to enqueue above sources.'
-    command = '../graph_workers/spidercrab_master.py -s %s -c %s'
+    command = '../graph_workers/spidercrab_master.py -o -s %s -c %s'
     command %= (TEMP_URL_LIST_FILE, TEMP_SPIDERCRAB_CONFIG)
     print command
     time.sleep(1)
     os.system(command)
 
     print '\nRunning 10 slaves (One ContentSource for every slave)...'
-    command = '../graph_workers/spidercrab_slave.py -n 10 -c %s -e %s'
+    command = '../graph_workers/spidercrab_slave.py -o -n 10 -c %s -e %s'
     command %= (TEMP_SPIDERCRAB_CONFIG, TEMP_SLAVE_EXPORT_FILE)
     print command
     time.sleep(1)

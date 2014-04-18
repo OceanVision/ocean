@@ -46,11 +46,22 @@ if __name__ == '__main__':
              'the database).\nNOTE: You can set this option in Don Corleone '
              'config under the "sources_urls_file" key.'
     )
+    parser.add_option(
+        '-o',
+        '--no-corleone',
+        dest='no_corleone',
+        action='store_true',
+        default=False,
+        help='Tells this Spidercrab that there is no Corleone running (That '
+             'means an "offline" mode on).\nNOTE: Remember to pass a '
+             'separate config file with `-c` option!'
+    )
     (options, args) = parser.parse_args()
 
     # Spidercrab master launch is simple as hell
     spidercrab_master = Spidercrab.create_master(
         config_file_name=options.config_file_name,
         master_sources_urls_file=options.sources_urls_file,
+        no_corleone=options.no_corleone,
     )
     spidercrab_master.run()
