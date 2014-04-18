@@ -20,9 +20,9 @@ from threading import Thread
 import sys
 import json
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../don_corleone/'))
 sys.path.append(os.path.join(os.path.dirname(__file__),
-                             '../graph_workers/graph_workers'))
+                             '../../../graph_workers/graph_workers'))
 
 # DonCorleone configuration
 from don_utils import get_configuration
@@ -43,7 +43,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
 ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),
-                                           '../logs/odm_server.log'))
+                                           '../../../logs/odm_server.log'))
 ch_file.setLevel(info_level)
 logger.addHandler(ch_file)
 
