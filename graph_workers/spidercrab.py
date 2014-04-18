@@ -211,8 +211,9 @@ class Spidercrab(GraphWorker):
 
         logger.log(info_level, self.fullname + ' Started.')
 
-        if not self.is_master and not self.no_corleone:
-            self._check_and_pull_config()
+        if not self.is_master:
+            if not self.no_corleone:
+                self._check_and_pull_config()
             return
 
         # Check database structure and init if needed

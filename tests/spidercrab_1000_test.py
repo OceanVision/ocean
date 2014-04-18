@@ -21,7 +21,7 @@ if __name__ == '__main__':
     ]
 
     print 'Running', __file__
-    print 'NOTE: You need following file to run this test ' \
+    print '\nNOTE: You need following file to run this test ' \
         '(Ocean Don Corleone Server):'
     print DATA_FILE
 
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     os.chdir('../scripts/')
 
     print '\nWiping and filling database with 1000 nodes...'
-    command = 'python2 ocean_exemplary_data.py -s %s'
+    command = '../scripts/ocean_exemplary_data.py -s %s'
     command %= DATA_FILE
     os.system(command)
 
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     command %= (
         """
         {
-            \\"update_interval_s\\": 600,
+            \\"update_interval_s\\": 10,
             \\"graph_worker_id\\": \\"1000_test_spidercrab\\",
             \\"terminate_on_end\\": 1
         }
@@ -61,19 +61,15 @@ if __name__ == '__main__':
     print 'Contents:'
     os.system('cat ' + TEMP_SPIDERCRAB_CONFIG)
 
-    # TODO: Automatize below action
-    print '\nPlease *(RE)START* the Lionfish ODM now and press Enter...'
-    enter = raw_input()
-
     print '\nRunning Spidercrab master with option to enqueue above sources.'
-    command = '../graph_workers/spidercrab_master.py -c %s'
+    command = '../graph_workers/spidercrab_master.py -o -c %s'
     command %= TEMP_SPIDERCRAB_CONFIG
     print command
     time.sleep(1)
     os.system(command)
 
     print '\nRunning 10 slaves...'
-    command = '../graph_workers/spidercrab_slave.py -n 10 -c %s'
+    command = '../graph_workers/spidercrab_slave.py -o -n 10 -c %s'
     command %= TEMP_SPIDERCRAB_CONFIG
     print command
     time.sleep(1)
