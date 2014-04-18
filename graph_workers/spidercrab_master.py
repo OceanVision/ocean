@@ -10,7 +10,6 @@ import os
 import sys
 
 from optparse import OptionParser
-
 from spidercrab import Spidercrab
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
@@ -39,10 +38,10 @@ if __name__ == '__main__':
     parser.add_option(
         '-s',
         '--sources-urls-file',
-        dest='sources_file_name',
+        dest='sources_urls_file',
         default=default_sources_url_file,
         help='Path to file, where every line contains url address to new '
-             'ContentSources that will be added to the database and '
+             'ContentSource that will be added to the database and '
              'flagged as pending to update (checks if url already exist in '
              'the database).\nNOTE: You can set this option in Don Corleone '
              'config under the "sources_urls_file" key.'
@@ -52,6 +51,6 @@ if __name__ == '__main__':
     # Spidercrab master launch is simple as hell
     spidercrab_master = Spidercrab.create_master(
         config_file_name=options.config_file_name,
-        master_sources_urls_file=options.sources_file_name,
+        master_sources_urls_file=options.sources_urls_file,
     )
     spidercrab_master.run()

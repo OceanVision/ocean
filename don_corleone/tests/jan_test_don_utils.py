@@ -3,6 +3,8 @@ if __name__=="__main__":
 
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+    os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
     from don_utils import *
     print get_running_service(service_name="spidercrab_master")
 
@@ -18,3 +20,10 @@ if __name__=="__main__":
     print get_configuration_query("port", service_name="neo4j")
     print get_configuration("neo4j","port")
     print get_configuration("neo4j","host")
+
+    print "GET NODE ID"
+    print get_my_node_id() 
+
+
+    print "GET ALL SERVICES"
+    print get_all_services()

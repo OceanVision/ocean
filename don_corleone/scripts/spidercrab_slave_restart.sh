@@ -1,5 +1,5 @@
 #!/bin/sh
-list=$(pgrep -f "spidercrab_slaves.py")
+list=$(pgrep -f "spidercrab_slave.py")
 
 for proc in $list
 do

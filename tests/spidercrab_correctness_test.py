@@ -65,7 +65,7 @@ if __name__ == '__main__':
         """
         {
             \\"update_interval_s\\": 600,
-            \\"worker_id\\": \\"spidercrab_correctness_test_worker\\"
+            \\"graph_worker_id\\": \\"spidercrab_correctness_test_worker\\"
         }
         """,
         TEMP_SPIDERCRAB_CONFIG
@@ -87,13 +87,13 @@ if __name__ == '__main__':
     os.system(command)
 
     print '\nRunning 10 slaves (One ContentSource for every slave)...'
-    command = '../graph_workers/spidercrab_slaves.py -n 10 -c %s -e %s'
+    command = '../graph_workers/spidercrab_slave.py -n 10 -c %s -e %s'
     command %= (TEMP_SPIDERCRAB_CONFIG, TEMP_SLAVES_EXPORT_FILE)
     print command
     time.sleep(1)
     os.system(command)
 
-    print '\nFinished! spidercrab_slaves.py export file contents:'
+    print '\nFinished! spidercrab_slave.py export file contents:'
     os.system('cat ' + TEMP_SLAVES_EXPORT_FILE)
 
     print '\nResult files created under following paths:'
