@@ -1,7 +1,10 @@
-#Mantis Shrimp
+Read wiki Deployment Installation -> Scala page
 
-Please download stanford NER .jar and place in this directory.
+Run
 
-Download link : http://nlp.stanford.edu/software/CRF-NER.shtml#Download
+`sbt update`
 
-Also you will have to fill in stanford_classfiers directory
+`sbt gen-idea`
+
+And open project in IntelliJ (remember to see project structure if is correct -
+ctrl+alt+shift+s)
