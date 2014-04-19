@@ -17,6 +17,8 @@
 
  package ly.stealth.testing
 
+
+//Needed for ly.stealth : don't ask why..
 object Stub {
 	def main(args: Array[String]) = {
 		println("stub")

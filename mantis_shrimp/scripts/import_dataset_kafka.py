@@ -77,6 +77,9 @@ if __name__ == "__main__":
     )
     (options, args) = parser.parse_args()
 
+    print "Connecting to ","{0}:{1}".format(get_configuration("kafka","host"),get_configuration("kafka","port"))
+
+
     kafka = KafkaClient("{0}:{1}".format(get_configuration("kafka","host"),get_configuration("kafka","port")))
     producer = SimpleProducer(kafka,  req_acks=SimpleProducer.ACK_AFTER_LOCAL_WRITE)
 

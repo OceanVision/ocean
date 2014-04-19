@@ -15,7 +15,8 @@ ctrl+alt+shift+s)
 
 **Note**
 
-You will need .jar of scala-kafka. I will push fork of scala-kafka that
-compiles locally. For now you can try yourself
+In case of problems try compiling kafka from github repository
+and add it to lib/ directory
 
+Also Kafka sometimes is failing LeaderElection
 

@@ -32,14 +32,22 @@ object DonCorleoneUtils{
   * @note Abridged and simplified version of get_configuration from don_utils.py
    *
    */
-  def get_configuration[T](service_name:String, config_name: String)(implicit m: scala.reflect.Manifest[T]): T={
+//  def get_configuration[T](service_name:String, config_name: String)(implicit m: scala.reflect.Manifest[T]): T={
+//    val request_url = "get_configuration?service_name="+service_name+"&config_name="+config_name+"&node_id="+this.config.node_id.as[String]
+//    println("Connecting to "+(this.don_url.replaceAll("http://","") / request_url).toString())
+//    val value = JsonBuffer.parse((Http / this.don_url.replace("http://", "") / request_url).slurp[Char]).result
+//    println(value.toString())
+//    return value.toString().asInstanceOf[T]
+//  }
+  //TODO: why reflection fails sometimes?
+  def get_configuration_string(service_name:String, config_name: String): String = {
     val request_url = "get_configuration?service_name="+service_name+"&config_name="+config_name+"&node_id="+this.config.node_id.as[String]
     println("Connecting to "+(this.don_url.replaceAll("http://","") / request_url).toString())
     val value = JsonBuffer.parse((Http / this.don_url.replace("http://", "") / request_url).slurp[Char]).result
-    return value.asInstanceOf[T]
+    return value.toString()
   }
 
-  //Demo functions: TODO: convert to tests
-  println(get_configuration[String]("kafka","port"))
-  val txt = (Http / "rapture.io" / "welcome.txt").slurp[Char]
+//  //Demo functions: TODO: convert to tests
+//  println(get_configuration[String]("kafka","port"))
+//  val txt = (Http / "rapture.io" / "welcome.txt").slurp[Char]
 }

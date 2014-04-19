@@ -14,9 +14,7 @@ libraryDependencies += "com.typesafe.akka" % "akka-actor_2.10" % "2.2-M1"
 
 libraryDependencies += "org.scala-sbt" % "sbt" % "0.13.1"
 
-libraryDependencies += "org.apache.kafka" % "kafka_2.10" % "0.8.1"
-
-libraryDependencies += "com.101tec" % "zkclient" % "0.3"
+libraryDependencies += "com.101tec" % "zkclient" % "0.4"
 
 libraryDependencies += "log4j" % "log4j" % "1.2.17"
 

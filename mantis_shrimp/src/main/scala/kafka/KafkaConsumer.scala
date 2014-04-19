@@ -81,7 +81,7 @@ class KafkaConsumer(
   val filterSpec = new Whitelist(topic)
 
   info("setup:start topic=%s for zk=%s and groupId=%s".format(topic,zookeeperConnect,groupId))
-  val stream = connector.createMessageStreamsByFilter(filterSpec, 1, new DefaultDecoder(), new DefaultDecoder()).get(0)
+  val stream = connector.createMessageStreamsByFilter(filterSpec, 1, new DefaultDecoder(null), new DefaultDecoder(null)).get(0)
   info("setup:complete topic=%s for zk=%s and groupId=%s".format(topic,zookeeperConnect,groupId))
 
   def read(write: (Array[Byte])=>Unit) = {
