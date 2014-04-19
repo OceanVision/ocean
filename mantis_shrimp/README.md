@@ -11,3 +11,11 @@ Run
 
 And open project in IntelliJ (remember to see project structure if is correct -
 ctrl+alt+shift+s)
+
+
+**Note**
+
+You will need .jar of scala-kafka. I will push fork of scala-kafka that
+compiles locally. For now you can try yourself
+
+

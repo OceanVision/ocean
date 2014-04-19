@@ -1,8 +1,6 @@
 package mantis_shrimp
 
-import akka.actor.Actor
-import akka.actor.ActorSystem
-import akka.actor.Props
+import akka.actor.{Actor, Props, ActorSystem}
 
 class HelloActor extends Actor {
   def receive = {
