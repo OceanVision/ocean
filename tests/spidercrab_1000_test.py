@@ -51,8 +51,8 @@ if __name__ == '__main__':
         {
             \\"update_interval_s\\": 10,
             \\"graph_worker_id\\": \\"1000_test_spidercrab\\",
-            \\"terminate_on_end\\": 0,
-            \\"\\"
+            \\"terminate_on_end\\": 1,
+            \\"news_fetch_max\\": 5000
         }
         """,
         TEMP_SPIDERCRAB_CONFIG
@@ -62,8 +62,8 @@ if __name__ == '__main__':
     print 'Contents:'
     os.system('cat ' + TEMP_SPIDERCRAB_CONFIG)
 
-    print '\nRunning Spidercrab master with option to enqueue above sources.'
-    command = '../graph_workers/spidercrab_master.py -o -c %s'
+    print '\nRunning two masters with option to enqueue above sources.'
+    command = '../graph_workers/spidercrab_master.py -o -n 2 -c %s'
     command %= TEMP_SPIDERCRAB_CONFIG
     print command
     time.sleep(1)
@@ -75,8 +75,6 @@ if __name__ == '__main__':
     print command
     time.sleep(1)
     os.system(command)
-
-    print '\nFinished!'
 
     print '\nResult files created under following paths:'
     for temp_file in files:

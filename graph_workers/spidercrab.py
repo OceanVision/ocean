@@ -83,6 +83,8 @@ class Spidercrab(GraphWorker):
         C_TERMINATE_ON_END: 0
     }
 
+    SUPPORTED_MIME_TYPES = ['text/plain', 'text/html']
+
     def __init__(
             self,
             master=False,
@@ -543,7 +545,8 @@ class Spidercrab(GraphWorker):
         )
         result = self.odm_client.execute_query(query)
         self.logger.log(
-            info_level, 'Master queued ' + str(len(result)) + ' sources.'
+            info_level,
+            self.fullname + 'Master queued ' + str(len(result)) + ' sources.'
         )
         self.stats[self.S_QUEUED_SOURCES] += len(result)
         return result
@@ -739,6 +742,8 @@ class Spidercrab(GraphWorker):
                     time_struct_to_database_timestamp(
                         entry.get('published_parsed', 'unknown'))
                 )
+                links = entry.get('links', [{}])
+                news['type'] = unicode(links[0].get('type', 'unknown'))
                 properties['news'].append(news)
         except Exception as error:
             logger.log(error_level, 'RSS XML error - ' + str(error))
@@ -808,11 +813,20 @@ class Spidercrab(GraphWorker):
                     self.fullname + ' extracting ' + str(news_props['link'])
                 )
                 try:
-                    news_props = self._extract_news(news_props)
+                    if self._news_is_supported(news_props):
+                        news_props = self._extract_news(news_props)
+                    else:
+                        self.logger.log(
+                            info_level,
+                            self.fullname + ' ' + news_props['link']
+                            + ' - This content is not supported in '
+                              'extraction!'
+                        )
                 except Exception as error:
                     self.logger.log(
                         error_level,
-                        news_props['link'] + ' - Fetching error: ' + str(error)
+                        self.fullname + ' ' + news_props['link']
+                        + ' - Extracting error: ' + str(error)
                     )
                 query = u"""
                     MATCH
@@ -827,7 +841,8 @@ class Spidercrab(GraphWorker):
                         link: '%s',
                         published: %s,
                         text: '%s',
-                        html: '%s'
+                        html: '%s',
+                        type: '%s'
                     }),
                     (cs_model)
                     -[:`%s`]->
@@ -837,12 +852,13 @@ class Spidercrab(GraphWorker):
                 query %= (
                     source_props['uuid'],
                     PRODUCES_RELATION,
-                    news_props['title'],
-                    news_props['summary'],
-                    news_props['link'],
-                    news_props['published'],
-                    news_props['text'],
+                    news_props.get('title', 'unknown'),
+                    news_props.get('summary', 'unknown'),
+                    news_props.get('link', 'unknown'),
+                    news_props.get('published', 'unknown'),
+                    news_props.get('text', 'unknown'),
                     'TODO',  # news_props['html'],
+                    news_props.get('type', 'unknown'),
                     HAS_INSTANCE_RELATION
                 )
                 result = self.odm_client.execute_query(query)
@@ -854,10 +870,18 @@ class Spidercrab(GraphWorker):
                         self.fullname + ' Not added ' + news_props['link']
                         + ' !!! - check Lionfish logs!'
                     )
-            self.logger.log(
-                info_level,
-                self.fullname + ' Fetched ' + str(fetched_news_ps) + '. news'
-                + ' for ' + source_props['link'])
+            if fetched_news_ps > 0:
+                self.logger.log(
+                    info_level,
+                    self.fullname + ' Fetched ' + str(fetched_news_ps)
+                    + '. news for ' + source_props['link'])
+
+    def _news_is_supported(self, news):
+        """
+            Exclude media files etc. from extraction.
+        """
+        if news['type'] in self.SUPPORTED_MIME_TYPES:
+            return True
 
     def _extract_news(self, news_props):
         """

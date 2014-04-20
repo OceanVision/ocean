@@ -18,17 +18,36 @@ from spidercrab import Spidercrab
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
 from don_utils import get_configuration
 
+spidercrabs = []
+spidercrab_slave_threads = []
+
+
+def are_spidercrab_slaves_running():
+    for spidercrab_thread in spidercrabs:
+        if spidercrab_thread.is_alive():
+            return True
+    return False
+
+
+def get_spidercrab_graph_workers():
+    """
+        Useful method when importing this script.
+    """
+    if are_spidercrab_slaves_running():
+        raise RuntimeWarning('Spidercrab slave is currently running!')
+    else:
+        return spidercrabs
+
+
 if __name__ == '__main__':
 
     default_number = 1
-
     try:
         default_number = get_configuration('spidercrab_slave', 'number')
     except Exception as error:
         print error
 
     default_export_file_name = None
-
     try:
         default_export_file_name = get_configuration(
             'spidercrab_slave', 'export_cs_to')
@@ -84,11 +103,13 @@ if __name__ == '__main__':
 
     # Simplicity at its best
     for i in range(options.number):
-        worker = Spidercrab.create_worker(
+        spidercrab_slave = Spidercrab.create_worker(
             config_file_name=options.config_file_name,
             runtime_id=str(i),
             export_cs_to=options.export_file_name,
             no_corleone=options.no_corleone,
         )
-        thread = Thread(target=worker.run)
+        thread = Thread(target=spidercrab_slave.run)
         thread.start()
+        spidercrab_slave_threads.append(thread)
+        spidercrabs.append(spidercrab_slave)

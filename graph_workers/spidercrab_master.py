@@ -10,15 +10,43 @@ import os
 import sys
 
 from optparse import OptionParser
+from threading import Thread
+
 from spidercrab import Spidercrab
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
 from don_utils import get_configuration
 
+spidercrabs = []
+spidercrab_master_threads = []
+
+
+def are_spidercrab_masters_running():
+    for spidercrab_thread in spidercrab_master_threads:
+        if spidercrab_thread.is_alive():
+            return True
+    return False
+
+
+def get_spidercrab_graph_workers():
+    """
+        Useful method when importing this script.
+    """
+    if are_spidercrab_masters_running():
+        raise RuntimeWarning('Spidercrab master is currently running!')
+    else:
+        return spidercrabs
+
+
 if __name__ == '__main__':
 
-    default_sources_url_file = ''
+    default_number = 1
+    try:
+        default_number = get_configuration('spidercrab_slave', 'number')
+    except Exception as error:
+        print error
 
+    default_sources_url_file = ''
     try:
         default_number = get_configuration(
             'spidercrab_master', 'sources_urls_file')
@@ -26,6 +54,15 @@ if __name__ == '__main__':
         print error
 
     parser = OptionParser()
+    parser.add_option(
+        '-n',
+        '--number',
+        dest='number',
+        default=default_number,
+        type='int',
+        help='Number of threads to launch. \nNOTE: You can set this option '
+             'in Don Corleone config under the "number" key.'
+    )
     parser.add_option(
         '-c',
         '--config',
@@ -59,9 +96,14 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
 
     # Spidercrab master launch is simple as hell
-    spidercrab_master = Spidercrab.create_master(
-        config_file_name=options.config_file_name,
-        master_sources_urls_file=options.sources_urls_file,
-        no_corleone=options.no_corleone,
-    )
-    spidercrab_master.run()
+    for i in range(options.number):
+        spidercrab_master = Spidercrab.create_master(
+            config_file_name=options.config_file_name,
+            runtime_id=str(i),
+            master_sources_urls_file=options.sources_urls_file,
+            no_corleone=options.no_corleone,
+        )
+        thread = Thread(target=spidercrab_master.run)
+        thread.start()
+        spidercrab_master_threads.append(thread)
+        spidercrabs.append(spidercrab_master)
