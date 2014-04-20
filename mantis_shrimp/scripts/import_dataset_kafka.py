@@ -87,6 +87,6 @@ if __name__ == "__main__":
     for id, d in enumerate(get_documents(options.root_dir, options.file_encoding)):
         print "Pushing #",id," document"
         words = document_to_word_list(d)
-        news = {"uuid":id, "title":(u" ".join(words[0:10])).encode("utf-8"), "summary":d.encode("utf8"), "text":""}
+        news = {"uuid":str(id), "title":(u" ".join(words[0:10])).encode("utf-8"), "summary":d.encode("utf8"), "text":""}
         producer.send_messages("mantis_"+options.name, json.dumps(news).encode("utf-8"))
 

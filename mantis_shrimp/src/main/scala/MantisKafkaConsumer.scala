@@ -89,11 +89,17 @@ import kafka.api.PartitionOffsetRequestInfo
 import kafka.message.MessageAndOffset
 
 
-import org.specs2.mutable._
+import rapture.fs._
+import rapture.io._
+import rapture.net._
+import rapture.core._
+import rapture.json._
+import jsonParsers.scalaJson._
+
+
 import java.util.UUID
 import kafka.consumer._
 import kafka.utils._
-import kafka.akka._
 import akka.actor.{Actor, ActorSystem}
 
 import rapture.core._
@@ -134,20 +140,25 @@ import java.nio.file.{Paths, Files}
 
 import akka.actor.{Actor, Props, ActorSystem}
 
+import java.io.FileWriter
+import monifu.concurrent.atomic._
+import java.lang.{Runnable, Thread}
 /**
  * Basic Kafka Actor. Note that it will be sufficient in most cases because
  * We will create new topics for new big chunks of news. I do not want
  * to focus on implementing this one single actor.
  */
 class MantisKafkaFetcherBasic extends Actor {
+    //Encoding for JSON parsing
+    implicit val enc = Encodings.`UTF-8`
     //Main source of news
     val topic = "mantis_mock_dataset_2"
     //Stop fetching thread when exceedes
-    val maximumQueueSize = 1000
+    val maximumQueueSize =  1000
     //Queue to store messages
-    val Q = new mutable.SynchronizedQueue[String]()
+    val Q = new mutable.SynchronizedQueue[Map[String, AnyRef]]()
 
-    // Prepare Kafka High Level Consumer
+    // Prepare Kafka High Level Consumer. TODO: Create own wrapper around this
     val props = new Properties()
     props.put("group.id", "console-consumer-2222222")
     props.put("socket.receive.buffer.bytes", (2 * 1024 * 1024).toString)
@@ -161,6 +172,7 @@ class MantisKafkaFetcherBasic extends Actor {
     props.put("zookeeper.connect", "ocean-db.no-ip.biz:2181")
     props.put("consumer.timeout.ms", (-1).toString)
     props.put("refresh.leader.backoff.ms", (ConsumerConfig.RefreshMetadataBackoffMs).toString)
+
     val consumerconfig   = new ConsumerConfig(props)
     val consumer = kafka.consumer.Consumer.createJavaConsgumerConnector(consumerconfig)
     val topicMap =  Map[String, Integer]("mantis_mock_dataset_2" -> 1)
@@ -170,18 +182,48 @@ class MantisKafkaFetcherBasic extends Actor {
     val consumerIter:ConsumerIterator[Array[Byte], Array[Byte]] = stream.iterator()
 
     // Fetch already tagged news (note this will be synchronized through offsets
-    // the more advanced version
-    tagged =  if(Files.exists("fetched"))
+    // the more advanced version.
+    val tagged_in_current_topic_list =  if(Files.exists(Paths.get("tagged.dat")))
+          scala.io.Source.fromFile("tagged.dat").mkString.split("\\r?\\n").toList else
+          List()
+    var tagged_in_current_topic = scala.collection.mutable.Set[String]()
+    tagged_in_current_topic ++= tagged_in_current_topic
 
-    val fetcher_thread = new Thread(new Runnable {
+  /**
+   * Commits already tagged to file. Not implemented correctly now (should update list)
+   */
+    private def commitTagged()={
+         val fw = new java.io.FileWriter("tagged.dat")
+         try fw.write(tagged_in_current_topic_list.mkString("/n"))
+         finally fw.close()
+    }
+
+    // Fetching thread running in background
+    val fetcher_thread = new java.lang.Thread(new java.lang.Runnable {
+      def run(){
         while(consumerIter.hasNext()){
+          val msgoffset = consumerIter.next()
 
-
-          System.out.println("MSG -> " + new String(consumerIter.next().message))
+          // Try parsing - if format is incorrect write error
+          try {
+            val msg = JsonBuffer.parse(new String(msgoffset.message))
+            val uuid = msg.uuid.as[String]
+            if (!tagged_in_current_topic.contains(uuid)) {
+              var entry = scala.collection.mutable.HashMap[String, AnyRef]()
+              entry += "title" -> msg.title.as[String]
+              entry += "summary" -> msg.summary.as[String]
+              entry += "text" -> msg.text.as[String]
+            }
+          }
+          catch{
+            // TODO: improve logging
+            case e: Exception => println("Failed parsing consumer message offset=" + msgoffset.offset.toString)
+          }
         }
-
+      }
     })
-
+  fetcher_thread.setDaemon(true)
+  fetcher_thread.start
 
 
   def receive = {
