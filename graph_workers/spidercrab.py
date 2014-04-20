@@ -836,6 +836,7 @@ class Spidercrab(GraphWorker):
                     (source)
                     -[:`%s`]->
                     (news:Content:NotYetTagged {
+                        uuid: '%s',
                         title: '%s',
                         summary: '%s',
                         link: '%s',
@@ -852,6 +853,7 @@ class Spidercrab(GraphWorker):
                 query %= (
                     source_props['uuid'],
                     PRODUCES_RELATION,
+                    uuid.uuid1(),
                     news_props.get('title', 'unknown'),
                     news_props.get('summary', 'unknown'),
                     news_props.get('link', 'unknown'),
