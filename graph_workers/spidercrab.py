@@ -42,11 +42,29 @@ class Spidercrab(GraphWorker):
 
     TEMPLATE_CONFIG_NAME = './spidercrab.json.template'
 
+    # Statistics variable names
+    # Master
+    S_QUEUED_SOURCES = 'total_queued_sources'
+    STATS_DEFAULTS_MASTER = {
+        S_QUEUED_SOURCES: 0,
+    }
+    # Slave
+    S_FETCHED_NEWS = 'total_fetched_news'
+    S_EXTRACTED_NEWS = 'total_extracted_news'
+    S_UPDATED_SOURCES = 'total_updated_sources'
+    STATS_DEFAULTS_SLAVE = {
+        S_FETCHED_NEWS: 0,
+        S_EXTRACTED_NEWS: 0,
+        S_UPDATED_SOURCES: 0,
+    }
+
     # Config variable names
     C_UPDATE_INTERVAL_S = 'update_interval_s'
     C_GRAPH_WORKER_ID = 'graph_worker_id'
     C_SOURCES_ENQUEUE_PORTION = 'sources_enqueue_portion'
     C_SOURCES_ENQUEUE_MAX = 'sources_enqueue_max'
+    C_NEWS_FETCH_MAX = 'news_fetch_max'
+    C_NEWS_FETCH_PER_SOURCE_MAX = 'news_fetch_per_source_max'
     C_MASTER_SLEEP_S = 'master_sleep_s'
     C_SLAVE_SLEEP_S = 'worker_sleep_s'
     C_DO_NOT_FETCH = 'do_not_fetch'
@@ -57,6 +75,8 @@ class Spidercrab(GraphWorker):
         C_GRAPH_WORKER_ID: 'UNDEFINED',
         C_SOURCES_ENQUEUE_PORTION: 10,
         C_SOURCES_ENQUEUE_MAX: float('inf'),
+        C_NEWS_FETCH_MAX: float('inf'),
+        C_NEWS_FETCH_PER_SOURCE_MAX: float('inf'),
         C_MASTER_SLEEP_S: 10,
         C_SLAVE_SLEEP_S: 10,
         C_DO_NOT_FETCH: 0,
@@ -78,9 +98,9 @@ class Spidercrab(GraphWorker):
         """
         self.logger = logger
         # Config used to be stored inside the database (only values from file)
-        self.given_config = {}
+        self.given_config = dict()
         # Config that will be used in computing (supplemented with defaults)
-        self.config = {}
+        self.config = dict()
         self._init_config(master, config_file_name)
 
         self.required_privileges = construct_full_privilege()
@@ -103,8 +123,11 @@ class Spidercrab(GraphWorker):
             self.is_master = False
             self.level = 'slave'
 
-        self.fullname = '[' + self.config['graph_worker_id'] + ' ' + \
+        self.fullname = '[' + self.config[self.C_GRAPH_WORKER_ID] + ' ' + \
             self.level + ' ' + self.runtime_id + ']'
+
+        self.stats = dict()
+        self._init_stats()
 
     def terminate(self):
         """
@@ -157,7 +180,7 @@ class Spidercrab(GraphWorker):
 
         if self.is_master:
             queued_sources = 0
-            while queued_sources < self.config['sources_enqueue_max']:
+            while queued_sources < self.config[self.C_SOURCES_ENQUEUE_MAX]:
                 if self.master_sources_urls_file:
                     # Enqueue from file new sources to be browsed by slaves
                     self._enqueue_source_lines()
@@ -193,10 +216,13 @@ class Spidercrab(GraphWorker):
                 else:
                     time_left = self.config[self.C_SLAVE_SLEEP_S]
                     source_props = self._update_source(source)
-                    if self.config['do_not_fetch']:
+                    if self.config[self.C_DO_NOT_FETCH]:
                         continue
                     if 'news' in source_props:
-                        self._fetch_new_news(source_props)
+                        fetched_news = self.stats[self.S_FETCHED_NEWS]
+                        fetch_max = self.config[self.C_NEWS_FETCH_MAX]
+                        if fetched_news < fetch_max:
+                            self._fetch_new_news(source_props)
                     else:
                         self.logger.log(
                             error_level,
@@ -205,6 +231,9 @@ class Spidercrab(GraphWorker):
                             + str(source_props))
 
         self._end_run()
+
+    def get_stats(self):
+        return self.stats
 
     def _init_run(self):
         self.odm_client.connect()
@@ -224,7 +253,9 @@ class Spidercrab(GraphWorker):
 
     def _end_run(self):
         self.odm_client.disconnect()
-        logger.log(info_level, self.fullname + ' Finished!')
+        logger.log(
+            info_level,
+            self.fullname + ' Finished!\nStats:\n' + str(self.stats))
 
     def _check_and_pull_config(self):
         """
@@ -305,13 +336,15 @@ class Spidercrab(GraphWorker):
         """
         instances = self.odm_client.get_instances('Spidercrab')
         master_uuid = ''
+        graph_worker_id = self.config[self.C_GRAPH_WORKER_ID]
+
         for instance in instances:
-            if instance['graph_worker_id'] == self.config['graph_worker_id']:
+            if instance['graph_worker_id'] == graph_worker_id:
                 master_uuid = instance['uuid']
         if master_uuid:
             self.logger.log(
                 info_level,
-                'Spidercrab ' + self.config['graph_worker_id']
+                'Spidercrab ' + graph_worker_id
                 + ' already registered in the database. '
                 + ' Updating config...'
             )
@@ -320,7 +353,7 @@ class Spidercrab(GraphWorker):
         else:
             self.logger.log(
                 info_level,
-                'Registering ' + self.config['graph_worker_id']
+                'Registering ' + graph_worker_id
                 + ' Spidercrab in the database.'
             )
             params = self.given_config
@@ -379,11 +412,23 @@ class Spidercrab(GraphWorker):
             if param not in self.config:
                 self.config[param] = self.CONFIG_DEFAULTS[param]
 
-        if self.config['graph_worker_id'] == 'UNDEFINED':
+        if self.config[self.C_GRAPH_WORKER_ID] == 'UNDEFINED':
             raise ValueError(
                 'Please choose your id and enter it inside '
                 + config_file_name + '!'
             )
+
+    def _init_stats(self):
+        if self.is_master:
+            self.stats = {
+                'total_queued_sources': 0,
+            }
+        else:
+            self.stats = {
+                'total_fetched_news': 0,
+                'total_extracted_news': 0,
+                'total_updated_sources': 0,
+            }
 
     @staticmethod
     def _read_file(file_name):
@@ -414,7 +459,7 @@ class Spidercrab(GraphWorker):
         n = 0
         for line in self.content_sources_urls:
             n += 1
-            if n > self.config['sources_enqueue_max']:
+            if n > self.config[self.C_SOURCES_ENQUEUE_MAX]:
                 break
             self.logger.log(
                 info_level,
@@ -431,7 +476,7 @@ class Spidercrab(GraphWorker):
             """
             query %= (
                 line[:-1],
-                self.config['graph_worker_id']
+                self.config[self.C_GRAPH_WORKER_ID]
             )
             result = self.odm_client.execute_query(query)
             if result:
@@ -462,9 +507,10 @@ class Spidercrab(GraphWorker):
                 """
                 query %= (
                     line[:-1],
-                    self.config['graph_worker_id']
+                    self.config[self.C_GRAPH_WORKER_ID]
                 )
-                self.odm_client.execute_query(query)
+                result = self.odm_client.execute_query(query)
+                self.stats[self.S_QUEUED_SOURCES] += len(result)
             except Exception as error:
                 self.logger.log(
                     error_level,
@@ -490,15 +536,16 @@ class Spidercrab(GraphWorker):
         LIMIT %s
         """
         query %= (
-            self.config['graph_worker_id'],
+            self.config[self.C_GRAPH_WORKER_ID],
             database_gmt_now(),
-            self.config['update_interval_s'],
-            self.config['sources_enqueue_portion'],
+            self.config[self.C_UPDATE_INTERVAL_S],
+            self.config[self.C_SOURCES_ENQUEUE_PORTION],
         )
         result = self.odm_client.execute_query(query)
         self.logger.log(
             info_level, 'Master queued ' + str(len(result)) + ' sources.'
         )
+        self.stats[self.S_QUEUED_SOURCES] += len(result)
         return result
 
     def _pick_pending_source(self):
@@ -517,7 +564,7 @@ class Spidercrab(GraphWorker):
         LIMIT 1
         """
         query %= (
-            self.config['graph_worker_id'],
+            self.config[self.C_GRAPH_WORKER_ID],
             database_gmt_now(),
         )
         result = self.odm_client.execute_query(query)
@@ -598,7 +645,9 @@ class Spidercrab(GraphWorker):
             self.fullname
             + ' Updating ContentSource of ' + properties['link']
         )
-        self.odm_client.execute_query(query)
+        result = self.odm_client.execute_query(query)
+        self.stats[self.S_UPDATED_SOURCES] += len(result)
+        print len(result)
 
         # Optional ContentSource properties
         if 'image' in properties:
@@ -717,8 +766,27 @@ class Spidercrab(GraphWorker):
             website.
         """
         news_list = source_props['news']
-        fetched_news = 0
+        fetch_max = self.config[self.C_NEWS_FETCH_MAX]
+        fetch_max_ps = self.config[self.C_NEWS_FETCH_PER_SOURCE_MAX]
+        fetched_news_ps = 0
+
         for news_props in news_list:
+            if fetched_news_ps >= fetch_max_ps:
+                logger.log(
+                    info_level,
+                    self.fullname + ' fetched ' + str(fetched_news_ps)
+                    + ' news - nothing to do here!'
+                )
+                break
+            fetched_news = self.stats[self.S_FETCHED_NEWS]
+            if fetched_news >= fetch_max:
+                logger.log(
+                    info_level,
+                    self.fullname + ' fetched total of ' + str(fetched_news)
+                    + ' news from all sources - nothing to do here!'
+                )
+                break
+
             # Check if this news is already present in the database
             query = """
                 MATCH
@@ -740,13 +808,12 @@ class Spidercrab(GraphWorker):
                     self.fullname + ' extracting ' + str(news_props['link'])
                 )
                 try:
-                    news_props = Spidercrab._extract_news(news_props)
+                    news_props = self._extract_news(news_props)
                 except Exception as error:
                     self.logger.log(
                         error_level,
                         news_props['link'] + ' - Fetching error: ' + str(error)
                     )
-                fetched_news += 1
                 query = u"""
                     MATCH
                     (source:ContentSource {uuid: '%s'}),
@@ -779,6 +846,8 @@ class Spidercrab(GraphWorker):
                     HAS_INSTANCE_RELATION
                 )
                 result = self.odm_client.execute_query(query)
+                fetched_news_ps += len(result)
+                self.stats[self.S_FETCHED_NEWS] += len(result)
                 if not result:
                     self.logger.log(
                         error_level,
@@ -787,11 +856,10 @@ class Spidercrab(GraphWorker):
                     )
             self.logger.log(
                 info_level,
-                self.fullname + ' Fetched ' + str(fetched_news) + '. news'
+                self.fullname + ' Fetched ' + str(fetched_news_ps) + '. news'
                 + ' for ' + source_props['link'])
 
-    @staticmethod
-    def _extract_news(news_props):
+    def _extract_news(self, news_props):
         """
             Extracts content of news.
         """
@@ -804,6 +872,7 @@ class Spidercrab(GraphWorker):
             )
             news_props['text'] = unicode(extractor.getText())
             news_props['html'] = unicode(extractor.getHTML())
+            self.stats[self.S_EXTRACTED_NEWS] += 1
         except Exception as error:
             logger.log(error_level, error)
         #TODO: news images

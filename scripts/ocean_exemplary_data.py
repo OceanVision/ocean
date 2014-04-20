@@ -99,7 +99,7 @@ if __name__ == '__main__':
                 HAS_INSTANCE_RELATION,
                 **cs_node
             )
-            if i % 200 == 0 or i == len(content_sources_list)-1:
+            if i % 25 == 0 or i == len(content_sources_list)-1:
                 print 'Submitting batch... Please have patience...'
                 odm_batch.submit()
         except Exception as e:

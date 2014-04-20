@@ -51,7 +51,8 @@ if __name__ == '__main__':
         {
             \\"update_interval_s\\": 10,
             \\"graph_worker_id\\": \\"1000_test_spidercrab\\",
-            \\"terminate_on_end\\": 1
+            \\"terminate_on_end\\": 0,
+            \\"\\"
         }
         """,
         TEMP_SPIDERCRAB_CONFIG
