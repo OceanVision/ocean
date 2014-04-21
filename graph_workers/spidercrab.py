@@ -5,10 +5,13 @@
 #from BeautifulSoup import BeautifulSoup
 import boilerpipe.extract
 import feedparser
+import json
 import os
 import shutil
 import sys
 import threading
+import time
+import urllib2
 import uuid
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
@@ -41,6 +44,8 @@ logger.addHandler(ch_file)
 class Spidercrab(GraphWorker):
 
     TEMPLATE_CONFIG_NAME = './spidercrab.json.template'
+    STANDARD_STATS_EXPORT_FILE = os.path.join(
+        os.path.dirname(__file__), '../logs/spidercrab-stats.json')
 
     # Statistics variable names
     # Master
@@ -69,6 +74,7 @@ class Spidercrab(GraphWorker):
     C_SLAVE_SLEEP_S = 'worker_sleep_s'
     C_DO_NOT_FETCH = 'do_not_fetch'
     C_TERMINATE_ON_END = 'terminate_on_end'
+    C_TERMINATE_WHEN_FETCHED = 'terminate_when_fetched'
 
     CONFIG_DEFAULTS = {
         C_UPDATE_INTERVAL_S: 60*15,     # 15 minutes :)
@@ -80,10 +86,11 @@ class Spidercrab(GraphWorker):
         C_MASTER_SLEEP_S: 10,
         C_SLAVE_SLEEP_S: 10,
         C_DO_NOT_FETCH: 0,
-        C_TERMINATE_ON_END: 0
+        C_TERMINATE_ON_END: 0,
+        C_TERMINATE_WHEN_FETCHED: 0,
     }
 
-    SUPPORTED_MIME_TYPES = ['text/plain', 'text/html']
+    SUPPORTED_CONTENT_TYPES = ['text/plain', 'text/html']
 
     def __init__(
             self,
@@ -91,6 +98,7 @@ class Spidercrab(GraphWorker):
             config_file_name='',
             runtime_id=str(uuid.uuid1())[:8],
             master_sources_urls_file='',
+            export_stats_to=None,
             export_cs_to=None,
             no_corleone=False,
     ):
@@ -110,6 +118,7 @@ class Spidercrab(GraphWorker):
         self.terminate_event = threading.Event()
         self.runtime_id = runtime_id
         self.master_sources_urls_file = master_sources_urls_file
+        self.export_stats_to = export_stats_to
         self.export_cs_to = export_cs_to
         self.no_corleone = no_corleone
 
@@ -130,6 +139,8 @@ class Spidercrab(GraphWorker):
 
         self.stats = dict()
         self._init_stats()
+
+        self._sources_stack = list()
 
     def terminate(self):
         """
@@ -225,6 +236,12 @@ class Spidercrab(GraphWorker):
                         fetch_max = self.config[self.C_NEWS_FETCH_MAX]
                         if fetched_news < fetch_max:
                             self._fetch_new_news(source_props)
+                        elif self.config[self.C_TERMINATE_WHEN_FETCHED]:
+                            break
+                        self.logger.log(
+                            info_level,
+                            self.fullname + ' Stats: ' + str(self.stats)
+                        )
                     else:
                         self.logger.log(
                             error_level,
@@ -258,6 +275,39 @@ class Spidercrab(GraphWorker):
         logger.log(
             info_level,
             self.fullname + ' Finished!\nStats:\n' + str(self.stats))
+        self._export_stats_to(self.STANDARD_STATS_EXPORT_FILE)
+        if not self.export_stats_to is None:
+            self._export_stats_to(self.export_stats_to)
+
+    def _export_stats_to(self, file_name):
+        json_export = {
+            'timestamp': time.time(),
+            'runtime_id': self.runtime_id,
+            'stats': self.stats
+        }
+        if not os.path.isfile(file_name):
+            with open(file_name, 'w') as json_file:
+                json_file.write(json.dumps({}))
+        try:
+            with open(file_name, 'r') as json_file:
+                data = json.load(json_file)
+            try:
+                graph_worker_id = self.config[self.C_GRAPH_WORKER_ID]
+                if graph_worker_id not in data:
+                    data[graph_worker_id] = dict()
+                if self.level not in data[graph_worker_id]:
+                    data[graph_worker_id][self.level] = []
+                data[graph_worker_id][self.level].append(json_export)
+            finally:
+                with open(file_name, 'w') as json_file:
+                    json_file.write(json.dumps(data, indent=4, sort_keys=True))
+        except IOError as e:
+            print e
+            pass
+        return True
+
+
+
 
     def _check_and_pull_config(self):
         """
@@ -546,7 +596,7 @@ class Spidercrab(GraphWorker):
         result = self.odm_client.execute_query(query)
         self.logger.log(
             info_level,
-            self.fullname + 'Master queued ' + str(len(result)) + ' sources.'
+            self.fullname + ' Master queued ' + str(len(result)) + ' sources.'
         )
         self.stats[self.S_QUEUED_SOURCES] += len(result)
         return result
@@ -587,6 +637,7 @@ class Spidercrab(GraphWorker):
         """
         properties = dict()
         source_link = source_node['link']
+        self._sources_stack = [source_link]
         try:
             properties = self._parse_source(source_link)
         except Exception as error:
@@ -650,7 +701,6 @@ class Spidercrab(GraphWorker):
         )
         result = self.odm_client.execute_query(query)
         self.stats[self.S_UPDATED_SOURCES] += len(result)
-        print len(result)
 
         # Optional ContentSource properties
         if 'image' in properties:
@@ -674,8 +724,7 @@ class Spidercrab(GraphWorker):
         properties['uuid'] = source_node['uuid']
         return properties
 
-    @staticmethod
-    def _parse_source(source_link):
+    def _parse_source(self, source_link):
         """
             Parse source properties to a dictionary using various methods.
             (For later use with methods for other further content sources)
@@ -694,7 +743,11 @@ class Spidercrab(GraphWorker):
             logger.log(
                 error_level,
                 data.get('href', '(Unknown url)') + ' is not a feed!')
-            return Spidercrab._try_another_source_link(data)
+            another_props = self._try_another_source_link(data)
+            if not another_props:
+                return properties
+            else:
+                return another_props
 
         version = data.get('version', 'unknown')
         if version[:3] == 'rss' or version == 'unknown' or not version:
@@ -749,18 +802,19 @@ class Spidercrab(GraphWorker):
             logger.log(error_level, 'RSS XML error - ' + str(error))
         return properties
 
-    @staticmethod
-    def _try_another_source_link(data):
+    def _try_another_source_link(self, data):
         feed = data['feed']
         properties = dict()
         try:
             for link in feed.get('links', []):
+                if link.get('href') in self._sources_stack:
+                    continue
                 # TODO: Other feeds
                 if 'rss' in link.get('type', ''):
                     logger.log(
-                        info_level, 'Trying ' + link['href'] + ' ...'
+                        info_level, 'Trying ' + str(link.get('href')) + ' ...'
                     )
-                    properties = Spidercrab._parse_source(link['href'])
+                    properties = self._parse_source(link['href'])
         except Exception as error:
             logger.log(error_level, 'RSS XML error - ' + str(error))
         return properties
@@ -808,20 +862,15 @@ class Spidercrab(GraphWorker):
             result = self.odm_client.execute_query(query)
 
             if not result:
-                self.logger.log(
-                    info_level,
-                    self.fullname + ' extracting ' + str(news_props['link'])
-                )
+
                 try:
-                    if self._news_is_supported(news_props):
-                        news_props = self._extract_news(news_props)
-                    else:
+                    if self._news_is_supported(news_props['link']):
                         self.logger.log(
                             info_level,
-                            self.fullname + ' ' + news_props['link']
-                            + ' - This content is not supported in '
-                              'extraction!'
+                            self.fullname + ' extracting '
+                            + str(news_props['link'])
                         )
+                        news_props = self._extract_news(news_props)
                 except Exception as error:
                     self.logger.log(
                         error_level,
@@ -878,20 +927,35 @@ class Spidercrab(GraphWorker):
                     self.fullname + ' Fetched ' + str(fetched_news_ps)
                     + '. news for ' + source_props['link'])
 
-    def _news_is_supported(self, news):
+    def _news_is_supported(self, url):
         """
             Exclude media files etc. from extraction.
         """
-        if news['type'] in self.SUPPORTED_MIME_TYPES:
-            return True
+        news = urllib2.urlopen(url)
+        content_type = news.headers.get('content-type', '')
+        for supported in self.SUPPORTED_CONTENT_TYPES:
+            if supported in content_type:
+                return True
+
+        self.logger.log(
+            info_level,
+            self.fullname + ' ' + str(url)
+            + ' - This content is not supported in extraction! '
+            + '(' + str(content_type) + ')'
+        )
+        return False
 
     def _extract_news(self, news_props):
         """
             Extracts content of news.
+            TODO: Fix encoding
         """
-        # TODO: Fix encoding
         news_props['text'] = 'unknown'
         news_props['html'] = 'unknown'
+
+        if not self._news_is_supported(news_props['link']):
+            return news_props
+
         try:
             extractor = boilerpipe.extract.Extractor(
                 extractor='ArticleExtractor', url=news_props['link']

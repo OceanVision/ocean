@@ -15,7 +15,7 @@ from threading import Thread
 from spidercrab import Spidercrab
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
-from don_utils import get_configuration
+from don_utils import get_running_service, get_my_node_id
 
 spidercrabs = []
 spidercrab_master_threads = []
@@ -40,18 +40,19 @@ def get_spidercrab_graph_workers():
 
 if __name__ == '__main__':
 
-    default_number = 1
+    don_config = dict()
     try:
-        default_number = get_configuration('spidercrab_slave', 'number')
+        don_config = don_config = get_running_service(
+            service_name='spidercrab_master',
+            node_id=get_my_node_id(),
+            enforce_running=False
+        )['service_config']
     except Exception as error:
-        print error
+        print str(error)
 
-    default_sources_url_file = ''
-    try:
-        default_number = get_configuration(
-            'spidercrab_master', 'sources_urls_file')
-    except Exception as error:
-        print error
+    default_number = don_config.get('number', 1)
+    default_sources_url_file = don_config.get('sources_urls_file', '')
+    default_export_stats_file_name = don_config.get('export_stats_to', None)
 
     parser = OptionParser()
     parser.add_option(
@@ -84,6 +85,15 @@ if __name__ == '__main__':
              'config under the "sources_urls_file" key.'
     )
     parser.add_option(
+        '-t',
+        '--export-stats-to',
+        dest='export_stats_to',
+        default=default_export_stats_file_name,
+        help='Export stats of executed graph workers when they finish.'
+             '\nNOTE: You can set this option in Don Corleone config under '
+             'the "export_stats_to" key.'
+    )
+    parser.add_option(
         '-o',
         '--no-corleone',
         dest='no_corleone',
@@ -100,6 +110,7 @@ if __name__ == '__main__':
         spidercrab_master = Spidercrab.create_master(
             config_file_name=options.config_file_name,
             runtime_id=str(i),
+            export_stats_to=options.export_stats_to,
             master_sources_urls_file=options.sources_urls_file,
             no_corleone=options.no_corleone,
         )

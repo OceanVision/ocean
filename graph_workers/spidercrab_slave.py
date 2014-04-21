@@ -16,7 +16,7 @@ from threading import Thread
 from spidercrab import Spidercrab
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
-from don_utils import get_configuration
+from don_utils import get_running_service, get_my_node_id
 
 spidercrabs = []
 spidercrab_slave_threads = []
@@ -41,18 +41,19 @@ def get_spidercrab_graph_workers():
 
 if __name__ == '__main__':
 
-    default_number = 1
+    don_config = dict()
     try:
-        default_number = get_configuration('spidercrab_slave', 'number')
+        don_config = don_config = get_running_service(
+            service_name='spidercrab_slave',
+            node_id=get_my_node_id(),
+            enforce_running=False
+        )['service_config']
     except Exception as error:
-        print error
+        print str(error)
 
-    default_export_file_name = None
-    try:
-        default_export_file_name = get_configuration(
-            'spidercrab_slave', 'export_cs_to')
-    except Exception as error:
-        print error
+    default_number = don_config.get('number', 1)
+    default_export_file_name = don_config.get('export_cs_to', None)
+    default_export_stats_file_name = don_config.get('export_stats_to', None)
 
     parser = OptionParser()
     parser.add_option(
@@ -90,6 +91,15 @@ if __name__ == '__main__':
              '"export_cs_to" key.'
     )
     parser.add_option(
+        '-t',
+        '--export-stats-to',
+        dest='export_stats_to',
+        default=default_export_stats_file_name,
+        help='Export stats of executed graph workers when they finish.'
+             '\nNOTE: You can set this option in Don Corleone config under '
+             'the "export_stats_to" key.'
+    )
+    parser.add_option(
         '-o',
         '--no-corleone',
         dest='no_corleone',
@@ -106,6 +116,7 @@ if __name__ == '__main__':
         spidercrab_slave = Spidercrab.create_worker(
             config_file_name=options.config_file_name,
             runtime_id=str(i),
+            export_stats_to=options.export_stats_to,
             export_cs_to=options.export_file_name,
             no_corleone=options.no_corleone,
         )
