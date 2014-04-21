@@ -6,6 +6,9 @@ package mantisshrimp
 import akka.actor.{Props, ActorSystem}
 import ner._
 
+
+//TODO: write tests
+
 object Main extends App{
 
   def runSystem = {

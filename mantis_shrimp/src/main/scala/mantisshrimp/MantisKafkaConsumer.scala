@@ -55,7 +55,7 @@ class MantisKafkaFetcherBasic extends Actor {
     //Encoding for JSON parsing
     implicit val enc = Encodings.`UTF-8`
     //Stop fetching thread when exceedes
-    val maximumQueueSize =  1000
+    val maximumQueueSize =  100
     //Queue to store messages
     val Q = new mutable.SynchronizedQueue[scala.collection.mutable.Map[String, AnyRef]]()
 
@@ -111,9 +111,13 @@ class MantisKafkaFetcherBasic extends Actor {
             //TODO: improve
             if (!tagged_in_current_topic.contains(uuid)) {
               var entry = scala.collection.mutable.HashMap[String, AnyRef]()
-              entry += "title" -> msg.title.as[String]
-              entry += "summary" -> msg.summary.as[String]
-              entry += "text" -> msg.text.as[String]
+
+              //KafkaActor should act as a filter for garbage. It HAS to parse, and also
+              //has to improve quality. Those are Unicode decoded from UTF-8!
+
+              entry += "title" -> msg.title.as[String].split("\\r?\\n").map(_.trim).mkString(" ")
+              entry += "summary" -> msg.summary.as[String].split("\\r?\\n").map(_.trim).mkString(" ")
+              entry += "text" -> msg.text.as[String].split("\\r?\\n").map(_.trim).mkString(" ")
               entry += "uuid" -> msg.uuid.as[String]
               Q.enqueue(entry)
             }
@@ -124,12 +128,12 @@ class MantisKafkaFetcherBasic extends Actor {
             case e: Exception => println("Failed parsing consumer message offset=" + msgoffset.offset.toString+" "+msgoffset.message.toString)
           }
 
-          if(Q.length % 100 == 0){
+          if(Q.length % 1000 == 0){
             println("Already enqueued "+Q.length.toString+" news")
           }
 
           while(Q.length > maximumQueueSize)
-               java.lang.Thread.sleep(100)
+               java.lang.Thread.sleep(1000)
 
         }
       }
