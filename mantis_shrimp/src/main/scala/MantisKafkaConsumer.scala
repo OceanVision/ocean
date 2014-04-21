@@ -2,97 +2,17 @@
  * Created by staszek on 4/20/14.
  */
 
-
-import ly.stealth.testing
-
-import org.specs2.mutable._
-import java.util.UUID
-import kafka.consumer._
-import kafka.producer._
-import kafka.utils._
-import kafka.akka._
 import akka.actor.{Actor, Props, ActorSystem}
-import akka.routing.RoundRobinRouter
-
-import monifu.concurrent.atomic._
-
-import rapture.core._
-import rapture.json._
-import jsonParsers.scalaJson._
-import scala.util.parsing.json._
-import jsonParsers.scalaJson._
-import kafka.common.TopicAndPartition
-import scala.collection.immutable.HashMap
-
-//import kafka.producer.{ProducerConfig, ProducerData, Producer}
-
-//Internal strategy for Rapture.io - I dont see this design choice..
-import strategy.throwExceptions
 
 import java.util.Properties
 
 import kafka.api.{OffsetRequest, PartitionOffsetRequestInfo, FetchRequestBuilder, FetchRequest}
-import kafka.javaapi.consumer.SimpleConsumer
-import kafka.javaapi.FetchResponse
-import kafka.javaapi.message.ByteBufferMessageSet
-import scala.collection.JavaConversions._
-import java.nio.ByteBuffer
-import java.util.Properties
 import kafka.consumer.{Consumer, ConsumerConfig}
-
-import kafka.serializer.StringDecoder
-
-import scala.collection.JavaConverters._
-
-import kafka.javaapi.producer.Producer
 import kafka.producer.{ KeyedMessage, ProducerConfig }
 
-
-
-/*
-*
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements. See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership. The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License. You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing,
-* software distributed under the License is distributed on an
-* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-* KIND, either express or implied. See the License for the
-* specific language governing permissions and limitations
-* under the License.
-*
-*/
-
-
 import kafka.common.{ OffsetOutOfRangeException, ErrorMapping }
-import kafka.api._
-import kafka.common.TopicAndPartition
-import kafka.api.PartitionOffsetRequestInfo
-import kafka.message.MessageAndOffset
 
-
-import kafka.consumer.SimpleConsumer
-import kafka.api._
-import kafka.common.TopicAndPartition
-import kafka.consumer.ConsumerConfig
-
-import kafka.common.ErrorMapping
-import kafka.api._
-import kafka.api.PartitionOffsetRequestInfo
-import kafka.message.MessageAndOffset
-
-
-import rapture.fs._
 import rapture.io._
-import rapture.net._
-import rapture.core._
 import rapture.json._
 import jsonParsers.scalaJson._
 
@@ -107,6 +27,7 @@ import rapture.json._
 import jsonParsers.scalaJson._
 import jsonParsers.scalaJson._
 import scala.collection.immutable.HashMap
+
 import scala.collection.mutable
 
 //import kafka.producer.{ProducerConfig, ProducerData, Producer}
@@ -116,43 +37,23 @@ import strategy.throwExceptions
 
 import java.util.Properties
 
-import kafka.api.FetchRequest
-import kafka.javaapi.message.ByteBufferMessageSet
-import java.nio.ByteBuffer
-import java.util.Properties
-import kafka.consumer.Consumer
-
-
 import scala.collection.JavaConverters._
-
-import kafka.producer.KeyedMessage
-
-import kafka.api._
-
-
 import kafka.common.{ OffsetOutOfRangeException, ErrorMapping }
-import kafka.api.PartitionOffsetRequestInfo
-
-
-import kafka.consumer.SimpleConsumer
 import kafka.consumer.ConsumerConfig
 import java.nio.file.{Paths, Files}
 
 import akka.actor.{Actor, Props, ActorSystem}
 
 import java.io.FileWriter
-import monifu.concurrent.atomic._
 import java.lang.{Runnable, Thread}
 /**
  * Basic Kafka Actor. Note that it will be sufficient in most cases because
  * We will create new topics for new big chunks of news. I do not want
  * to focus on implementing this one single actor.
  */
-class MantisKafkaFetcherBasic extends Actor {
+class MantisKafkaFetcherBasic(topic: String = "mantis_mock_dataset_2") extends Actor {
     //Encoding for JSON parsing
     implicit val enc = Encodings.`UTF-8`
-    //Main source of news
-    val topic = "mantis_mock_dataset_2"
     //Stop fetching thread when exceedes
     val maximumQueueSize =  1000
     //Queue to store messages
@@ -160,7 +61,7 @@ class MantisKafkaFetcherBasic extends Actor {
 
     // Prepare Kafka High Level Consumer. TODO: Create own wrapper around this
     val props = new Properties()
-    props.put("group.id", "console-consumer-2222222")
+    props.put("group.id", topic+"_consumer")
     props.put("socket.receive.buffer.bytes", (2 * 1024 * 1024).toString)
     props.put("socket.timeout.ms", (ConsumerConfig.SocketTimeout).toString)
     props.put("fetch.message.max.bytes", (1024 * 1024).toString)
@@ -174,7 +75,7 @@ class MantisKafkaFetcherBasic extends Actor {
     props.put("refresh.leader.backoff.ms", (ConsumerConfig.RefreshMetadataBackoffMs).toString)
 
     val consumerconfig   = new ConsumerConfig(props)
-    val consumer = kafka.consumer.Consumer.createJavaConsgumerConnector(consumerconfig)
+    val consumer = kafka.consumer.Consumer.createJavaConsumerConnector(consumerconfig)
     val topicMap =  Map[String, Integer]("mantis_mock_dataset_2" -> 1)
     val consumerMap = consumer.createMessageStreams(topicMap.asJava)
     val streamz = consumerMap.get("mantis_mock_dataset_2")
@@ -203,7 +104,6 @@ class MantisKafkaFetcherBasic extends Actor {
       def run(){
         while(consumerIter.hasNext()){
           val msgoffset = consumerIter.next()
-
           // Try parsing - if format is incorrect write error
           try {
             val msg = JsonBuffer.parse(new String(msgoffset.message))
@@ -219,6 +119,14 @@ class MantisKafkaFetcherBasic extends Actor {
             // TODO: improve logging
             case e: Exception => println("Failed parsing consumer message offset=" + msgoffset.offset.toString)
           }
+
+          if(Q.length % 100 == 0){
+            println("Already enqueued "+Q.length.toString+" news")
+          }
+
+          while(Q.length > maximumQueueSize)
+               java.lang.Thread.sleep(100)
+
         }
       }
     })
@@ -227,18 +135,94 @@ class MantisKafkaFetcherBasic extends Actor {
 
 
   def receive = {
-    case "hello" => println("hello back at you")
-    case _       => println("huh?")
+      case "get_news" => {
+        //Wait foer news to arrive
+        while(Q.isEmpty)
+          java.lang.Thread.sleep(100)
+
+        //Ok
+         if(!Q.isEmpty) sender ! Item(Q.dequeue())
+      }
   }
 }
 
-object Main {
-  def main(a: Array[String]) {
 
-    val system = ActorSystem("HelloSystem")
-    // default Actor constructor
-    val helloActor = system.actorOf(Props[HelloActor], name = "helloactor")
-    helloActor ! "hello"
-    helloActor ! "buenos dias2"
+/*
+* Basic class for tagger
+*/
+class BasicTaggerActor extends Actor{
+  /*
+  * Override in inhertiting classes
+   */
+   def tag(x: Map[String, AnyRef]){
+     return List(x("uuid"), "ExampleTag1", "ExampleTag2")
+   }
+
+  /**
+   * Override in inheriting classes
+   */
+   def getType(){
+     return "BasicTagger"
+   }
+
+  def receive = {
+    case Tag(x: Map[String, AnyRef]) =>
+        sender ! Tagged(tag(x))
+    case GetType => sender ! getType()
   }
+}
+
+
+
+
+
+
+
+object MantisMaster extends Actor {
+  val taggersCount:Int =0
+  val kafkaFetchersCounter: Int = 0
+  var taggers = List()
+
+
+
+  def start {
+    //Define number of Taggers
+    val taggersCount = 5
+    //Kakfa fetchers, only one possible
+    val kafkaFetchersCount = 1
+
+    val system = ActorSystem("MantisShrimp")
+
+    // Construct taggers
+    var taggers = List()
+    for(i <- 0 to taggersCount) taggers ::= system.actorOf(Props[BasicTaggerActor], name = ("taggerActor" + i.toString) )
+
+    // KafkaFetcher thread
+    val kafkaFetcher = system.actorOf(Props[MantisKafkaFetcherBasic], name = ("kafkaFetcher0") )
+
+
+
+    // Run flow
+    kafkaFetcher ! "get_news"
+  }
+
+  def receive = {
+    case Tagged(x: List[String]) => {
+        println(x.get(0)+ " tagged with "+x.mkString)
+    }
+    case Item(x: Map[String, AnyRef]) => {
+
+    }
+    case "start" => {
+      start
+    }
+  }
+
+}
+
+object Main extends App{
+
+  val system = ActorSystem("MantisShrimp")
+  val mantisMaster = system.actorOf(Props[BasicTaggerActor], name = "mantisMaster")
+  mantisMaster ! "start"
 }

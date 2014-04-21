@@ -6,15 +6,11 @@
 
 package mantis_shrimp
 
-
-import ly.stealth.testing
-
-import org.specs2.mutable._
 import java.util.UUID
 import kafka.consumer._
 import kafka.producer._
 import kafka.utils._
-import kafka.akka._
+
 import akka.actor.{Actor, Props, ActorSystem}
 import akka.routing.RoundRobinRouter
 
