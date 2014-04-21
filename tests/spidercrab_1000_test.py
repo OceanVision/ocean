@@ -17,7 +17,6 @@ def run_master():
     cmd = '../graph_workers/spidercrab_master.py -o -n 2 -c %s -t %s'
     cmd %= (TEMP_SPIDERCRAB_CONFIG, TEMP_SPIDERCRAB_STATS_EXPORT)
     print cmd
-    time.sleep(1)
     os.system(cmd)
 
 
@@ -88,6 +87,7 @@ if __name__ == '__main__':
 
     master_thread = threading.Thread(target=run_master)
     master_thread.start()
+    time.sleep(1)
 
     print '\nRunning 10 slaves...'
     command = '../graph_workers/spidercrab_slave.py -o -n 10 -c %s -t %s'

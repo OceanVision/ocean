@@ -254,6 +254,9 @@ class Spidercrab(GraphWorker):
     def get_stats(self):
         return self.stats
 
+    def stub_for_mantis_kafka_push(self, node_dictionary):
+        pass
+
     def _init_run(self):
         self.odm_client.connect()
 
@@ -305,9 +308,6 @@ class Spidercrab(GraphWorker):
             print e
             pass
         return True
-
-
-
 
     def _check_and_pull_config(self):
         """
@@ -913,6 +913,8 @@ class Spidercrab(GraphWorker):
                     HAS_INSTANCE_RELATION
                 )
                 result = self.odm_client.execute_query(query)
+                if result:
+                    self.stub_for_mantis_kafka_push(result[0][0])
                 fetched_news_ps += len(result)
                 self.stats[self.S_FETCHED_NEWS] += len(result)
                 if not result:
