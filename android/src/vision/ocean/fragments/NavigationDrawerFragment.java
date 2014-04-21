@@ -3,13 +3,17 @@ package vision.ocean.fragments;
 import android.app.Activity;
 import android.app.ActionBar;
 import android.app.Fragment;
+import android.content.Context;
+import android.os.AsyncTask;
 import android.support.v4.app.ActionBarDrawerToggle;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -19,8 +23,19 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import vision.ocean.R;
 import vision.ocean.adapters.NavigationDrawerAdapter;
+import vision.ocean.helpers.MyHttpClient;
+import vision.ocean.objects.Feed;
+
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 
 /**
  * Fragment used for managing interactions for and presentation of a navigation drawer.
@@ -28,6 +43,9 @@ import vision.ocean.adapters.NavigationDrawerAdapter;
  * design guidelines</a> for a complete explanation of the behaviors implemented here.
  */
 public class NavigationDrawerFragment extends Fragment {
+
+    // Web service uri.
+    private static final String GET_FEED_LIST_URI = "http://ocean-coral.no-ip.biz:14/get_feed_list";
 
     /**
      * Remember the position of the selected item.
@@ -76,13 +94,10 @@ public class NavigationDrawerFragment extends Fragment {
             mCurrentSelectedPosition = savedInstanceState.getInt(STATE_SELECTED_POSITION);
             mFromSavedInstanceState = true;
         }
-
-        // Select either the default item (0) or the last selected item.
-        selectItem(mCurrentSelectedPosition);
     }
 
     @Override
-    public void onActivityCreated (Bundle savedInstanceState) {
+    public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         // Indicate that this fragment would like to influence the set of actions in the action bar.
         setHasOptionsMenu(true);
@@ -90,7 +105,7 @@ public class NavigationDrawerFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
+                             Bundle savedInstanceState) {
 
         mDrawerListView = (ListView) inflater.inflate(
                 R.layout.fragment_navigation_drawer, container, false);
@@ -101,17 +116,28 @@ public class NavigationDrawerFragment extends Fragment {
             }
         });
 
+        setUpDataAdapter();
+
+        return mDrawerListView;
+    }
+
+    public void setUpDataAdapter() {
+        mCurrentSelectedPosition = 0;
+
         mAdapter = new NavigationDrawerAdapter(getActivity());
 
-        mAdapter.addItem("For You");
-        mAdapter.addSeparatorItem("Feeds");
-        mAdapter.addItem("Astronomy");
-        mAdapter.addItem("East Europe");
+        mAdapter.addItem(new Feed(getString(R.string.title_section_recommended), "0"));
+        mAdapter.addSeparatorItem(new Feed(getString(R.string.title_section_feeds)));
+
+        if (PreferenceManager.getDefaultSharedPreferences(getActivity())
+                .getBoolean(getString(R.string.is_user_authenticated), false))
+            new GetFeedListTask().execute();
 
         mDrawerListView.setAdapter(mAdapter);
 
         mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
-        return mDrawerListView;
+        // Select either the default item (0) or the last selected item.
+        selectItem(mCurrentSelectedPosition);
     }
 
     public boolean isDrawerOpen() {
@@ -169,6 +195,7 @@ public class NavigationDrawerFragment extends Fragment {
                     SharedPreferences sp = PreferenceManager
                             .getDefaultSharedPreferences(getActivity());
                     sp.edit().putBoolean(PREF_USER_LEARNED_DRAWER, true).apply();
+                    sp.edit().putBoolean(PREF_USER_LEARNED_DRAWER, true).apply();
                 }
 
                 getActivity().invalidateOptionsMenu(); // calls onPrepareOptionsMenu()
@@ -202,7 +229,8 @@ public class NavigationDrawerFragment extends Fragment {
                 mDrawerLayout.closeDrawer(mFragmentContainerView);
             }
             if (mCallbacks != null) {
-                mCallbacks.onNavigationDrawerItemSelected(position);
+                Feed selectedFeed = mAdapter.getItem(position);
+                mCallbacks.onNavigationDrawerItemSelected(selectedFeed.id, selectedFeed.title);
             }
         }
     }
@@ -241,7 +269,14 @@ public class NavigationDrawerFragment extends Fragment {
         // If the drawer is open, show the global app actions in the action bar. See also
         // showGlobalContextActionBar, which controls the top-left area of the action bar.
         if (mDrawerLayout != null && isDrawerOpen()) {
-            inflater.inflate(R.menu.global, menu);
+            SharedPreferences sharedPreferences = PreferenceManager
+                    .getDefaultSharedPreferences(getActivity().getApplicationContext());
+
+            if (sharedPreferences.getBoolean(getString(R.string.is_user_authenticated), false))
+                inflater.inflate(R.menu.global_authenticated, menu);
+            else
+                inflater.inflate(R.menu.global_default, menu);
+
             showGlobalContextActionBar();
         }
         super.onCreateOptionsMenu(menu, inflater);
@@ -262,7 +297,7 @@ public class NavigationDrawerFragment extends Fragment {
     }
 
     /**
-     * Per the navigation drawer design guidelines, updates the action bar to show the global app
+     * Per the navigation drawer design guidelines, updates the action bar to show the global_authenticated app
      * 'context', rather than just what's in the current screen.
      */
     private void showGlobalContextActionBar() {
@@ -283,6 +318,59 @@ public class NavigationDrawerFragment extends Fragment {
         /**
          * Called when an item in the navigation drawer is selected.
          */
-        void onNavigationDrawerItemSelected(int position);
+        void onNavigationDrawerItemSelected(String id, String title);
+    }
+
+    /**
+     * Represents an asynchronous get feeds task used to fill navigation drawer with users feeds.
+     */
+    private class GetFeedListTask extends AsyncTask<Void, Void, JSONObject> {
+        SharedPreferences sharedPreferences;
+
+        private GetFeedListTask() {
+            this.sharedPreferences = PreferenceManager
+                    .getDefaultSharedPreferences(getActivity().getApplicationContext());
+        }
+
+        @Override
+        protected JSONObject doInBackground(Void... params) {
+            HttpPost httpPost = new HttpPost(GET_FEED_LIST_URI);
+
+            // Set up method parameters in Json
+            JSONObject parameters = new JSONObject();
+            try {
+                parameters.put("client_id", sharedPreferences.getString(getString(R.string.client_id), "-1"));
+                StringEntity parametersString = new StringEntity(parameters.toString(), "UTF-8");
+                httpPost.setEntity(parametersString);
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+
+            return MyHttpClient.getJSONObject(httpPost);
+        }
+
+        @Override
+        protected void onPostExecute(final JSONObject feedsObject) {
+            try {
+                JSONArray feeds = (JSONArray) feedsObject.get("feed_list");
+                // works faster, see 'Use Enhanced For Loop Syntax" at:
+                // http://developer.android.com/training/articles/perf-tips.html
+                int len = feeds.length();
+                // Populate array from json
+                for (int i = 0; i < len; i++) {
+                    JSONObject jsonObject = feeds.getJSONObject(i);
+                    mAdapter.addItem(new Feed(jsonObject.getString("link"),
+                            jsonObject.getString("title"),
+                            // TODO; feed id
+                            "id"));
+                }
+            } catch (JSONException e) {
+                Log.e("JSONException", e.toString());
+                e.printStackTrace();
+            }
+        }
     }
 }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="client_id">vision.ocean.client_id</string>
+    <string name="server_public_key">vision.ocean.server_public_key</string>
+    <string name="is_user_authenticated">vision.ocean.is_user_authenticated</string>
+
+</resources>
