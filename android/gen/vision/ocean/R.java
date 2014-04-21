@@ -46,8 +46,8 @@ public final class R {
         public static final int fragment_navigation_drawer=0x7f030002;
     }
     public static final class menu {
-        public static final int global=0x7f070000;
-        public static final int main=0x7f070001;
+        public static final int global_authenticated =0x7f070000;
+        public static final int main_authenticated =0x7f070001;
     }
     public static final class string {
         public static final int action_example=0x7f050006;
