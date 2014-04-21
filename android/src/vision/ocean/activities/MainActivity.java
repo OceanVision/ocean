@@ -2,6 +2,7 @@ package vision.ocean.activities;
 
 import android.app.ActionBar;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -18,14 +19,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import vision.ocean.fragments.LoginFragment;
 import vision.ocean.fragments.NavigationDrawerFragment;
-import vision.ocean.fragments.NewsFragment;
+import vision.ocean.fragments.NewsListFragment;
 import vision.ocean.R;
 import vision.ocean.helpers.MyHttpClient;
+import vision.ocean.objects.News;
 
 import java.io.UnsupportedEncodingException;
 
 public class MainActivity extends FragmentActivity
-        implements NavigationDrawerFragment.NavigationDrawerCallbacks {
+        implements NavigationDrawerFragment.NavigationDrawerCallbacks, NewsListFragment.NewsListFragmentCallbacks {
 
     // Web service uri.
     private final static String LOGOUT_URI = "http://ocean-coral.no-ip.biz:14/sign_out";
@@ -69,8 +71,9 @@ public class MainActivity extends FragmentActivity
     public void onNavigationDrawerItemSelected(String id, String title) {
         // update the main content by replacing fragments
         FragmentManager fragmentManager = getSupportFragmentManager();
+
         fragmentManager.beginTransaction()
-                .replace(R.id.container, NewsFragment.newInstance(id, title))
+                .replace(R.id.container, NewsListFragment.newInstance(id, title))
                 .commit();
     }
 
@@ -127,6 +130,18 @@ public class MainActivity extends FragmentActivity
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onNewsSelected(News news) {
+        Intent intent = new Intent(this, NewsDetailsActivity.class);
+        intent.putExtra(NewsDetailsActivity.NEWS_ID, news.id);
+        intent.putExtra(NewsDetailsActivity.NEWS_AUTHOR, news.author);
+        intent.putExtra(NewsDetailsActivity.NEWS_DESCRIPTION, news.description);
+        intent.putExtra(NewsDetailsActivity.NEWS_IMAGE, news.image);
+        intent.putExtra(NewsDetailsActivity.NEWS_TIME, news.time);
+        intent.putExtra(NewsDetailsActivity.NEWS_TITLE, news.title);
+        startActivity(intent);
     }
 
     /**

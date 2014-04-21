@@ -27,6 +27,10 @@ public class NewsAdapter extends ArrayAdapter<News> {
         this.data = data;
     }
 
+    public String getLastNewsId() {
+        return data.get(data.size() - 1).id;
+    }
+
     public void addItem(final News item) {
         data.add(item);
         notifyDataSetChanged();
@@ -44,7 +48,7 @@ public class NewsAdapter extends ArrayAdapter<News> {
 
     @Override
     public long getItemId(int position) {
-        return Long.valueOf(data.get(position).id);
+        return position;
     }
 
     @Override
@@ -66,11 +70,11 @@ public class NewsAdapter extends ArrayAdapter<News> {
             holder = (NewsHolder) convertView.getTag();
         }
 
-        News news = (News) data.get(position);
+        News news = data.get(position);
 
         holder.title.setText(news.title);
         holder.description.setText(news.description);
-        // TODO: holder.image.setImageResource(Integer.valueOf(news.image));
+        holder.image.setImageResource(R.drawable.ic_launcher);
 
         return convertView;
     }

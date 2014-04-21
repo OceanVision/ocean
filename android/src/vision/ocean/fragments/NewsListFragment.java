@@ -14,8 +14,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.GridView;
-import android.widget.Toast;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.json.JSONArray;
@@ -23,7 +23,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import vision.ocean.adapters.NewsAdapter;
 import vision.ocean.helpers.MyHttpClient;
-import vision.ocean.objects.Feed;
+import vision.ocean.listeners.EndlessScrollListener;
 import vision.ocean.objects.News;
 import vision.ocean.R;
 import vision.ocean.activities.MainActivity;
@@ -31,10 +31,13 @@ import vision.ocean.activities.MainActivity;
 /**
  * A placeholder fragment containing a simple view.
  */
-public class NewsFragment extends Fragment {
+public class NewsListFragment extends Fragment implements EndlessScrollListener.Callbacks {
 
     // Web service uri.
     private static final String GET_NEWS_LIST_URI = "http://ocean-coral.no-ip.biz:14/get_article_list";
+
+    // List parameter.
+    private static final int PAGE_SIZE = 40;
 
     /**
      * The fragment argument representing the section number for this
@@ -47,11 +50,25 @@ public class NewsFragment extends Fragment {
     private NewsAdapter mAdapter;
 
     /**
+     * A callback interface that all activities containing this fragment must
+     * implement. This mechanism allows activities to be notified of item
+     * selections.
+     */
+    private NewsListFragmentCallbacks mCallbacks;
+
+    public interface NewsListFragmentCallbacks {
+        /**
+         * Callback for when an item has been selected.
+         */
+        public void onNewsSelected(News news);
+    }
+
+    /**
      * Returns a new instance of this fragment for the given section
      * number.
      */
-    public static NewsFragment newInstance(String feedId, String feedTitle) {
-        NewsFragment fragment = new NewsFragment();
+    public static NewsListFragment newInstance(String feedId, String feedTitle) {
+        NewsListFragment fragment = new NewsListFragment();
         Bundle args = new Bundle();
         args.putString(ARG_SECTION_ID, feedId);
         args.putString(ARG_SECTION_TITLE, feedTitle);
@@ -59,7 +76,7 @@ public class NewsFragment extends Fragment {
         return fragment;
     }
 
-    public NewsFragment() {
+    public NewsListFragment() {
     }
 
     @Override
@@ -69,7 +86,17 @@ public class NewsFragment extends Fragment {
         mGridView = (GridView) inflater.inflate(
                 R.layout.fragment_grid_view_news, container, false);
 
-        new GetFeedListTask().execute();
+        new GetNewsListTask().execute();
+
+        // Set scroll listener so data will be loaded at the end of the list.
+        mGridView.setOnScrollListener(new EndlessScrollListener(this));
+
+        mGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                mCallbacks.onNewsSelected(mAdapter.getItem(position));
+            }
+        });
 
         return mGridView;
     }
@@ -77,16 +104,31 @@ public class NewsFragment extends Fragment {
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
+
         ((MainActivity) activity).onSectionAttached(getArguments().getString(ARG_SECTION_TITLE));
+
+        // Activities containing this fragment must implement its callbacks.
+        if (!(activity instanceof NewsListFragmentCallbacks)) {
+            throw new IllegalStateException(
+                    "Activity must implement fragment's callbacks.");
+        }
+
+        mCallbacks = (NewsListFragmentCallbacks) activity;
+
+    }
+
+    @Override
+    public AsyncTask<Void, Void, JSONObject> getLoadTask() {
+        return new GetNewsListTask();
     }
 
     /**
      * Represents an asynchronous get feeds task used to fill navigation drawer with users feeds.
      */
-    private class GetFeedListTask extends AsyncTask<Void, Void, JSONObject> {
+    private class GetNewsListTask extends AsyncTask<Void, Void, JSONObject> {
         SharedPreferences sharedPreferences;
 
-        private GetFeedListTask() {
+        private GetNewsListTask() {
             this.sharedPreferences = PreferenceManager
                     .getDefaultSharedPreferences(getActivity().getApplicationContext());
         }
@@ -98,8 +140,12 @@ public class NewsFragment extends Fragment {
             // Set up method parameters in Json
             JSONObject parameters = new JSONObject();
             try {
-                parameters.put("last_news_id", "1");
-                parameters.put("count", 7);
+                String lastNewsId = "null";
+                if (mGridView.getAdapter() != null)
+                    lastNewsId = mAdapter.getLastNewsId();
+
+                parameters.put("last_news_id", lastNewsId);
+                parameters.put("count", PAGE_SIZE);
                 parameters.put("feed_id", getArguments().getString(ARG_SECTION_ID));
                 parameters.put("client_id", sharedPreferences.getString(getString(R.string.client_id), "-1"));
 
@@ -141,8 +187,15 @@ public class NewsFragment extends Fragment {
                 e.printStackTrace();
             }
 
-            mAdapter = new NewsAdapter(getActivity(), R.layout.item_news, data);
-            mGridView.setAdapter(mAdapter);
+            // If there is no adapter (activity created) create new one.
+            if (mGridView.getAdapter() == null) {
+                mAdapter = new NewsAdapter(getActivity(), R.layout.item_news, data);
+                mGridView.setAdapter(mAdapter);
+            }
+            // Adapter already exists, we only need to add data.
+            else {
+                mAdapter.addAll(data);
+            }
         }
     }
 }
