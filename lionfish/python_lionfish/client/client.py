@@ -2,14 +2,15 @@ import sys
 import os
 import logging
 import inspect
+import socket
 
 # The new Lionfish client (works properly only with the new server which is
 # based on Scala).
 
-HOST = 'ocean-lionfish.no-ip.biz'  # 'localhost'
+HOST = 'localhost'  # 'ocean-lionfish.no-ip.biz'
 PORT = 21
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../graph_workers'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../graph_workers/graph_workers'))
 from graph_utils import *
 
 # Defining levels to get rid of other loggers
@@ -29,7 +30,7 @@ ch_file.setLevel(info_level)
 logger.addHandler(ch_file)
 
 
-class ODMClient(object):
+class Client(object):
     class Batch(object):
         def __init__(self, client):
             self.client = client
@@ -120,7 +121,7 @@ class ODMClient(object):
         data = {
             'funcName': 'getByUuid',
             'args': {
-                'uuid', node_uuid
+                'uuid': node_uuid
             }
         }
 
@@ -139,7 +140,7 @@ class ODMClient(object):
         data = {
             'funcName': 'getByLink',
             'args': {
-                'model_name': model_name,
+                'modelName': model_name,
                 'link': link
             }
         }
@@ -342,3 +343,9 @@ class ODMClient(object):
     #     self.send(data)
     #     self.recv()
 
+cl = Client()
+cl.connect()
+model_nodes = cl.get_model_nodes()
+print cl.get_by_uuid('977466da-a07d-11e3-9f3a-2cd05ae1c39b')
+print cl.get_by_link('ContentSource', 'http://www.gry-online.pl/rss/news.xml')
+cl.disconnect()

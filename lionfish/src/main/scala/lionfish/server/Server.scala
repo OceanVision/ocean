@@ -1,7 +1,5 @@
 package lionfish.server
 import java.net.ServerSocket
-import rapture.json.jsonParsers
-import jsonParsers.scalaJson._
 import lionfish.server.{Connection, DatabaseManager}
 
 object Server {
@@ -25,11 +23,11 @@ object Server {
   def start() = {
     try {
       val serverSocket = new ServerSocket(port)
-      println(s"The server is listening on port $port.")
+      println(s"The Lionfish server is listening on port $port.")
       handleConnections(serverSocket)
     } catch {
       case e: Exception => {
-        println(s"Starting server failed.")
+        println(s"Failed to start the Lionfish server. Error message: $e")
       }
     }
   }

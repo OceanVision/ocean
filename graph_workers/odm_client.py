@@ -2,9 +2,17 @@ import sys
 import os
 import logging
 import inspect
+import os,sys
 
-HOST = 'ocean-neo4j.no-ip.biz'  # 'localhost'
-PORT = 21
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone'))
+from don_utils import get_configuration 
+
+HOST = get_configuration("lionfish", "host")
+PORT = get_configuration("lionfish", "port")
+
+print "Running odm_client on ",HOST," ",PORT
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'graph_workers'))
 from graph_utils import *
@@ -250,6 +258,21 @@ class ODMClient(object):
         data = {
             'func_name': 'delete_nodes',
             'args': [node_uuid]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(data)
+        self.recv()
+
+    def create_model(self, model_name, **params):
+        """
+        Adds a new model node.
+        @type model_name string
+        """
+        data = {
+            'func_name': 'create_model',
+            'args': [model_name]
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':

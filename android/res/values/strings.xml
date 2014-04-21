@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">#Ocean</string>
+    <string name="title_section1">For You</string>
+    <string name="title_section2">Section 2</string>
+    <string name="title_section3">Astronomy</string>
+    <string name="title_section4">East Europe</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="action_example">Example action</string>
+    <string name="action_settings">Settings</string>
+
+</resources>

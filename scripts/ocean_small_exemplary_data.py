@@ -1,29 +1,39 @@
-'''
-Exemplary data for neo4j database
-Note : wipes database !
-Connection done using RESTApi and wrapper for python py2neo
-'''
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
 
-from py2neo import neo4j
-from py2neo import node, rel
+"""
+    Exemplary data for neo4j database
+    NOTE: wipes database !
+    Connection done using RESTApi and wrapper for python py2neo
+"""
+
 import time
 import sys
 import uuid
 import os
+
+from py2neo import neo4j
+from py2neo import node, rel
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
+
+from don_utils import get_configuration
+
 sys.path.append('../graph_workers/')
 lib_path = os.path.abspath('./graph_workers')
 sys.path.append(lib_path)
-from graph_defines import *
+from graph_workers.graph_defines import *
 
-APP_LABEL = 'rss'
 
 if __name__ == '__main__':
-    # Create connection
+   # Create connection
     graph_db = neo4j.GraphDatabaseService('http://ocean-lionfish.no-ip.biz:16/db/data/')
     # graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
 
-    print 'This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*\
-, press enter to proceed'
+    print 'Running', __file__
+    print 'This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*'
+    print 'NOTE: This script *already executes* ocean_init_graph.py.'
+    print 'Press enter to proceed...'
     enter = raw_input()
 
     my_batch = neo4j.ReadBatch(graph_db)
@@ -53,89 +63,16 @@ if __name__ == '__main__':
     my_batch.append_cypher('match (e:Root) set e.root=1;')
     my_batch.submit()
 
-    ### Add webservice types ###
-    types = [
-        node(
-            uuid='970f37f6-a07d-11e3-9f3a-2cd05ae1c39b',
-            app_label=APP_LABEL,
-            name=APP_LABEL+':'+WEBSITE_TYPE_MODEL_NAME,
-            model_name=WEBSITE_TYPE_MODEL_NAME
-        ),
-        node(
-            uuid='970f6d5c-a07d-11e3-9f3a-2cd05ae1c39b',
-            app_label=APP_LABEL,
-            name=APP_LABEL+':'+NEOUSER_TYPE_MODEL_NAME,
-            model_name=NEOUSER_TYPE_MODEL_NAME
-        ),
-        node(
-            uuid='970f9b7e-a07d-11e3-9f3a-2cd05ae1c39b',
-            app_label=APP_LABEL,
-            name=APP_LABEL+':'+CONTENT_TYPE_MODEL_NAME,
-            model_name=CONTENT_TYPE_MODEL_NAME
-        ),
-        node(
-            uuid='970fc9d2-a07d-11e3-9f3a-2cd05ae1c39b',
-            app_label=APP_LABEL,
-            name=APP_LABEL+':'+CONTENT_SOURCE_TYPE_MODEL_NAME,
-            model_name=CONTENT_SOURCE_TYPE_MODEL_NAME
+    # Create connection
+    graph_db = neo4j.GraphDatabaseService(
+        'http://{0}:{1}/db/data/'.format(
+            get_configuration("neo4j", "host"),
+            get_configuration("neo4j", "port")
         )
-    ]
-
-    types = graph_db.create(*types)
-    for item in types:
-        item.add_labels('Node', 'Model')
-
-    # Create type relations
-    graph_db.create(
-        rel(root, HAS_TYPE_RELATION, types[0]),
-        rel(root, HAS_TYPE_RELATION, types[1]),
-        rel(root, HAS_TYPE_RELATION, types[2]),
-        rel(root, HAS_TYPE_RELATION, types[3])
     )
 
-    #TODO: Delete following code after system refactorization
-    # Old version types
-    old_types = [
-        node(
-            uuid='973eb80a-a07d-11e3-9f3a-2cd05ae1c39b',
-            app_label=APP_LABEL,
-            name=APP_LABEL+':'+NEWS_WEBSITE_TYPE_MODEL_NAME,
-            model_name=NEWS_WEBSITE_TYPE_MODEL_NAME
-        ),
-    ]
-    old_types = graph_db.create(*old_types)
-    for item in old_types:
-        item.add_labels('Node', 'Model')
-
-    # Create old version type relations
-    graph_db.create(
-        rel(root, HAS_TYPE_RELATION, old_types[0])
-    )
-    #NOTE: End of future deletion
-
-    ### Add users ###
-    # Create nodes
-    users = [
-        node(uuid='974ee6b2-a07d-11e3-9f3a-2cd05ae1c39b', username='kudkudak'),
-        node(uuid='974ee946-a07d-11e3-9f3a-2cd05ae1c39b', username='konrad'),
-        node(uuid='974eeacc-a07d-11e3-9f3a-2cd05ae1c39b', username='brunokam'),
-        node(uuid='974eec34-a07d-11e3-9f3a-2cd05ae1c39b', username='szymon')
-    ]
-    users = graph_db.create(*users)
-    for item in users:
-        item.add_labels('Node', 'NeoUser')
-
-    # Create instance relations
-    graph_db.create(
-        rel(types[1], HAS_INSTANCE_RELATION, users[0]),
-        rel(types[1], HAS_INSTANCE_RELATION, users[1]),
-        rel(types[1], HAS_INSTANCE_RELATION, users[2]),
-        rel(types[1], HAS_INSTANCE_RELATION, users[3])
-    )
-
-    # 1.9 doesnt support labels!
-    #map(lambda u: u.add_labels(USER_LABEL),users) # Add labels
-    #print [x for x in  graph_db.find(USER_LABEL)] # Sanity check,
+    read_batch = neo4j.ReadBatch(graph_db)
+    write_batch = neo4j.WriteBatch(graph_db)
 
     ### Add websites ###
     websites = [
@@ -163,11 +100,18 @@ if __name__ == '__main__':
         item.add_labels('Node', 'Website')
 
     # Create instance relations
-    graph_db.create(
-         rel(types[0], HAS_INSTANCE_RELATION, websites[0]),
-         rel(types[0], HAS_INSTANCE_RELATION, websites[1]),
-         rel(types[0], HAS_INSTANCE_RELATION, websites[2])
+    query = """
+        MATCH (m:Model {model_name: '%s'}), (w:%s)
+        CREATE (m)-[:`%s`]->(w)
+        RETURN m,w
+    """
+    query %= (
+        WEBSITE_TYPE_MODEL_NAME,
+        WEBSITE_TYPE_MODEL_NAME,
+        HAS_INSTANCE_RELATION,
     )
+    write_batch.append_cypher(query)
+    write_batch.submit()
 
     # Create nodes
     content_sources_list = [
@@ -218,11 +162,18 @@ relacje na zywo i wiele wiecej.',
         item.add_labels('Node', 'ContentSource')
 
     # Create ContentSources instance relations
-    graph_db.create(
-        rel(types[3], HAS_INSTANCE_RELATION, content_sources[0]),
-        rel(types[3], HAS_INSTANCE_RELATION, content_sources[1]),
-        rel(types[3], HAS_INSTANCE_RELATION, content_sources[2])
+    query = """
+        MATCH (m:Model {model_name: '%s'}), (w:%s)
+        CREATE (m)-[:`%s`]->(w)
+        RETURN m,w
+    """
+    query %= (
+        CONTENT_SOURCE_TYPE_MODEL_NAME,
+        CONTENT_SOURCE_TYPE_MODEL_NAME,
+        HAS_INSTANCE_RELATION,
     )
+    write_batch.append_cypher(query)
+    write_batch.submit()
 
     # Create Website __has__ ContentSource relations
     graph_db.create(

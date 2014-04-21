@@ -1,6 +1,0 @@
-# Ignore big data
-*
-
-# ... except README
-!README.md
-!.gitignore

@@ -1,3 +1,6 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+
 """
 Lionfish (formerly Ocean Database Manager)
 
@@ -17,12 +20,16 @@ from threading import Thread
 import sys
 import json
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../graph_workers'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../don_corleone/'))
+sys.path.append(os.path.join(os.path.dirname(__file__),
+                             '../../../graph_workers/graph_workers'))
+
+# DonCorleone configuration
+from don_utils import get_configuration
+
 from graph_defines import *
 from graph_utils import *
 
-HOST = ''
-PORT = 21
 
 # Defining levels to get rid of other loggers
 info_level = 100
@@ -36,7 +43,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
 ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),
-                                           '../logs/odm_server.log'))
+                                           '../../../logs/odm_server.log'))
 ch_file.setLevel(info_level)
 logger.addHandler(ch_file)
 
@@ -47,8 +54,7 @@ class DatabaseManager(object):
         """ Creates DatabaseManager driver """
         logger.log(info_level, 'Created DatabaseManager object')
         self._graph_db = neo4j.GraphDatabaseService(
-            'http://localhost:16/db/data/'
-            # 'http://localhost:7474/db/data/'
+            'http://{0}:{1}/db/data/'.format(get_configuration("neo4j","host"), get_configuration("neo4j", "port"))
         )
         self._uuid_images = dict()
         self._model_name_images = dict()
@@ -346,6 +352,56 @@ class DatabaseManager(object):
                 del self._uuid_images[node_uuid]
 
     @error_handle_odm
+    def create_model(self, params):
+
+        # TODO: Improve (currently merged add_node and add_rel methods)
+
+        model_name = params[0]
+
+        print params
+        print model_name
+
+        if model_name in self._model_name_images:
+            raise Exception('Model already exists')
+
+        node_params = {
+            'model_name': str(model_name),
+            'uuid': str(uuid.uuid1()),
+        }
+        query_string = \
+            '''
+            CREATE (e:Node:Model {node_params})
+            RETURN id(e)
+            '''
+        node_results = self._execute_query(query_string,
+                                           node_params=node_params)
+        if len(node_results) == 0:
+            raise Exception('Executing query failed')
+
+        self._uuid_images[node_params['uuid']] = node_results[0]
+        self._model_name_images[model_name] = node_params['uuid']
+        end_node_uuid = node_params['uuid']
+
+        if end_node_uuid not in self._uuid_images:
+            raise Exception('Unknown uuid')
+
+        start_node_id = 0
+        end_node_id = self._uuid_images[end_node_uuid]
+        rel_type = '<<TYPE>>'
+        rel_params = {}
+
+        query_string = \
+            '''
+            START a=node({start_node_id}), b=node({end_node_id})
+            CREATE (a)-[r:`''' + rel_type + '''` {rel_params}]->(b)
+            '''
+        # There is a problem with node_params if they are given to _run_query
+        self._run_query(query_string, start_node_id=start_node_id,
+                        end_node_id=end_node_id, rel_params=rel_params)
+
+        self._init_model_name_images()
+
+    @error_handle_odm
     # TODO: This is not a completely good function
     def create_relationships(self, rel_list):
         # Prepares arguments
@@ -553,6 +609,29 @@ class ODMServer(object):
             logger.log(error_level, 'Starting server failed. {error}'
                        .format(error=str(e)))
 
+
+from optparse import OptionParser
+
 if __name__ == '__main__':
-    server = ODMServer(HOST, PORT)
+    parser = OptionParser()
+    parser.add_option(
+        '-k',
+        '--host',
+        dest='host',
+        default='',
+        help='Host to bind to, default is empty - correct in almost all the cases'
+    )
+    parser.add_option(
+        '-p',
+        '--port',
+        dest='port',
+        default=7777,
+        type=int,
+        help='Port to bind to'
+    )
+    (options, args) = parser.parse_args()
+
+    logger.info("HOST="+options.host + " PORT="+str(options.port))
+
+    server = ODMServer(options.host, options.port)
     server.start()

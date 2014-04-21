@@ -1,0 +1,10 @@
+{
+"master":"http://127.0.0.1:8881",
+"master_local_url":"http://127.0.0.1:8881",
+"master_local":true,
+"node_responsibilities":[
+    ["neo4j",{"port":7476, "local":true}],
+    ["lionfish",{"port":7777, "local":true}]
+],
+"node_id":"staszek_b"
+}

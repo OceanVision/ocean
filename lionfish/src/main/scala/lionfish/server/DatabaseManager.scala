@@ -1,5 +1,6 @@
 package lionfish.server
 import java.util.UUID
+import scala.collection.mutable.ListBuffer
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb._
 import org.neo4j.cypher.{ExecutionEngine, ExecutionResult}
@@ -8,7 +9,7 @@ import org.neo4j.tooling.GlobalGraphOperations
 // TODO: logging, nicer way of handling errors
 
 class DatabaseManager {
-  private val DB_PATH = "/usr/lib/neo4j/data/graph.db"
+  private val DB_PATH = "/usr/lib/neo4j/data/graph.db" // TODO: consider SCALA_HOME in some way
   private val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(DB_PATH)
 
   private val globalOperations = GlobalGraphOperations.at(graphDB)
@@ -39,17 +40,17 @@ class DatabaseManager {
   private def executeCypher(query: String, params: Map[String, Any] = Map()): List[List[Any]] = {
     try {
       cypherResult = cypherEngine.execute(query, params)
-      var parsedResult: List[List[Any]] = List()
+      var parsedResult: ListBuffer[List[Any]] = ListBuffer()
       for (row: Map[String, Any] <- cypherResult) {
-        var rowItems: List[Any] = List()
+        var rowItems: ListBuffer[Any] = ListBuffer()
         for (column <- row) {
           // TODO: Do not assume that every value is Node
-          rowItems = rowItems :+ parseNode(column._2.asInstanceOf[Node])
+          rowItems += parseNode(column._2.asInstanceOf[Node])
         }
-        parsedResult = parsedResult :+ rowItems
+        parsedResult += rowItems.toList
       }
 
-      parsedResult
+      parsedResult.toList
     } catch {
       case e: Exception => {
         println(s"Executing Cypher failed. Error message: $e")
@@ -79,26 +80,109 @@ class DatabaseManager {
     }
   }
 
+  def getByUuid(nodeUuidList: List[Map[String, Any]]): List[Any] = {
+    var result: List[Any] = List()
+
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[Any] = ListBuffer()
+
+      // Gets nodes by uuid
+      for (item <- nodeUuidList) {
+        // Extracts result
+        val rawNode = graphDB.findNodesByLabelAndProperty(
+          DynamicLabel.label("Node"),
+          "uuid",
+          item("uuid")
+        )
+        val it = rawNode.iterator()
+        if (it.hasNext) {
+          rawResult += parseNode(it.next())
+        } else {
+          rawResult += null
+        }
+        it.close()
+      }
+      tx.success()
+      result = rawResult.toList
+    } catch {
+      case e: Exception => {
+        println(s"Executing function failed. Error message: $e")
+      }
+        tx.failure()
+        result = List()
+    } finally {
+      tx.close()
+    }
+
+    result
+  }
+
+  def getByLink(nodeUuidList: List[Map[String, Any]]): List[Any] = {
+    var result: List[Any] = List()
+
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[Any] = ListBuffer()
+
+      // Gets nodes by uuid
+      for (item <- nodeUuidList) {
+        // Extracts result
+        val rawNode = graphDB.findNodesByLabelAndProperty(
+          DynamicLabel.label(item("modelName").asInstanceOf[String]),
+          "link",
+          item("link")
+        )
+        val it = rawNode.iterator()
+        if (it.hasNext) {
+          while (it.hasNext) {
+            val node = parseNode(it.next())
+            rawResult += node
+          }
+        } else {
+          rawResult += null
+        }
+        it.close()
+      }
+      tx.success()
+      result = rawResult.toList
+    } catch {
+      case e: Exception => {
+        println(s"Executing function failed. Error message: $e")
+      }
+        tx.failure()
+        result = List()
+    } finally {
+      tx.close()
+    }
+
+    result
+  }
+
   def getModelNodes(): List[Any] = {
     var result: List[Any] = List()
 
     val tx = graphDB.beginTx()
     try {
+      val rawResult: ListBuffer[Any] = ListBuffer()
+
       // Simply gets model nodes
-      val rawResult = globalOperations.getAllNodesWithLabel(DynamicLabel.label("Model"))
+      val rawModelNodes = globalOperations.getAllNodesWithLabel(DynamicLabel.label("Model"))
       tx.success()
 
       // Extracts result
-      val it = rawResult.iterator()
+      val it = rawModelNodes.iterator()
       while (it.hasNext) {
-        result = result :+ parseNode(it.next())
+        rawResult += parseNode(it.next())
       }
       it.close()
+      result = rawResult.toList
     } catch {
       case e: Exception => {
         println(s"Executing function failed. Error message: $e")
       }
-      result = List()
+        tx.failure()
+        result = List()
     } finally {
       tx.close()
     }
@@ -112,12 +196,14 @@ class DatabaseManager {
 
     val tx = graphDB.beginTx()
     try {
+      val rawResult: ListBuffer[String] = ListBuffer()
+
       // Creates nodes by the given properties
       for (params <- nodeParamsList) {
         val uuid = UUID.randomUUID().toString
         var props = params("props").asInstanceOf[Map[String, Any]]
         props += "uuid" -> uuid
-        result = result :+ uuid
+        rawResult += uuid
 
         val node = graphDB.createNode()
         for ((key, value) <- props) {
@@ -125,17 +211,20 @@ class DatabaseManager {
         }
 
         val modelName = params("modelName").asInstanceOf[String]
+        node.addLabel(DynamicLabel.label("Node"))
         node.addLabel(DynamicLabel.label(modelName))
 
         val relType = DynamicRelationshipType.withName(params("relType").asInstanceOf[String])
         modelNodes(modelName).createRelationshipTo(node, relType)
       }
       tx.success()
+      result = rawResult.toList
     } catch {
       case e: Exception => {
         println(s"Executing function failed. Error message: $e")
       }
-      result = List()
+        tx.failure()
+        result = List()
     } finally {
       tx.close()
     }
@@ -155,7 +244,6 @@ class DatabaseManager {
       // Builds query and executes
       val query =
         "MATCH (e:Node)-[r]-() " +
-        "USING INDEX e:Node(uuid) " +
         "WHERE e.uuid IN {uuid_list} " +
         "DELETE e, r"
       executeCypher(query, Map("uuid_list" -> nodeUuidList))
@@ -164,6 +252,7 @@ class DatabaseManager {
       case e: Exception => {
         println(s"Executing function failed. Error message: $e")
       }
+        tx.failure()
     } finally {
       tx.close()
     }
