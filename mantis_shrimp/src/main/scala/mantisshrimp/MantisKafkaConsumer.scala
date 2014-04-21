@@ -1,4 +1,7 @@
 package mantisshrimp
+//TODO: add checking Kafka spout
+
+
 
 import akka.actor.{Actor, Props}
 
@@ -105,6 +108,7 @@ class MantisKafkaFetcherBasic extends Actor {
           try {
             val msg = JsonBuffer.parse(new String(msgoffset.message))
             val uuid = msg.uuid.as[String]
+            //TODO: improve
             if (!tagged_in_current_topic.contains(uuid)) {
               var entry = scala.collection.mutable.HashMap[String, AnyRef]()
               entry += "title" -> msg.title.as[String]
@@ -141,7 +145,7 @@ class MantisKafkaFetcherBasic extends Actor {
           java.lang.Thread.sleep(100)
 
         //Ok
-         if(!Q.isEmpty) sender ! NewsArrive(Q.dequeue())
+         if(!Q.isEmpty) sender ! ItemArrive(Q.dequeue())
       }
   }
 }

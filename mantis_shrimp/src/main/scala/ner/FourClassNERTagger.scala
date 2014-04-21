@@ -4,6 +4,7 @@ import edu.stanford.nlp.ie.crf.CRFClassifier
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConversions._
+import mantisshrimp.MantisTag
 
 class FourClassNERTagger extends NERTagger {
 
@@ -11,10 +12,10 @@ class FourClassNERTagger extends NERTagger {
   val serializedClassifier = "stanford_classifiers/english.conll.4class.distsim.crf.ser.gz"
   val classifier = CRFClassifier.getClassifierNoExceptions(serializedClassifier)
 
-  def tag(text: String): Seq[NERTag] = {
+  def tag(text: String): Seq[MantisTag] = {
 
     val keywords = ListBuffer[(String, String)]()
-    val tag_list = ListBuffer[NERTag]()
+    val tag_list = ListBuffer[MantisTag]()
 
     val out = classifier.classifyWithInlineXML(text)
 
@@ -24,9 +25,8 @@ class FourClassNERTagger extends NERTagger {
     (xml \ "LOCATION").foreach(loc => keywords.add((loc.text, "LOCATION")))
     (xml \ "MISC").foreach(loc => keywords.add((loc.text, "MISC")))
 
-    keywords.distinct.foreach(tag => tag_list.add(new NERTag(tag._1, tag._2)))
+    keywords.distinct.foreach(tag => tag_list.add(new MantisTag(tag._1, tag._2)))
 
     tag_list.toSeq
-
   }
 }

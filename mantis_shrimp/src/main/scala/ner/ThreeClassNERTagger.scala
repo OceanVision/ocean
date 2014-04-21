@@ -5,6 +5,7 @@ import edu.stanford.nlp.ling.CoreAnnotations
 import edu.stanford.nlp.ling.CoreLabel
 import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConversions._
+import mantisshrimp.MantisTag
 
 class ThreeClassNERTagger extends NERTagger {
 
@@ -12,10 +13,10 @@ class ThreeClassNERTagger extends NERTagger {
   val serializedClassifier = "stanford_classifiers/english.all.3class.distsim.crf.ser.gz"
   val classifier = CRFClassifier.getClassifierNoExceptions(serializedClassifier)
 
-  def tag(text: String): Seq[NERTag] = {
+  def tag(text: String): Seq[MantisTag] = {
 
     val keywords = ListBuffer[(String, String)]()
-    val tag_list = ListBuffer[NERTag]()
+    val tag_list = ListBuffer[MantisTag]()
 
     val out = classifier.classifyWithInlineXML(text)
 
@@ -24,7 +25,7 @@ class ThreeClassNERTagger extends NERTagger {
     (xml \ "PERSON").foreach(per => keywords.add((per.text, "PERSON")))
     (xml \ "LOCATION").foreach(loc => keywords.add((loc.text, "LOCATION")))
 
-    keywords.distinct.foreach(tag => tag_list.add(new NERTag(tag._1, tag._2)))
+    keywords.distinct.foreach(tag => tag_list.add(new MantisTag(tag._1, tag._2)))
 
     tag_list.toSeq
 

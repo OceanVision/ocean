@@ -1,7 +1,7 @@
 Read wiki Deployment Installation -> Scala page
 
-Make sure sbt is above 13.0 (`sbt --version`). SBT installation is easy - follow
-setup documentation on scala-sbt
+
+**Opening in IntelliJ**
 
 Run
 
@@ -12,6 +12,23 @@ Run
 And open project in IntelliJ (remember to see project structure if is correct -
 ctrl+alt+shift+s)
 
+**Dependencies**
+
+Make sure sbt is above 13.0 (`sbt --version`). SBT installation is easy - follow
+setup documentation on scala-sbt
+
+1. Download following libraries and put them in lib folder:
+
+  * stanford-ner : http://nlp.stanford.edu/software/CRF-NER.shtml - put .jars in lib/
+
+2. Download http://nlp.stanford.edu/software/CRF-NER.shtml and
+put stanford_classifiers (trained classifiers) folder in mantis_shrimp/ folder
+
+3. Run `sbt update`
+
+**Running project**
+
+Type `sbt run`
 
 **Note**
 
