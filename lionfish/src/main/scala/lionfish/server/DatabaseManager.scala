@@ -31,7 +31,8 @@ object DatabaseManager {
       dict
     } catch {
       case e: Exception => {
-        println(s"Parsing node failed. Error message: $e")
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Parsing node failed at line $line. Error message: $e")
       }
       null
     }
@@ -53,7 +54,8 @@ object DatabaseManager {
       parsedResult.toList
     } catch {
       case e: Exception => {
-        println(s"Executing Cypher failed. Error message: $e")
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Executing Cypher script failed at line $line. Error message: $e")
       }
       null
     }
@@ -75,13 +77,14 @@ object DatabaseManager {
       it.close()
     } catch {
       case e: Exception => {
-        println(s"Initialising cache failed. Error message: $e")
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Initialising cache failed at line $line. Error message: $e")
       }
     }
   }
 
   def getByUuid(nodeUuidList: List[Map[String, Any]]): List[Any] = {
-    var result: List[Any] = List()
+    var result: List[Any] = null
 
     val tx = graphDB.beginTx()
     try {
@@ -107,7 +110,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        println(s"Executing function failed. Error message: $e")
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -119,7 +123,7 @@ object DatabaseManager {
   }
 
   def getByLink(nodeUuidList: List[Map[String, Any]]): List[Any] = {
-    var result: List[Any] = List()
+    var result: List[Any] = null
 
     val tx = graphDB.beginTx()
     try {
@@ -148,7 +152,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        println(s"Executing function failed. Error message: $e")
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -159,8 +164,8 @@ object DatabaseManager {
     result
   }
 
-  def getModelNodes(): List[Any] = {
-    var result: List[Any] = List()
+  def getModelNodes(requests: List[Map[String, Any]]): List[Any] = {
+    var result: List[Any] = null
 
     val tx = graphDB.beginTx()
     try {
@@ -176,10 +181,12 @@ object DatabaseManager {
         rawResult += parseNode(it.next())
       }
       it.close()
-      result = rawResult.toList
+
+      result = List.fill[Any](requests.length)(rawResult.toList)
     } catch {
       case e: Exception => {
-        println(s"Executing function failed. Error message: $e")
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -192,18 +199,18 @@ object DatabaseManager {
 
   // TODO: Add defaults
   def createNodes(nodeParamsList: List[Map[String, Any]]): List[Any] = {
-    var result: List[String] = List()
+    var result: List[Map[String, Any]] = null
 
     val tx = graphDB.beginTx()
     try {
-      val rawResult: ListBuffer[String] = ListBuffer()
+      val rawResult: ListBuffer[Map[String, Any]] = ListBuffer()
 
       // Creates nodes by the given properties
       for (params <- nodeParamsList) {
         val uuid = UUID.randomUUID().toString
         var props = params("props").asInstanceOf[Map[String, Any]]
         props += "uuid" -> uuid
-        rawResult += uuid
+        rawResult += Map("uuid" -> uuid)
 
         val node = graphDB.createNode()
         for ((key, value) <- props) {
@@ -221,7 +228,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        println(s"Executing function failed. Error message: $e")
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -234,9 +242,9 @@ object DatabaseManager {
 
   def deleteNodes(nodeParamsList: List[Map[String, Any]]): List[Any] = {
     // Prepares params
-    var nodeUuidList: List[String] = List()
+    var nodeUuidList: ListBuffer[String] = ListBuffer()
     for (item <- nodeParamsList) {
-      nodeUuidList = nodeUuidList :+ item("uuid").asInstanceOf[String]
+      nodeUuidList += item("uuid").asInstanceOf[String]
     }
 
     val tx = graphDB.beginTx()
@@ -246,11 +254,12 @@ object DatabaseManager {
         "MATCH (e:Node)-[r]-() " +
         "WHERE e.uuid IN {uuid_list} " +
         "DELETE e, r"
-      executeCypher(query, Map("uuid_list" -> nodeUuidList))
+      executeCypher(query, Map("uuid_list" -> nodeUuidList.toList))
       tx.success()
     } catch {
       case e: Exception => {
-        println(s"Executing function failed. Error message: $e")
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
     } finally {

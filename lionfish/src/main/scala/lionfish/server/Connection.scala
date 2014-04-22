@@ -12,14 +12,14 @@ class Connection(private val id: Int,
       println(s"Client $id disconnected.")
     } catch {
       case e: Exception => {
-        println(s"Failed to disconnect with client. Error message: $e")
+        println(s"Client $id failed to disconnect. Error message: $e")
       }
     }
   }
 
   private def executeBatch(request: Map[String, Any]): List[Any] = {
     try {
-      val count = request("count").asInstanceOf[Double].toInt
+      val count = request("count").asInstanceOf[Int]
       val tasks = request("tasks").asInstanceOf[Map[String, List[List[Any]]]]
 
       var response: List[Any] = List.fill(count.toInt)(null)
@@ -41,7 +41,7 @@ class Connection(private val id: Int,
             rawResult = DatabaseManager.getByLink(fullArgs)
           }
           case "getModelNodes" => {
-            rawResult = DatabaseManager.getModelNodes()
+            rawResult = DatabaseManager.getModelNodes(fullArgs)
           }
           case "createNodes" => {
             rawResult = DatabaseManager.createNodes(fullArgs)
@@ -54,7 +54,7 @@ class Connection(private val id: Int,
 
         if (rawResult != null) {
           for (i <- 0 to rawResult.length - 1) {
-            response = response.updated(params(i)(1).asInstanceOf[Double].toInt, rawResult(i))
+            response = response.updated(params(i)(1).asInstanceOf[Int], rawResult(i))
           }
         }
       }
@@ -62,13 +62,14 @@ class Connection(private val id: Int,
       response
     } catch {
       case e: Exception => {
-        println(s"Failed to execute batch. Error message: $e")
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Client $id failed to execute batch at line $line. Error message: $e")
       }
       List()
     }
   }
 
-  private def executeFunction(request: Map[String, Any]): List[Any] = {
+  private def executeFunction(request: Map[String, Any]): Any = {
     try {
       val funcName = request("funcName").asInstanceOf[String]
       val args = List(request("args").asInstanceOf[Map[String, Any]])
@@ -85,7 +86,7 @@ class Connection(private val id: Int,
           response = DatabaseManager.getByLink(args)
         }
         case "getModelNodes" => {
-          response = DatabaseManager.getModelNodes()
+          response = DatabaseManager.getModelNodes(args)
         }
         case "createNodes" => {
           response = DatabaseManager.createNodes(args)
@@ -96,10 +97,11 @@ class Connection(private val id: Int,
         case _ => throw new NoSuchMethodException(funcName)
       }
 
-      response
+      response(0)
     } catch {
       case e: Exception => {
-        println(s"Client $id: executing function failed. Error message: $e")
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Client $id failed to execute function at line $line. Error message: $e")
       }
       List()
     }
@@ -110,12 +112,13 @@ class Connection(private val id: Int,
     var request: Map[String, Any] = null
     while ({request = IO.receive[Map[String, Any]](); request} != null) {
       try {
-        var response: List[Any] = null
+        var response: Any = null
         if (!request.contains("tasks")) {
           response = executeFunction(request)
         } else {
           response = executeBatch(request)
         }
+
         IO.send(response)
       }
     }

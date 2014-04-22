@@ -128,8 +128,7 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(data)
-        results = self.recv()
-        return results[0] if len(results) > 0 else {}
+        return self.recv()
 
     def get_by_link(self, model_name, link, **params):
         """
@@ -148,8 +147,7 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(data)
-        results = self.recv()
-        return results[0] if len(results) > 0 else {}
+        return self.recv()
 
     def get_model_nodes(self, **params):
         """
@@ -165,7 +163,7 @@ class Client(object):
         self.send(data)
         return self.recv()
 
-    def get_children(self, node_uuid, rel_type, **params):
+    def get_children(self, parent_uuid, rel_type, **params):
         """
         Gets children of node with parent_uuid uuid
         related by relation rel_name with parameters
@@ -176,7 +174,7 @@ class Client(object):
         data = {
             'funcName': 'getChildren',
             'args': {
-                'uuid': node_uuid,
+                'parentUuid': parent_uuid,
                 'relType': rel_type,
                 'childrenParams': params
             }
@@ -185,8 +183,7 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(data)
-        results = self.recv()
-        return results[0] if len(results) > 0 else []
+        return self.recv()
 
     def get_instances(self, model_name, **params):
         """
@@ -204,8 +201,7 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(data)
-        results = self.recv()
-        return results[0] if len(results) > 0 else []
+        return self.recv()
 
     def set(self, node_uuid, **props):
         """
@@ -224,7 +220,7 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(data)
-        return self.recv()
+        self.recv()
 
     def create_node(self, model_name, rel_type='<<INSTANCE>>', **props):
         """
@@ -245,9 +241,7 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(data)
-        results = self.recv()
-        # TODO: catching errors
-        return results[0] if len(results) > 0 else None
+        return self.recv()
 
     def delete_node(self, node_uuid, **params):
         """
@@ -342,10 +336,3 @@ class Client(object):
     #         return data
     #     self.send(data)
     #     self.recv()
-
-cl = Client()
-cl.connect()
-model_nodes = cl.get_model_nodes()
-print cl.get_by_uuid('977466da-a07d-11e3-9f3a-2cd05ae1c39b')
-print cl.get_by_link('ContentSource', 'http://www.gry-online.pl/rss/news.xml')
-cl.disconnect()
