@@ -86,11 +86,10 @@ def get_article_details():
 
     # TODO: implementation
 
-    response_data = []
-    response_data.append({
+    response_data = {
         'article_id': '974eeacc-873a-11e3-9f3a-2cd05ae1c39b',
         'body': 'Tekst 7',
-    })
+    }
 
     response_data = {'article_details': response_data}
     return Response(json.dumps(response_data), mimetype='application/json')
