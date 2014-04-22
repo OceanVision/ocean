@@ -1,10 +1,8 @@
 package lionfish.server
 import java.net.ServerSocket
-import lionfish.server.{Connection, DatabaseManager}
 
 object Server {
   private val port = 21
-  private val manager = new DatabaseManager
   private var dynamicId = 0
 
   private def getNewId: Int = {
@@ -16,7 +14,7 @@ object Server {
     while (true) {
       val socket = serverSocket.accept()
       val newId = getNewId
-      new Thread(new Connection(newId, socket, manager)).start()
+      new Thread(new Connection(newId, socket)).start()
     }
   }
 

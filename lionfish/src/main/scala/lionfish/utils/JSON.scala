@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.fasterxml.jackson.core.`type`.TypeReference
 
-object json {
+object JSON {
   private val jsonMapper = new ObjectMapper()
   jsonMapper.registerModule(DefaultScalaModule)
 

@@ -2,14 +2,14 @@ package lionfish.utils
 import java.net.Socket
 import java.nio.ByteBuffer
 
-object io {
+object IO {
   // Sends a message to socket
   def send(rawData: Any)(implicit socket: Socket) = {
     try {
       val outputStream = socket.getOutputStream
 
       // Serializes the data
-      val serialisedMsg = json.serialise(rawData)
+      val serialisedMsg = JSON.serialise(rawData)
 
       // Prepares length of a outcoming array
       val byteBuffer = ByteBuffer.allocate(4)
@@ -53,7 +53,7 @@ object io {
       }
 
       // Parses msg to data
-      json.deserialise[T](msg)
+      JSON.deserialise[T](msg)
     } catch {
       case e: Exception => {
         println(s"Failed to receive data. Error message: $e")

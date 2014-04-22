@@ -1,10 +1,9 @@
 package lionfish.server
 import java.net.Socket
-import lionfish.utils.io
+import lionfish.utils.IO
 
 class Connection(private val id: Int,
-                 private implicit val socket: Socket,
-                 private val manager: DatabaseManager) extends Runnable {
+                 private implicit val socket: Socket) extends Runnable {
   println(s"Client $id connected.")
 
   private def disconnect() = {
@@ -36,19 +35,19 @@ class Connection(private val id: Int,
         var rawResult: List[Any] = null
         funcName match {
           case "getByUuid" => {
-            rawResult = manager.getByUuid(fullArgs)
+            rawResult = DatabaseManager.getByUuid(fullArgs)
           }
           case "getByLink" => {
-            rawResult = manager.getByLink(fullArgs)
+            rawResult = DatabaseManager.getByLink(fullArgs)
           }
           case "getModelNodes" => {
-            rawResult = manager.getModelNodes()
+            rawResult = DatabaseManager.getModelNodes()
           }
           case "createNodes" => {
-            rawResult = manager.createNodes(fullArgs)
+            rawResult = DatabaseManager.createNodes(fullArgs)
           }
           case "deleteNodes" => {
-            rawResult = manager.deleteNodes(fullArgs)
+            rawResult = DatabaseManager.deleteNodes(fullArgs)
           }
           case _ => throw new NoSuchMethodException(funcName)
         }
@@ -80,19 +79,19 @@ class Connection(private val id: Int,
       var response: List[Any] = null
       funcName match {
         case "getByUuid" => {
-          response = manager.getByUuid(args)
+          response = DatabaseManager.getByUuid(args)
         }
         case "getByLink" => {
-          response = manager.getByLink(args)
+          response = DatabaseManager.getByLink(args)
         }
         case "getModelNodes" => {
-          response = manager.getModelNodes()
+          response = DatabaseManager.getModelNodes()
         }
         case "createNodes" => {
-          response = manager.createNodes(args)
+          response = DatabaseManager.createNodes(args)
         }
         case "deleteNodes" => {
-          response = manager.deleteNodes(args)
+          response = DatabaseManager.deleteNodes(args)
         }
         case _ => throw new NoSuchMethodException(funcName)
       }
@@ -109,7 +108,7 @@ class Connection(private val id: Int,
   def run() = {
     // Process requests
     var request: Map[String, Any] = null
-    while ({request = io.receive[Map[String, Any]](); request} != null) {
+    while ({request = IO.receive[Map[String, Any]](); request} != null) {
       try {
         var response: List[Any] = null
         if (!request.contains("tasks")) {
@@ -117,7 +116,7 @@ class Connection(private val id: Int,
         } else {
           response = executeBatch(request)
         }
-        io.send(response)
+        IO.send(response)
       }
     }
 
