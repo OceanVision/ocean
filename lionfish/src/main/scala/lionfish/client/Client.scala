@@ -94,7 +94,7 @@ class Client extends Factory {
   }
 
   case class getChildren(private val parentUuid: String, relType: String,
-                         childrenParams: Map[String, Any]) extends Method {
+                         childrenParams: Map[String, Any] = Map()) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
         "funcName" -> "getChildren",
@@ -191,7 +191,7 @@ class Client extends Factory {
   }
 
   case class createRelationship(private val startNodeUuid: String, endNodeUuid: String,
-                                relType: String, props: Map[String, Any]) extends Method {
+                                relType: String, props: Map[String, Any] = Map()) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
         "funcName" -> "createRelationships",
@@ -208,7 +208,7 @@ class Client extends Factory {
       }
 
       send(request)
-      receive[Map[String, Any]]()
+      receive[Any]()
     }
   }
 
@@ -228,7 +228,7 @@ class Client extends Factory {
       }
 
       send(request)
-      receive[Map[String, Any]]()
+      receive[Any]()
     }
   }
 }

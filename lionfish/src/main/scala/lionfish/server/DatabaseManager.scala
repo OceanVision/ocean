@@ -83,7 +83,7 @@ object DatabaseManager {
     }
   }
 
-  def getByUuid(nodeUuidList: List[Map[String, Any]]): List[Any] = {
+  def getByUuid(args: List[Map[String, Any]]): List[Any] = {
     var result: List[Any] = null
 
     val tx = graphDB.beginTx()
@@ -91,7 +91,7 @@ object DatabaseManager {
       val rawResult: ListBuffer[Any] = ListBuffer()
 
       // Gets nodes by uuid
-      for (item <- nodeUuidList) {
+      for (item <- args) {
         // Extracts result
         val rawNode = graphDB.findNodesByLabelAndProperty(
           DynamicLabel.label("Node"),
@@ -122,7 +122,7 @@ object DatabaseManager {
     result
   }
 
-  def getByLink(nodeUuidList: List[Map[String, Any]]): List[Any] = {
+  def getByLink(args: List[Map[String, Any]]): List[Any] = {
     var result: List[Any] = null
 
     val tx = graphDB.beginTx()
@@ -130,7 +130,7 @@ object DatabaseManager {
       val rawResult: ListBuffer[Any] = ListBuffer()
 
       // Gets nodes by uuid
-      for (item <- nodeUuidList) {
+      for (item <- args) {
         // Extracts result
         val rawNode = graphDB.findNodesByLabelAndProperty(
           DynamicLabel.label(item("modelName").asInstanceOf[String]),
@@ -164,7 +164,7 @@ object DatabaseManager {
     result
   }
 
-  def getModelNodes(requests: List[Map[String, Any]]): List[Any] = {
+  def getModelNodes(args: List[Map[String, Any]]): List[Any] = {
     var result: List[Any] = null
 
     val tx = graphDB.beginTx()
@@ -180,9 +180,8 @@ object DatabaseManager {
       while (it.hasNext) {
         rawResult += parseNode(it.next())
       }
-      it.close()
 
-      result = List.fill[Any](requests.length)(rawResult.toList)
+      result = List.fill[Any](args.length)(rawResult.toList)
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
@@ -197,16 +196,155 @@ object DatabaseManager {
     result
   }
 
+  def getChildren(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[List[Map[String, Any]]] = null
+
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[List[Map[String, Any]]] = ListBuffer()
+      val label = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each node as an instance of Node
+        val rawParentNode = graphDB.findNodesByLabelAndProperty(
+          label,
+          "uuid",
+          item("parentUuid").asInstanceOf[String]
+        )
+
+        val it = rawParentNode.iterator()
+        if (it.hasNext) {
+          val childrenOfOneNode: ListBuffer[Map[String, Any]] = ListBuffer()
+          val parentNode = it.next()
+
+          // Gets all outgoing relationships of given type
+          val relType = DynamicRelationshipType.withName(item("relType").asInstanceOf[String])
+
+          // Gets children and extracts partial result
+          val it2 = parentNode.getRelationships(relType, Direction.OUTGOING).iterator()
+          while (it2.hasNext) {
+            childrenOfOneNode += parseNode(it2.next().getEndNode)
+          }
+
+          rawResult += childrenOfOneNode.toList
+        } else {
+          rawResult += null.asInstanceOf[List[Map[String, Any]]]
+        }
+      }
+      tx.success()
+      result = rawResult.toList
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+        result = List()
+    } finally {
+      tx.close()
+    }
+
+    result
+  }
+
+  def getInstances(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[List[Map[String, Any]]] = null
+
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[List[Map[String, Any]]] = ListBuffer()
+      val label = DynamicLabel.label("Model")
+
+      for (item <- args) {
+        // Gets each node as an instance of Node
+        val rawParentNode = graphDB.findNodesByLabelAndProperty(
+          label,
+          "model_name",
+          item("modelName").asInstanceOf[String]
+        )
+
+        val it = rawParentNode.iterator()
+        if (it.hasNext) {
+          val instancesOfOneNode: ListBuffer[Map[String, Any]] = ListBuffer()
+          val parentNode = it.next()
+
+          // Gets all outgoing relationships of type <<INSTANCE>>
+          val relType = DynamicRelationshipType.withName("<<INSTANCE>>")
+
+          // Gets children and extracts partial result
+          val relList = parentNode.getRelationships(relType, Direction.OUTGOING).iterator()
+          while (relList.hasNext) {
+            instancesOfOneNode += parseNode(relList.next().getEndNode)
+          }
+
+          rawResult += instancesOfOneNode.toList
+        } else {
+          rawResult += null.asInstanceOf[List[Map[String, Any]]]
+        }
+      }
+      tx.success()
+      result = rawResult.toList
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+        result = List()
+    } finally {
+      tx.close()
+    }
+
+    result
+  }
+
+  def set(args: List[Map[String, Any]]): List[Any] = {
+    val tx = graphDB.beginTx()
+    try {
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each node as an instance of Node
+        val rawNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("uuid").asInstanceOf[String]
+        )
+
+        val it = rawNode.iterator()
+        if (it.hasNext) {
+          val node = it.next()
+
+          // Sets properties to the node
+          for ((key, value) <- item("props").asInstanceOf[Map[String, Any]]) {
+            node.setProperty(key, value)
+          }
+        }
+      }
+      tx.success()
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+    } finally {
+      tx.close()
+    }
+
+    null
+  }
+
   // TODO: Add defaults
-  def createNodes(nodeParamsList: List[Map[String, Any]]): List[Any] = {
+  def createNodes(args: List[Map[String, Any]]): List[Any] = {
     var result: List[Map[String, Any]] = null
 
     val tx = graphDB.beginTx()
     try {
       val rawResult: ListBuffer[Map[String, Any]] = ListBuffer()
 
-      // Creates nodes by the given properties
-      for (params <- nodeParamsList) {
+      // Creates nodes by given properties
+      for (params <- args) {
         val uuid = UUID.randomUUID().toString
         var props = params("props").asInstanceOf[Map[String, Any]]
         props += "uuid" -> uuid
@@ -240,10 +378,10 @@ object DatabaseManager {
     result
   }
 
-  def deleteNodes(nodeParamsList: List[Map[String, Any]]): List[Any] = {
+  def deleteNodes(args: List[Map[String, Any]]): List[Any] = {
     // Prepares params
     var nodeUuidList: ListBuffer[String] = ListBuffer()
-    for (item <- nodeParamsList) {
+    for (item <- args) {
       nodeUuidList += item("uuid").asInstanceOf[String]
     }
 
@@ -255,6 +393,97 @@ object DatabaseManager {
         "WHERE e.uuid IN {uuid_list} " +
         "DELETE e, r"
       executeCypher(query, Map("uuid_list" -> nodeUuidList.toList))
+      tx.success()
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+    } finally {
+      tx.close()
+    }
+
+    null
+  }
+
+  def createRelationships(args: List[Map[String, Any]]): List[Any] = {
+    val tx = graphDB.beginTx()
+    try {
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each pair of nodes as instances of Node
+        val rawStartNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("startNodeUuid").asInstanceOf[String]
+        )
+
+        val rawEndNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("endNodeUuid").asInstanceOf[String]
+        )
+
+        val it1 = rawStartNode.iterator()
+        val it2 = rawEndNode.iterator()
+        if (it1.hasNext && it2.hasNext) {
+          val startNode = it1.next()
+          val endNode = it2.next()
+          val relType = DynamicRelationshipType.withName(item("relType").asInstanceOf[String])
+
+          // Creates a relationship of a given type
+          val rel = startNode.createRelationshipTo(endNode, relType)
+
+          // Sets properties to the relationship
+          for ((key, value) <- item("props").asInstanceOf[Map[String, Any]]) {
+            rel.setProperty(key, value)
+          }
+        }
+      }
+      tx.success()
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+    } finally {
+      tx.close()
+    }
+
+    null
+  }
+
+  def deleteRelationships(args: List[Map[String, Any]]): List[Any] = {
+    val tx = graphDB.beginTx()
+    try {
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each start node as an instance of Node
+        val rawStartNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("startNodeUuid").asInstanceOf[String]
+        )
+
+        val it = rawStartNode.iterator()
+        if (it.hasNext) {
+          val startNode = it.next()
+          val endNodeUuid = item("endNodeUuid").asInstanceOf[String]
+
+          // Looks through a list of relationships to delete a proper one
+          val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
+          while (relList.hasNext) {
+            val rel = relList.next()
+            if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
+              rel.delete()
+            }
+          }
+        }
+      }
       tx.success()
     } catch {
       case e: Exception => {

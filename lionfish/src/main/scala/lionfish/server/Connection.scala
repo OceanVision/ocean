@@ -43,11 +43,26 @@ class Connection(private val id: Int,
           case "getModelNodes" => {
             rawResult = DatabaseManager.getModelNodes(fullArgs)
           }
+          case "getChildren" => {
+            rawResult = DatabaseManager.getChildren(fullArgs)
+          }
+          case "getInstances" => {
+            rawResult = DatabaseManager.getInstances(fullArgs)
+          }
+          case "set" => {
+            rawResult = DatabaseManager.set(fullArgs)
+          }
           case "createNodes" => {
             rawResult = DatabaseManager.createNodes(fullArgs)
           }
           case "deleteNodes" => {
             rawResult = DatabaseManager.deleteNodes(fullArgs)
+          }
+          case "createRelationships" => {
+            rawResult = DatabaseManager.createRelationships(fullArgs)
+          }
+          case "deleteRelationships" => {
+            rawResult = DatabaseManager.deleteRelationships(fullArgs)
           }
           case _ => throw new NoSuchMethodException(funcName)
         }
@@ -88,11 +103,26 @@ class Connection(private val id: Int,
         case "getModelNodes" => {
           response = DatabaseManager.getModelNodes(args)
         }
+        case "getChildren" => {
+          response = DatabaseManager.getChildren(args)
+        }
+        case "getInstances" => {
+          response = DatabaseManager.getInstances(args)
+        }
+        case "set" => {
+          response = DatabaseManager.set(args)
+        }
         case "createNodes" => {
           response = DatabaseManager.createNodes(args)
         }
         case "deleteNodes" => {
           response = DatabaseManager.deleteNodes(args)
+        }
+        case "createRelationships" => {
+          response = DatabaseManager.createRelationships(args)
+        }
+        case "deleteRelationships" => {
+          response = DatabaseManager.deleteRelationships(args)
         }
         case _ => throw new NoSuchMethodException(funcName)
       }
