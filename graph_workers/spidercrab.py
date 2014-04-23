@@ -672,9 +672,14 @@ class Spidercrab(GraphWorker):
             if destination_node:
                 self.logger.log(
                     info_level,
-                    self.fullname + ' This source already exists - updating.'
+                    self.fullname + ' This source already exists - '
+                    'Leaving it.'
                 )
-                source_node['uuid'] = destination_node['uuid']
+                # This approach gives an opportunity to avoid deadlock
+                # and in fact does not leave existing source if queued
+                # - this source will be updated by this or another slave later
+                return properties
+                #source_node['uuid'] = destination_node['uuid']
 
         query = """
         MATCH (source:ContentSource {uuid: '%s'})
@@ -751,7 +756,7 @@ class Spidercrab(GraphWorker):
 
         version = data.get('version', 'unknown')
         if version[:3] == 'rss' or version == 'unknown' or not version:
-            parsed_properties = Spidercrab._parse_rss_source(data)
+            parsed_properties = self._parse_rss_source(data)
             properties.update(parsed_properties)
         return properties
 
@@ -762,8 +767,7 @@ class Spidercrab(GraphWorker):
         """
         return len(data.get('entries', [])) != 0
 
-    @staticmethod
-    def _parse_rss_source(data):
+    def _parse_rss_source(self, data):
         properties = dict()
         try:
             # Common RSS elements
@@ -789,18 +793,22 @@ class Spidercrab(GraphWorker):
             for entry in data['entries']:
                 news = dict()
                 news['title'] = unicode(entry.get('title', 'unknown'))
-                news['summary'] = unicode(entry.get('summary', 'unknown'))
+                news['summary'] = entry.get('summary', 'unknown')
                 news['link'] = unicode(entry.get('link', 'unknown'))
                 news['published'] = unicode(
                     time_struct_to_database_timestamp(
                         entry.get('published_parsed', 'unknown'))
                 )
-                links = entry.get('links', [{}])
-                news['type'] = unicode(links[0].get('type', 'unknown'))
                 properties['news'].append(news)
         except Exception as error:
             logger.log(error_level, 'RSS XML error - ' + str(error))
         return properties
+
+    def _db_encode(self, string, encoding='unknown'):
+        """
+            Encode string so that it can be safely put inside the database
+        """
+        return unicode(string).replace('\'', '\\\'')
 
     def _try_another_source_link(self, data):
         feed = data['feed']
@@ -864,19 +872,16 @@ class Spidercrab(GraphWorker):
             if not result:
 
                 try:
-                    if self._news_is_supported(news_props['link']):
-                        self.logger.log(
-                            info_level,
-                            self.fullname + ' extracting '
-                            + str(news_props['link'])
-                        )
-                        news_props = self._extract_news(news_props)
+                    news_props = self._extract_news(news_props)
                 except Exception as error:
                     self.logger.log(
                         error_level,
                         self.fullname + ' ' + news_props['link']
-                        + ' - Extracting error: ' + str(error)
+                        + ' - Extracting error: ' + unicode(error)
                     )
+                # Prepare strings to database
+                for key in news_props:
+                    news_props[key] = self._db_encode(news_props[key])
                 query = u"""
                     MATCH
                     (source:ContentSource {uuid: '%s'}),
@@ -929,12 +934,19 @@ class Spidercrab(GraphWorker):
                     self.fullname + ' Fetched ' + str(fetched_news_ps)
                     + '. news for ' + source_props['link'])
 
-    def _news_is_supported(self, url):
+    def _inspect_news(self, url):
+        """
+            Inspect meta properties of the page.
+        """
+        result = dict()
+        news = urllib2.urlopen(url)
+        result['content_type'] = news.headers.get('content-type', 'unknown')
+        return result
+
+    def _content_is_supported(self, content_type, url='unknown'):
         """
             Exclude media files etc. from extraction.
         """
-        news = urllib2.urlopen(url)
-        content_type = news.headers.get('content-type', '')
         for supported in self.SUPPORTED_CONTENT_TYPES:
             if supported in content_type:
                 return True
@@ -955,8 +967,20 @@ class Spidercrab(GraphWorker):
         news_props['text'] = 'unknown'
         news_props['html'] = 'unknown'
 
-        if not self._news_is_supported(news_props['link']):
+        meta_props = self._inspect_news(news_props['link'])
+        for key in meta_props:
+            news_props[key] = meta_props[key]
+
+        if not self._content_is_supported(
+                news_props['content_type'],
+                news_props['link']
+        ):
             return news_props
+
+        self.logger.log(
+            info_level,
+            self.fullname + ' extracting ' + str(news_props['link'])
+        )
 
         try:
             extractor = boilerpipe.extract.Extractor(
