@@ -82,8 +82,6 @@ KNOWN_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH,  SERVICE_NEO4J, SERVICE_NEW
     ,SERVICE_MANTIS_DATABASE_WORKER, SERVICE_MANTIS_PREDICTOR
                       ])
 
-
-
 SERVICE = "service"
 #Service ID is in most cases the same as SERVICE, however if it is local, or if it is multiple_slave it can differ
 #For instance hadoop slaves will have service id hadoop_slave:2, whereas local service will have id

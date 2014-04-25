@@ -1,3 +1,4 @@
+-e git://github.com/mumrah/kafka-python.git#egg=kafka
 Django==1.4.1
 Flask==0.10.1
 Flask-Jsonpify==1.3
