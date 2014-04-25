@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 import vision.ocean.R;
+import vision.ocean.objects.Feed;
 
 import java.util.ArrayList;
 import java.util.TreeSet;
@@ -17,21 +18,21 @@ public class NavigationDrawerAdapter extends BaseAdapter {
     private static final int TYPE_SEPARATOR = 1;
     private static final int TYPE_MAX_COUNT = TYPE_SEPARATOR + 1;
 
-    private ArrayList mData = new ArrayList();
+    private ArrayList<Feed> mData = new ArrayList<Feed>();
     private LayoutInflater mInflater;
 
-    public TreeSet mSeparatorsSet = new TreeSet();
+    public TreeSet<Integer> mSeparatorsSet = new TreeSet<Integer>();
 
     public NavigationDrawerAdapter(Context context) {
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
 
-    public void addItem(final String item) {
+    public void addItem(final Feed item) {
         mData.add(item);
         notifyDataSetChanged();
     }
 
-    public void addSeparatorItem(final String item) {
+    public void addSeparatorItem(final Feed item) {
         mData.add(item);
         // save separator position
         mSeparatorsSet.add(mData.size() - 1);
@@ -54,8 +55,8 @@ public class NavigationDrawerAdapter extends BaseAdapter {
     }
 
     @Override
-    public String getItem(int position) {
-        return String.valueOf(mData.get(position));
+    public Feed getItem(int position) {
+        return mData.get(position);
     }
 
     @Override
@@ -85,7 +86,7 @@ public class NavigationDrawerAdapter extends BaseAdapter {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        holder.textView.setText(String.valueOf(mData.get(position)));
+        holder.textView.setText(mData.get(position).title);
         return convertView;
     }
 

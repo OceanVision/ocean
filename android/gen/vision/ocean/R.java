@@ -52,8 +52,8 @@ public final class R {
         public static final int item_news=0x7f030004;
     }
     public static final class menu {
-        public static final int global=0x7f070000;
-        public static final int main=0x7f070001;
+        public static final int global_authenticated =0x7f070000;
+        public static final int main_authenticated =0x7f070001;
     }
     public static final class string {
         public static final int action_example=0x7f050007;

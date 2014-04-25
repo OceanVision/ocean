@@ -7,7 +7,7 @@
     tools:context="vision.ocean.activities.MainActivity" >
 
     <!--
-         As the main content view, the view below consumes the entire
+         As the main_authenticated content view, the view below consumes the entire
          space available using match_parent in both dimensions.
     -->
 
