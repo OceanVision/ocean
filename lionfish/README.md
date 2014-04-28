@@ -3,7 +3,7 @@ Lionfish
 
 ### Notes
 
-The Lionfish server is inteded to work on remote node. The client works as a normal class.
+The Lionfish server is inteded to work on a remote node. The client works as a normal class.
 
 Exemplary usage of the **Scala-based** client:
 
@@ -57,16 +57,16 @@ Each test case of the set 1 examines one method.
 The table below applies to read methods: **_getByUuid_**, **_getByLink_**, **_getModelNodes_**, **_getChildren_**,
 **_getInstances_**
 
-| using batch | correct input | non-empty output expected |
-| :---------: | :-----------: | :-----------------------: |
-| no  | yes | yes |
-| no  | no  | no  |
-| yes | yes | no  |
-| yes | no  | yes |
+| using batch | non-empty output expected |
+| :---------: | :-----------------------: |
+| no  | yes |
+| no  | no  |
+| yes | yes |
+| yes | no  |
 
 #### Set 1.2
 
-The table below applies to: **_set_**, **_createNode_**, **_deleteNode_**, **_createRelationship_**,
+The table below applies to write methods: **_set_**, **_createNode_**, **_deleteNode_**, **_createRelationship_**,
 **_deleteRelationship_**
 
 | using batch | correct input |
