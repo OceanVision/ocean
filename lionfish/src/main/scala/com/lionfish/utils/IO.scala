@@ -1,4 +1,5 @@
-package lionfish.utils
+package com.lionfish.utils
+
 import java.net.Socket
 import java.nio.ByteBuffer
 

@@ -1,6 +1,7 @@
-package lionfish.server
+package com.lionfish.server
+
 import java.net.Socket
-import lionfish.utils.IO
+import com.lionfish.utils.IO
 
 class Connection(private val id: Int,
                  private implicit val socket: Socket) extends Runnable {
@@ -29,7 +30,7 @@ class Connection(private val id: Int,
           fullArgs = fullArgs :+ item(0).asInstanceOf[Map[String, Any]]
         }
 
-        println(s"Client $id executes $funcName.")
+        println(s"Client $id executes $funcName in batch.")
 
         // TODO: Solve this with reflection
         var rawResult: List[Any] = null
@@ -78,7 +79,7 @@ class Connection(private val id: Int,
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Client $id failed to execute batch at line $line. Error message: $e")
+        println(s"Client $id failed to execute a batch at line $line. Error message: $e")
       }
       List()
     }
@@ -127,13 +128,17 @@ class Connection(private val id: Int,
         case _ => throw new NoSuchMethodException(funcName)
       }
 
-      response(0)
+      if (response != null && response.length > 0) {
+        response(0)
+      } else {
+        null
+      }
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Client $id failed to execute function at line $line. Error message: $e")
+        println(s"Client $id failed to execute a function at line $line. Error message: $e")
       }
-      List()
+      null
     }
   }
 

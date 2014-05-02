@@ -1,4 +1,5 @@
-package lionfish.client
+package com.lionfish.client
+
 import scala.collection.mutable.ListBuffer
 
 class Batch(implicit private val client: Client) extends AnyRef {
@@ -17,6 +18,11 @@ class Batch(implicit private val client: Client) extends AnyRef {
     }
 
     count += 1
+  }
+
+  def +=(f: Method): Batch = {
+    append(f)
+    this
   }
 
   def submit(): List[Any] = {

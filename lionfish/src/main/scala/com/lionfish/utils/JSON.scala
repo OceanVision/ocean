@@ -1,4 +1,5 @@
-package lionfish.utils
+package com.lionfish.utils
+
 import java.lang.reflect.{Type, ParameterizedType}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule

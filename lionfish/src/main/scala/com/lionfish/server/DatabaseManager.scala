@@ -1,4 +1,5 @@
-package lionfish.server
+package com.lionfish.server
+
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
@@ -25,7 +26,7 @@ object DatabaseManager {
       var dict: Map[String, Any] = Map()
       val it = keys.iterator()
       while (it.hasNext) {
-        val key = it.next()
+        val key: String = it.next()
         dict += key -> node.getProperty(key)
       }
       dict
@@ -228,7 +229,7 @@ object DatabaseManager {
 
           rawResult += childrenOfOneNode.toList
         } else {
-          rawResult += null.asInstanceOf[List[Map[String, Any]]]
+          rawResult += List()
         }
       }
       tx.success()
@@ -247,6 +248,7 @@ object DatabaseManager {
     result
   }
 
+  @deprecated(message = "Use getChildren instead.")
   def getInstances(args: List[Map[String, Any]]): List[Any] = {
     var result: List[List[Map[String, Any]]] = null
 
@@ -279,7 +281,7 @@ object DatabaseManager {
 
           rawResult += instancesOfOneNode.toList
         } else {
-          rawResult += null.asInstanceOf[List[Map[String, Any]]]
+          rawResult += null
         }
       }
       tx.success()
@@ -304,20 +306,24 @@ object DatabaseManager {
       val nodeLabel = DynamicLabel.label("Node")
 
       for (item <- args) {
-        // Gets each node as an instance of Node
-        val rawNode = graphDB.findNodesByLabelAndProperty(
-          nodeLabel,
-          "uuid",
-          item("uuid").asInstanceOf[String]
-        )
+        val props = item("props").asInstanceOf[Map[String, Any]]
 
-        val it = rawNode.iterator()
-        if (it.hasNext) {
-          val node = it.next()
+        if (props != null && !props.isEmpty) {
+          // Gets each node as an instance of Node
+          val rawNode = graphDB.findNodesByLabelAndProperty(
+            nodeLabel,
+            "uuid",
+            item("uuid").asInstanceOf[String]
+          )
 
-          // Sets properties to the node
-          for ((key, value) <- item("props").asInstanceOf[Map[String, Any]]) {
-            node.setProperty(key, value)
+          val it = rawNode.iterator()
+          if (it.hasNext) {
+            val node = it.next()
+
+            // Sets properties to the node
+            for ((key, value) <- props) {
+              node.setProperty(key, value)
+            }
           }
         }
       }
@@ -347,20 +353,25 @@ object DatabaseManager {
       for (params <- args) {
         val uuid = UUID.randomUUID().toString
         var props = params("props").asInstanceOf[Map[String, Any]]
-        props += "uuid" -> uuid
-        rawResult += Map("uuid" -> uuid)
 
-        val node = graphDB.createNode()
-        for ((key, value) <- props) {
-          node.setProperty(key, value)
+        if (props != null && !props.isEmpty) {
+          props += "uuid" -> uuid
+          rawResult += Map("uuid" -> uuid)
+
+          val node = graphDB.createNode()
+          for ((key, value) <- props) {
+            node.setProperty(key, value)
+          }
+
+          val modelName = params("modelName").asInstanceOf[String]
+          node.addLabel(DynamicLabel.label("Node"))
+          node.addLabel(DynamicLabel.label(modelName))
+
+          val relType = DynamicRelationshipType.withName(params("relType").asInstanceOf[String])
+          modelNodes(modelName).createRelationshipTo(node, relType)
+        } else {
+          rawResult += Map("uuid" -> null)
         }
-
-        val modelName = params("modelName").asInstanceOf[String]
-        node.addLabel(DynamicLabel.label("Node"))
-        node.addLabel(DynamicLabel.label(modelName))
-
-        val relType = DynamicRelationshipType.withName(params("relType").asInstanceOf[String])
-        modelNodes(modelName).createRelationshipTo(node, relType)
       }
       tx.success()
       result = rawResult.toList

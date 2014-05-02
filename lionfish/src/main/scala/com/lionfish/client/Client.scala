@@ -1,6 +1,7 @@
-package lionfish.client
+package com.lionfish.client
+
 import java.net.Socket
-import lionfish.utils.{Factory, IO}
+import com.lionfish.utils.{Factory, IO}
 
 class Client extends Factory {
   implicit val client = this
@@ -94,14 +95,14 @@ class Client extends Factory {
   }
 
   case class getChildren(private val parentUuid: String, relType: String,
-                         childrenParams: Map[String, Any] = Map()) extends Method {
+                         childrenProps: Map[String, Any] = Map()) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
         "funcName" -> "getChildren",
         "args" -> Map(
           "parentUuid" -> parentUuid,
           "relType" -> relType,
-          "childrenParams" -> childrenParams
+          "childrenParams" -> childrenProps
         )
       )
 
@@ -114,6 +115,7 @@ class Client extends Factory {
     }
   }
 
+  @deprecated(message = "Use getChildren instead.")
   case class getInstances(private val modelName: String) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(

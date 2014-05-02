@@ -1,4 +1,4 @@
-package lionfish.client
+package com.lionfish.client
 
 trait Method {
   protected def method(getOnlyRequest: Boolean = false): Any

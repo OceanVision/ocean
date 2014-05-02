@@ -20,7 +20,7 @@ val singleResult = rawResult.asInstanceOf[List[Map[String, Any]]]
 val bt = cl.getBatch
 bt.append(cl.getByLink("ContentSource", "http://www.gry-online.pl/"))
 bt.append(cl.getByUuid("974eeacc-a07d-11e3-9f3a-2cd05ae1c39b"))
-bt.append(cl.getInstances("Content"))
+bt.append(cl.getChildren("970fc9d2-a07d-11e3-9f3a-2cd05ae1c39b", "<<INSTANCE>>"))
 bt.append(cl.getByUuid("974ee946-a07d-11e3-9f3a-2cd05ae1c39b"))
 val batchResult = bt.submit()
 
@@ -41,7 +41,7 @@ single_result = cl.get_by_uuid('974eeacc-a07d-11e3-9f3a-2cd05ae1c39b')
 bt = cl.get_batch()
 bt.append(cl.getByLink, 'ContentSource', 'http://www.gry-online.pl/')
 bt.append(cl.getByUuid, '974eeacc-a07d-11e3-9f3a-2cd05ae1c39b')
-bt.append(cl.get_instances, 'Content')
+bt.append(cl.get_children, '970fc9d2-a07d-11e3-9f3a-2cd05ae1c39b', '<<INSTANCE>>')
 bt.append(cl.getByUuid, '974ee946-a07d-11e3-9f3a-2cd05ae1c39b')
 batch_result = bt.submit()
 
@@ -54,7 +54,7 @@ Each test case of the set 1 examines one method.
 
 #### Set 1.1
 
-The table below applies to read methods: **_getByUuid_**, **_getByLink_**, **_getModelNodes_**, **_getChildren_**,
+The table below applies to read methods: **_getByUuid_**, **_getByLink_**, **_getModelNodes_**,
 **_getInstances_**
 
 | using batch | non-empty output expected |
@@ -66,7 +66,18 @@ The table below applies to read methods: **_getByUuid_**, **_getByLink_**, **_ge
 
 #### Set 1.2
 
-The table below applies to write methods: **_set_**, **_createNode_**, **_deleteNode_**, **_createRelationship_**,
+The table below applies to read method: **_getChildren_**
+
+| using batch | non-empty output expected | non-empty props |
+| :---------: | :-----------------------: | :-------------: |
+| no  | yes | no  |
+| no  | no  | yes |
+| yes | yes | yes |
+| yes | no  | no  |
+
+#### Set 1.3
+
+The table below applies to write methods: **_set_**, **_createNode_**, **_deleteNode_**,
 **_deleteRelationship_**
 
 | using batch | correct input |
@@ -75,6 +86,17 @@ The table below applies to write methods: **_set_**, **_createNode_**, **_delete
 | no  | no  |
 | yes | yes |
 | yes | no  |
+
+#### Set 1.4
+
+The table below applies to write method: **_createRelationship_**
+
+| using batch | correct input | non-empty props |
+| :---------: | :-----------: | :-------------: |
+| no  | yes | no  |
+| no  | no  | yes |
+| yes | yes | yes |
+| yes | no  | no  |
 
 ***
 
