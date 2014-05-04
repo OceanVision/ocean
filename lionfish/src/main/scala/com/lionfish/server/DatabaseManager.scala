@@ -248,7 +248,6 @@ object DatabaseManager {
     result
   }
 
-  @deprecated(message = "Use getChildren instead.")
   def getInstances(args: List[Map[String, Any]]): List[Any] = {
     var result: List[List[Map[String, Any]]] = null
 
@@ -281,7 +280,7 @@ object DatabaseManager {
 
           rawResult += instancesOfOneNode.toList
         } else {
-          rawResult += null
+          rawResult += List()
         }
       }
       tx.success()

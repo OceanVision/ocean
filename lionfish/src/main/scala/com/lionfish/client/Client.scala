@@ -115,13 +115,14 @@ class Client extends Factory {
     }
   }
 
-  @deprecated(message = "Use getChildren instead.")
-  case class getInstances(private val modelName: String) extends Method {
+  case class getInstances(private val modelName: String,
+                          childrenProps: Map[String, Any] = Map()) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
         "funcName" -> "getInstances",
         "args" -> Map(
-          "modelName" -> modelName
+          "modelName" -> modelName,
+          "childrenProps" -> childrenProps
         )
       )
 
@@ -134,7 +135,27 @@ class Client extends Factory {
     }
   }
 
+  @deprecated(message = "Use setProperties instead.")
   case class set(private val uuid: String, props: Map[String, Any]) extends Method {
+    override def method(getOnlyRequest: Boolean = false): Any = {
+      val request = Map(
+        "funcName" -> "set",
+        "args" -> Map(
+          "uuid" -> uuid,
+          "props" -> props
+        )
+      )
+
+      if (getOnlyRequest) {
+        return request
+      }
+
+      send(request)
+      receive[Any]()
+    }
+  }
+
+  case class setProperties(private val uuid: String, props: Map[String, Any]) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
         "funcName" -> "set",

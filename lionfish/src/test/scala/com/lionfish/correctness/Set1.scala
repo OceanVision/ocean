@@ -5,7 +5,7 @@ import org.scalatest.{FlatSpec, BeforeAndAfterAll}
 import com.lionfish.server.Server
 import com.lionfish.client.{Client, Batch}
 
-class Correctness extends FlatSpec with BeforeAndAfterAll {
+class Set1 extends FlatSpec with BeforeAndAfterAll {
   private var serverThread: Thread = null
   private val client = new Client
   private var batch: Batch = null
@@ -34,7 +34,7 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val props: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
 
     val uuid = client.createNode(modelName, relType, props).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     var validNode = props
     validNode += "uuid" -> uuid
@@ -66,9 +66,9 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
     val uuid0 = client.createNode(modelName, relType, props0).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
     val uuid1 = client.createNode(modelName, relType, props1).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     val validNodeList = ListBuffer(props0, props1)
     validNodeList(0) += "uuid" -> uuid0
@@ -96,7 +96,7 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val props: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
 
     val uuid = client.createNode(modelName, relType, props).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     val nonExistingUuid = ""
     var validNode = props
@@ -126,7 +126,7 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val props: Map[String, Any] = Map("key0" -> 1, "link" -> "http://example.com")
 
     val uuid = client.createNode(modelName, relType, props).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
     val validNode = client.getByUuid(uuid).run()
       .asInstanceOf[Map[String, Any]]
 
@@ -156,9 +156,9 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val props1: Map[String, Any] = Map("key0" -> "abc", "link" -> "http://example3.com")
 
     val uuid0 = client.createNode(modelName, relType, props0).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
     val uuid1 = client.createNode(modelName, relType, props1).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     batch.append(client.getByUuid(uuid0))
     batch.append(client.getByUuid(uuid1))
@@ -188,7 +188,7 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val props: Map[String, Any] = Map("key0" -> 1, "link" -> "http://example4.com")
 
     val uuid = client.createNode(modelName, relType, props).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
     val nonExistingLink = "*abc([)*"
 
     val validNode = client.getByUuid(uuid).run()
@@ -283,9 +283,9 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     }
 
     val uuid0 = client.createNode(modelName, relType, props0).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
     val uuid1 = client.createNode(modelName, relType, props1).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     batch.append(client.getByUuid(uuid0))
     batch.append(client.getByUuid(uuid1))
@@ -348,9 +348,9 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     }
 
     val uuid0 = client.createNode(modelName, relType, props0).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
     val uuid1 = client.createNode(modelName, relType, props1).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     batch.append(client.getByUuid(uuid0))
     batch.append(client.getByUuid(uuid1))
@@ -395,9 +395,9 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     }
 
     val uuid0 = client.createNode(modelName, relType, props0).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
     val uuid1 = client.createNode(modelName, relType, props1).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     batch.append(client.getByUuid(uuid0))
     batch.append(client.getByUuid(uuid1))
@@ -406,6 +406,162 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
 
     batch.append(client.getChildren(nonExistingUuid, relType))
     batch.append(client.getChildren(modelUuid, relType))
+    val testedNodeList = batch.submit()
+      .asInstanceOf[List[List[Map[String, Any]]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 2)
+    assert(testedNodeList(0) != null)
+    assert(testedNodeList(0).length == 0)
+    assert(testedNodeList(1) != null)
+    assert(testedNodeList(1).length == 2)
+
+    val foundList = ListBuffer(0, 0)
+    for (item <- testedNodeList(1)) {
+      if (item.equals(validNodeList(0))) {
+        foundList(0) += 1
+      } else if (item.equals(validNodeList(1))) {
+        foundList(1) += 1
+      }
+    }
+
+    assert(foundList(0) == 1)
+    assert(foundList(1) == 1)
+
+    client.deleteNode(uuid0).run()
+    client.deleteNode(uuid1).run()
+  }
+
+
+
+  // =================== GET INSTANCES ===================
+
+  // not using batch, non-empty output, empty props
+  "getInstances" should "return a list of maps" in {
+    val modelName = "NeoUser"
+    val relType = "<<INSTANCE>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val uuid0 = client.createNode(modelName, relType, props0).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+    val uuid1 = client.createNode(modelName, relType, props1).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+
+    batch.append(client.getByUuid(uuid0))
+    batch.append(client.getByUuid(uuid1))
+    val validNodeList = batch.submit()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    val testedNodeList = client.getInstances(modelName).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length >= 2)
+
+    val foundList = ListBuffer(0, 0)
+    for (item <- testedNodeList) {
+      if (item.equals(validNodeList(0))) {
+        foundList(0) += 1
+      } else if (item.equals(validNodeList(1))) {
+        foundList(1) += 1
+      }
+    }
+
+    assert(foundList(0) == 1)
+    assert(foundList(1) == 1)
+
+    batch.append(client.deleteNode(uuid0))
+    batch.append(client.deleteNode(uuid1))
+    batch.submit()
+  }
+
+  // not using batch, empty output, non-empty props
+  it should "return an empty list" in {
+    val nonExistingModelName = "*abc([)*"
+    val childrenProps: Map[String, Any] = Map("key0" -> 1)
+
+    val testedNodeList = client.getInstances(nonExistingModelName, childrenProps).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 0)
+  }
+
+  // using batch, non-empty output, non-empty props
+  it should "return a list of lists of not null maps" in {
+    val modelName = "Content"
+    val relType = "<<INSTANCE>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val childrenProps0: Map[String, Any] = Map("key0" -> 1)
+    val childrenProps1: Map[String, Any] = Map("key0" -> "abc")
+
+    val uuid0 = client.createNode(modelName, relType, props0).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+    val uuid1 = client.createNode(modelName, relType, props1).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+
+    batch.append(client.getByUuid(uuid0))
+    batch.append(client.getByUuid(uuid1))
+    val validNodeList = batch.submit()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    batch.append(client.getInstances(modelName, childrenProps0))
+    batch.append(client.getInstances(modelName, childrenProps1))
+    val testedNodeList = batch.submit()
+      .asInstanceOf[List[List[Map[String, Any]]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 2)
+    assert(testedNodeList(0) != null)
+    assert(testedNodeList(0).length >= 1)
+    assert(testedNodeList(1) != null)
+    assert(testedNodeList(1).length >= 1)
+
+    val foundList = ListBuffer(0, 0)
+    for (item <- testedNodeList(0)) {
+      if (item.equals(validNodeList(0))) {
+        foundList(0) += 1
+      }
+    }
+
+    for (item <- testedNodeList(1)) {
+      if (item.equals(validNodeList(1))) {
+        foundList(1) += 1
+      }
+    }
+
+    assert(foundList(0) == 1)
+    assert(foundList(1) == 1)
+
+    batch.append(client.deleteNode(uuid0))
+    batch.append(client.deleteNode(uuid1))
+    batch.submit()
+  }
+
+  // using batch, empty output, empty props
+  it should "return a list of mixed non-empty and empty lists of maps" in {
+    val modelName = "Content"
+    val relType = "<<INSTANCE>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val nonExistingModelName = "*abc([)*"
+
+    val uuid0 = client.createNode(modelName, relType, props0).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+    val uuid1 = client.createNode(modelName, relType, props1).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+
+    batch.append(client.getByUuid(uuid0))
+    batch.append(client.getByUuid(uuid1))
+    val validNodeList = batch.submit()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    batch.append(client.getInstances(nonExistingModelName))
+    batch.append(client.getInstances(modelName))
     val testedNodeList = batch.submit()
       .asInstanceOf[List[List[Map[String, Any]]]]
 
@@ -434,10 +590,10 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
 
 
 
-  // =================== SET ===================
+  // =================== SET PROPERTY ===================
 
   // not using batch, correct input
-  "set" should "set properties to a node" in {
+  "setProperties" should "set properties to a node" in {
     val modelName = "ContentSource"
     val relType = "<<TEST_SET>>"
     val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
@@ -445,9 +601,9 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val propsToSet: Map[String, Any] = Map("key1" -> 55, "key2" -> 32)
 
     val uuid = client.createNode(modelName, relType, props).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
-    client.set(uuid, propsToSet).run()
+    client.setProperties(uuid, propsToSet).run()
 
     val validNode: Map[String, Any] = Map("uuid" -> uuid, "key0" -> "abc", "key1" -> 55, "key2" -> 32)
 
@@ -469,12 +625,12 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val propsToSet: Map[String, Any] = null
 
     val uuid = client.createNode(modelName, relType, props).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     var validNode = props
     validNode += "uuid" -> uuid
 
-    client.set(uuid, propsToSet).run()
+    client.setProperties(uuid, propsToSet).run()
 
     val testedNode = client.getByUuid(uuid).run()
       .asInstanceOf[Map[String, Any]]
@@ -496,17 +652,17 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val propsToSet1: Map[String, Any] = Map("key1" -> 0, "key2" -> "")
 
     val uuid0 = client.createNode(modelName, relType, props0).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
     val uuid1 = client.createNode(modelName, relType, props1).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     val validNodeList = List(
       Map("uuid" -> uuid0, "key0" -> 1, "key1" -> 55, "key2" -> 12),
       Map("uuid" -> uuid1, "key0" -> "abc", "key1" -> 0, "key2" -> "")
     )
 
-    batch += client.set(uuid0, propsToSet0)
-    batch += client.set(uuid1, propsToSet1)
+    batch += client.setProperties(uuid0, propsToSet0)
+    batch += client.setProperties(uuid1, propsToSet1)
     batch.submit()
 
     batch += client.getByUuid(uuid0)
@@ -534,17 +690,17 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val propsToSet1: Map[String, Any] = Map("key1" -> 0, "key2" -> "")
 
     val uuid0 = client.createNode(modelName, relType, props0).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
     val uuid1 = client.createNode(modelName, relType, props1).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     val validNodeList = List(
       Map("uuid" -> uuid0, "key0" -> 1, "key1" -> "string"),
       Map("uuid" -> uuid1, "key0" -> "abc", "key1" -> 0, "key2" -> "")
     )
 
-    batch += client.set(uuid0, propsToSet0)
-    batch += client.set(uuid1, propsToSet1)
+    batch += client.setProperties(uuid0, propsToSet0)
+    batch += client.setProperties(uuid1, propsToSet1)
     batch.submit()
 
     batch += client.getByUuid(uuid0)
@@ -572,7 +728,7 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
     val uuid = client.createNode(modelName, relType, props).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     var validNode = props
     validNode += "uuid" -> uuid
@@ -593,7 +749,7 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val props: Map[String, Any] = Map()
 
     val uuid = client.createNode(modelName, relType, props).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     assert(uuid == null)
   }
@@ -713,7 +869,7 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
     val uuid = client.createNode(modelName, relType, props).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     client.deleteNode(uuid).run()
 
@@ -814,7 +970,7 @@ class Correctness extends FlatSpec with BeforeAndAfterAll {
     val relProps: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
 
     val uuid = client.createNode(modelName, relType, props).run()
-      .asInstanceOf[Map[String, Any]]("uuid").asInstanceOf[String]
+      .asInstanceOf[Map[String, String]]("uuid")
 
     client.createRelationship(uuid, nonExistingUuid, relType + "2", relProps).run()
 
