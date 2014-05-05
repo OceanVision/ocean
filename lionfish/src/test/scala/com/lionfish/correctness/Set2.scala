@@ -116,7 +116,7 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
   it should "accept mixed getByLink, getInstances and deleteRelationship" in {
     val modelName = "ContentSource"
     val relType = "<<INSTANCE>>"
-    val props0: Map[String, Any] = Map("key0" -> 1, "link" -> "http://www.example.com")
+    val props0: Map[String, Any] = Map("key0" -> 1, "link" -> "http://www.example1.com")
     val props1: Map[String, Any] = Map("key0" -> "abc", "link" -> "http://www.example2.com")
 
     val modelNodeList = client.getModelNodes().run()
@@ -188,8 +188,8 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
     }
 
     val relType = "<<TEST_2.1.4>>"
-    val props0: Map[String, Any] = Map("key0" -> 1, "link" -> "http://www.example.com")
-    val props1: Map[String, Any] = Map("key0" -> "abc", "link" -> "http://www.example2.com")
+    val props0: Map[String, Any] = Map("key0" -> 1, "link" -> "http://www.example3.com")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "link" -> "http://www.example4.com")
 
     batch += client.createNode(modelName, relType, props0)
     batch += client.createNode(modelName, relType, props1)
@@ -239,7 +239,7 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
     val modelNodeList = client.getModelNodes().run()
       .asInstanceOf[List[Map[String, Any]]]
 
-    val rootUuid = "0"
+    val rootUuid = "root"
     val nonExistingUuid = "*abc([)*"
     val relType = "<<TYPE>>"
 
@@ -253,14 +253,17 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
 
     assert(children != null)
     assert(children.length == modelNodeList.length)
-    assert(modelNodeList.equals(children))
+
+    for (model <- modelNodeList) {
+      assert(children.contains(model))
+    }
   }
 
   it should "accept mixed getByUuid, getByLink, getInstances, deleteNode and deleteRelationship" in {
     val modelName = "ContentSource"
     val relType = "<<INSTANCE>>"
-    val props0: Map[String, Any] = Map("key0" -> 1, "link" -> "http://www.example.com")
-    val props1: Map[String, Any] = Map("key0" -> "abc", "link" -> "http://www.example2.com")
+    val props0: Map[String, Any] = Map("key0" -> 1, "link" -> "http://www.example5.com")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "link" -> "http://www.example6.com")
 
     val modelNodeList = client.getModelNodes().run()
       .asInstanceOf[List[Map[String, Any]]]
@@ -324,8 +327,8 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
   it should "accept mixed getByUuid, getByLink, createNode, createRelationship and deleteRelationship" in {
     val modelName = "ContentSource"
     val relType = "<<TEST_2.1.7>>"
-    val props0: Map[String, Any] = Map("key0" -> 1, "link" -> "http://www.example.com")
-    val props1: Map[String, Any] = Map("key0" -> "abc", "link" -> "http://www.example2.com")
+    val props0: Map[String, Any] = Map("key0" -> 1, "link" -> "http://www.example7.com")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "link" -> "http://www.example8.com")
 
     batch += client.createNode(modelName, relType, props0)
     batch += client.createNode(modelName, relType, props1)

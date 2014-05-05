@@ -102,7 +102,7 @@ class Client extends Factory {
         "args" -> Map(
           "parentUuid" -> parentUuid,
           "relType" -> relType,
-          "childrenParams" -> childrenProps
+          "childrenProps" -> childrenProps
         )
       )
 

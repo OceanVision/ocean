@@ -20,22 +20,41 @@ object DatabaseManager {
   private var modelNodes: Map[String, Node] = Map()
   initCache()
 
-  private def parseNode(node: Node): Map[String, Any] = {
+  private def parseNodeToMap(node: Node): Map[String, Any] = {
     try {
       val keys = node.getPropertyKeys
-      var dict: Map[String, Any] = Map()
+      var map: Map[String, Any] = Map()
       val it = keys.iterator()
       while (it.hasNext) {
         val key: String = it.next()
-        dict += key -> node.getProperty(key)
+        map += key -> node.getProperty(key)
       }
-      dict
+      map
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Parsing node failed at line $line. Error message: $e")
+        println(s"Parsing node to map failed at line $line. Error message: $e")
       }
       null
+    }
+  }
+
+  private def parseNodeToSet(node: Node): Set[(String, Any)] = {
+    try {
+      val keys = node.getPropertyKeys
+      var set: Set[(String, Any)] = Set()
+      val it = keys.iterator()
+      while (it.hasNext) {
+        val key: String = it.next()
+        set += Tuple2(key, node.getProperty(key))
+      }
+      set
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Parsing node to set failed at line $line. Error message: $e")
+      }
+        null
     }
   }
 
@@ -47,7 +66,7 @@ object DatabaseManager {
         var rowItems: ListBuffer[Any] = ListBuffer()
         for (column <- row) {
           // TODO: Do not assume that every value is Node
-          rowItems += parseNode(column._2.asInstanceOf[Node])
+          rowItems += parseNodeToMap(column._2.asInstanceOf[Node])
         }
         parsedResult += rowItems.toList
       }
@@ -101,7 +120,7 @@ object DatabaseManager {
         )
         val it = rawNode.iterator()
         if (it.hasNext) {
-          rawResult += parseNode(it.next())
+          rawResult += parseNodeToMap(it.next())
         } else {
           rawResult += null
         }
@@ -140,10 +159,7 @@ object DatabaseManager {
         )
         val it = rawNode.iterator()
         if (it.hasNext) {
-          while (it.hasNext) {
-            val node = parseNode(it.next())
-            rawResult += node
-          }
+          rawResult += parseNodeToMap(it.next())
         } else {
           rawResult += null
         }
@@ -179,7 +195,7 @@ object DatabaseManager {
       // Extracts result
       val it = rawModelNodes.iterator()
       while (it.hasNext) {
-        rawResult += parseNode(it.next())
+        rawResult += parseNodeToMap(it.next())
       }
 
       result = List.fill[Any](args.length)(rawResult.toList)
@@ -213,6 +229,10 @@ object DatabaseManager {
           item("parentUuid").asInstanceOf[String]
         )
 
+        val props = item("childrenProps")
+          .asInstanceOf[Map[String, Any]]
+          .toSet[(String, Any)]
+
         val it = rawParentNode.iterator()
         if (it.hasNext) {
           val childrenOfOneNode: ListBuffer[Map[String, Any]] = ListBuffer()
@@ -220,11 +240,16 @@ object DatabaseManager {
 
           // Gets all outgoing relationships of given type
           val relType = DynamicRelationshipType.withName(item("relType").asInstanceOf[String])
+          val relList = parentNode.getRelationships(relType, Direction.OUTGOING).iterator()
 
           // Gets children and extracts partial result
-          val it2 = parentNode.getRelationships(relType, Direction.OUTGOING).iterator()
-          while (it2.hasNext) {
-            childrenOfOneNode += parseNode(it2.next().getEndNode)
+          while (relList.hasNext) {
+            val node = parseNodeToSet(relList.next().getEndNode)
+
+            // TODO: make it more efficient
+            if (props.subsetOf(node)) {
+              childrenOfOneNode += node.toMap[String, Any]
+            }
           }
 
           rawResult += childrenOfOneNode.toList
@@ -264,6 +289,10 @@ object DatabaseManager {
           item("modelName").asInstanceOf[String]
         )
 
+        val props = item("childrenProps")
+          .asInstanceOf[Map[String, Any]]
+          .toSet[(String, Any)]
+
         val it = rawParentNode.iterator()
         if (it.hasNext) {
           val instancesOfOneNode: ListBuffer[Map[String, Any]] = ListBuffer()
@@ -271,11 +300,16 @@ object DatabaseManager {
 
           // Gets all outgoing relationships of type <<INSTANCE>>
           val relType = DynamicRelationshipType.withName("<<INSTANCE>>")
+          val relList = parentNode.getRelationships(relType, Direction.OUTGOING).iterator()
 
           // Gets children and extracts partial result
-          val relList = parentNode.getRelationships(relType, Direction.OUTGOING).iterator()
           while (relList.hasNext) {
-            instancesOfOneNode += parseNode(relList.next().getEndNode)
+            val node = parseNodeToSet(relList.next().getEndNode)
+
+            // TODO: make it more efficient
+            if (props.subsetOf(node)) {
+              instancesOfOneNode += node.toMap[String, Any]
+            }
           }
 
           rawResult += instancesOfOneNode.toList
