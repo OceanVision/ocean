@@ -94,15 +94,15 @@ class Client extends Factory {
     }
   }
 
-  case class getChildren(private val parentUuid: String, relType: String,
-                         childrenProps: Map[String, Any] = Map()) extends Method {
+  case class getChildren(private val parentUuid: String, relationshipType: String,
+                         childrenProperties: Map[String, Any] = Map()) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
         "funcName" -> "getChildren",
         "args" -> Map(
           "parentUuid" -> parentUuid,
-          "relType" -> relType,
-          "childrenProps" -> childrenProps
+          "relType" -> relationshipType,
+          "childrenProps" -> childrenProperties
         )
       )
 
@@ -116,13 +116,13 @@ class Client extends Factory {
   }
 
   case class getInstances(private val modelName: String,
-                          childrenProps: Map[String, Any] = Map()) extends Method {
+                          childrenProperties: Map[String, Any] = Map()) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
         "funcName" -> "getInstances",
         "args" -> Map(
           "modelName" -> modelName,
-          "childrenProps" -> childrenProps
+          "childrenProps" -> childrenProperties
         )
       )
 
@@ -136,13 +136,13 @@ class Client extends Factory {
   }
 
   @deprecated(message = "Use setProperties instead.")
-  case class set(private val uuid: String, props: Map[String, Any]) extends Method {
+  case class set(private val uuid: String, properties: Map[String, Any]) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
-        "funcName" -> "set",
+        "funcName" -> "setProperties",
         "args" -> Map(
           "uuid" -> uuid,
-          "props" -> props
+          "props" -> properties
         )
       )
 
@@ -155,13 +155,14 @@ class Client extends Factory {
     }
   }
 
-  case class setProperties(private val uuid: String, props: Map[String, Any]) extends Method {
+  case class setProperties(private val uuid: String, properties: Map[String, Any])
+    extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
-        "funcName" -> "set",
+        "funcName" -> "setProperties",
         "args" -> Map(
           "uuid" -> uuid,
-          "props" -> props
+          "props" -> properties
         )
       )
 
@@ -174,15 +175,35 @@ class Client extends Factory {
     }
   }
 
-  case class createNode(private val modelName: String, relType: String,
-                        props: Map[String, Any]) extends Method {
+  case class deleteProperties(private val uuid: String, propertyKeys: List[String])
+    extends Method {
+    override def method(getOnlyRequest: Boolean = false): Any = {
+      val request = Map(
+        "funcName" -> "deleteProperties",
+        "args" -> Map(
+          "uuid" -> uuid,
+          "propsKeys" -> propertyKeys
+        )
+      )
+
+      if (getOnlyRequest) {
+        return request
+      }
+
+      send(request)
+      receive[Any]()
+    }
+  }
+
+  case class createNode(private val modelName: String, relationshipType: String,
+                        properties: Map[String, Any]) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
         "funcName" -> "createNodes",
         "args" -> Map(
           "modelName" -> modelName,
-          "relType" -> relType,
-          "props" -> props
+          "relType" -> relationshipType,
+          "props" -> properties
         )
       )
 
@@ -214,15 +235,16 @@ class Client extends Factory {
   }
 
   case class createRelationship(private val startNodeUuid: String, endNodeUuid: String,
-                                relType: String, props: Map[String, Any] = Map()) extends Method {
+                                relationshipType: String, properties: Map[String, Any] = Map())
+    extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
         "funcName" -> "createRelationships",
         "args" -> Map(
           "startNodeUuid" -> startNodeUuid,
           "endNodeUuid" -> endNodeUuid,
-          "relType" -> relType,
-          "props" -> props
+          "relType" -> relationshipType,
+          "props" -> properties
         )
       )
 
@@ -243,6 +265,50 @@ class Client extends Factory {
         "args" -> Map(
           "startNodeUuid" -> startNodeUuid,
           "endNodeUuid" -> endNodeUuid
+        )
+      )
+
+      if (getOnlyRequest) {
+        return request
+      }
+
+      send(request)
+      receive[Any]()
+    }
+  }
+
+  case class setRelationshipProperties(private val startNodeUuid: String, endNodeUuid: String,
+                                       properties: Map[String, Any])
+    extends Method {
+    override def method(getOnlyRequest: Boolean = false): Any = {
+      val request = Map(
+        "funcName" -> "setRelationshipProperties",
+        "args" -> Map(
+          "startNodeUuid" -> startNodeUuid,
+          "endNodeUuid" -> endNodeUuid,
+          "props" -> properties
+        )
+      )
+
+      if (getOnlyRequest) {
+        return request
+      }
+
+      send(request)
+      receive[Any]()
+    }
+  }
+
+  case class deleteRelationshipProperties(private val startNodeUuid: String, endNodeUuid: String,
+                                          propertyKeys: List[String])
+    extends Method {
+    override def method(getOnlyRequest: Boolean = false): Any = {
+      val request = Map(
+        "funcName" -> "deleteRelationshipProperties",
+        "args" -> Map(
+          "startNodeUuid" -> startNodeUuid,
+          "endNodeUuid" -> endNodeUuid,
+          "propsKeys" -> propertyKeys
         )
       )
 

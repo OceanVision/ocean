@@ -50,8 +50,11 @@ class Connection(private val id: Int,
           case "getInstances" => {
             rawResult = DatabaseManager.getInstances(fullArgs)
           }
-          case "set" => {
-            rawResult = DatabaseManager.set(fullArgs)
+          case "setProperties" => {
+            rawResult = DatabaseManager.setProperties(fullArgs)
+          }
+          case "deleteProperties" => {
+            rawResult = DatabaseManager.deleteProperties(fullArgs)
           }
           case "createNodes" => {
             rawResult = DatabaseManager.createNodes(fullArgs)
@@ -64,6 +67,12 @@ class Connection(private val id: Int,
           }
           case "deleteRelationships" => {
             rawResult = DatabaseManager.deleteRelationships(fullArgs)
+          }
+          case "setRelationshipProperties" => {
+            rawResult = DatabaseManager.setRelationshipProperties(fullArgs)
+          }
+          case "deleteRelationshipProperties" => {
+            rawResult = DatabaseManager.deleteRelationshipProperties(fullArgs)
           }
           case _ => throw new NoSuchMethodException(funcName)
         }
@@ -110,8 +119,11 @@ class Connection(private val id: Int,
         case "getInstances" => {
           response = DatabaseManager.getInstances(args)
         }
-        case "set" => {
-          response = DatabaseManager.set(args)
+        case "setProperties" => {
+          response = DatabaseManager.setProperties(args)
+        }
+        case "deleteProperties" => {
+          response = DatabaseManager.deleteProperties(args)
         }
         case "createNodes" => {
           response = DatabaseManager.createNodes(args)
@@ -124,6 +136,12 @@ class Connection(private val id: Int,
         }
         case "deleteRelationships" => {
           response = DatabaseManager.deleteRelationships(args)
+        }
+        case "setRelationshipProperties" => {
+          response = DatabaseManager.setRelationshipProperties(args)
+        }
+        case "deleteRelationshipProperties" => {
+          response = DatabaseManager.deleteRelationshipProperties(args)
         }
         case _ => throw new NoSuchMethodException(funcName)
       }

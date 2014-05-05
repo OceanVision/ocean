@@ -333,7 +333,7 @@ object DatabaseManager {
     result
   }
 
-  def set(args: List[Map[String, Any]]): List[Any] = {
+  def setProperties(args: List[Map[String, Any]]): List[Any] = {
     val tx = graphDB.beginTx()
     try {
       val nodeLabel = DynamicLabel.label("Node")
@@ -356,6 +356,47 @@ object DatabaseManager {
             // Sets properties to the node
             for ((key, value) <- props) {
               node.setProperty(key, value)
+            }
+          }
+        }
+      }
+      tx.success()
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+    } finally {
+      tx.close()
+    }
+
+    null
+  }
+
+  def deleteProperties(args: List[Map[String, Any]]): List[Any] = {
+    val tx = graphDB.beginTx()
+    try {
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        val keys = item("propertyKeys").asInstanceOf[List[String]]
+
+        if (keys != null && !keys.isEmpty) {
+          // Gets each node as an instance of Node
+          val rawNode = graphDB.findNodesByLabelAndProperty(
+            nodeLabel,
+            "uuid",
+            item("uuid").asInstanceOf[String]
+          )
+
+          val it = rawNode.iterator()
+          if (it.hasNext) {
+            val node = it.next()
+
+            // Delete node's properties
+            for (key <- keys) {
+              node.removeProperty(key)
             }
           }
         }
@@ -524,6 +565,96 @@ object DatabaseManager {
             val rel = relList.next()
             if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
               rel.delete()
+            }
+          }
+        }
+      }
+      tx.success()
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+    } finally {
+      tx.close()
+    }
+
+    null
+  }
+
+  def setRelationshipProperties(args: List[Map[String, Any]]): List[Any] = {
+    val tx = graphDB.beginTx()
+    try {
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each start node as an instance of Node
+        val rawStartNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("startNodeUuid").asInstanceOf[String]
+        )
+
+        val it = rawStartNode.iterator()
+        if (it.hasNext) {
+          val startNode = it.next()
+          val endNodeUuid = item("endNodeUuid").asInstanceOf[String]
+
+          // Looks through a list of relationships to delete a proper one
+          val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
+          while (relList.hasNext) {
+            val rel = relList.next()
+            if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
+              // Sets properties to the relationship
+              for ((key, value) <- item("props").asInstanceOf[Map[String, Any]]) {
+                rel.setProperty(key, value)
+              }
+            }
+          }
+        }
+      }
+      tx.success()
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+    } finally {
+      tx.close()
+    }
+
+    null
+  }
+
+  def deleteRelationshipProperties(args: List[Map[String, Any]]): List[Any] = {
+    val tx = graphDB.beginTx()
+    try {
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each start node as an instance of Node
+        val rawStartNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("startNodeUuid").asInstanceOf[String]
+        )
+
+        val it = rawStartNode.iterator()
+        if (it.hasNext) {
+          val startNode = it.next()
+          val endNodeUuid = item("endNodeUuid").asInstanceOf[String]
+
+          // Looks through a list of relationships to delete a proper one
+          val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
+          while (relList.hasNext) {
+            val rel = relList.next()
+            if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
+              // Delete relationship's properties
+              for (key <- item("props").asInstanceOf[List[String]]) {
+                rel.removeProperty(key)
+              }
             }
           }
         }
