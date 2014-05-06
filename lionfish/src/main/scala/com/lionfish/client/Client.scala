@@ -95,14 +95,16 @@ class Client extends Factory {
   }
 
   case class getChildren(private val parentUuid: String, relationshipType: String,
-                         childrenProperties: Map[String, Any] = Map()) extends Method {
+                         childrenProperties: Map[String, Any] = Map(),
+                         relationshipProperties: Map[String, Any] = Map()) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
         "funcName" -> "getChildren",
         "args" -> Map(
           "parentUuid" -> parentUuid,
           "relType" -> relationshipType,
-          "childrenProps" -> childrenProperties
+          "childrenProps" -> childrenProperties,
+          "relProps" -> relationshipProperties
         )
       )
 
@@ -116,13 +118,15 @@ class Client extends Factory {
   }
 
   case class getInstances(private val modelName: String,
-                          childrenProperties: Map[String, Any] = Map()) extends Method {
+                          childrenProperties: Map[String, Any] = Map(),
+                          relationshipProperties: Map[String, Any] = Map()) extends Method {
     override def method(getOnlyRequest: Boolean = false): Any = {
       val request = Map(
         "funcName" -> "getInstances",
         "args" -> Map(
           "modelName" -> modelName,
-          "childrenProps" -> childrenProperties
+          "childrenProps" -> childrenProperties,
+          "relProps" -> relationshipProperties
         )
       )
 
@@ -132,26 +136,6 @@ class Client extends Factory {
 
       send(request)
       receive[List[Map[String, Any]]]()
-    }
-  }
-
-  @deprecated(message = "Use setProperties instead.")
-  case class set(private val uuid: String, properties: Map[String, Any]) extends Method {
-    override def method(getOnlyRequest: Boolean = false): Any = {
-      val request = Map(
-        "funcName" -> "setProperties",
-        "args" -> Map(
-          "uuid" -> uuid,
-          "props" -> properties
-        )
-      )
-
-      if (getOnlyRequest) {
-        return request
-      }
-
-      send(request)
-      receive[Any]()
     }
   }
 
@@ -182,7 +166,7 @@ class Client extends Factory {
         "funcName" -> "deleteProperties",
         "args" -> Map(
           "uuid" -> uuid,
-          "propsKeys" -> propertyKeys
+          "propKeys" -> propertyKeys
         )
       )
 
@@ -243,7 +227,7 @@ class Client extends Factory {
         "args" -> Map(
           "startNodeUuid" -> startNodeUuid,
           "endNodeUuid" -> endNodeUuid,
-          "relType" -> relationshipType,
+          "type" -> relationshipType,
           "props" -> properties
         )
       )
@@ -308,7 +292,7 @@ class Client extends Factory {
         "args" -> Map(
           "startNodeUuid" -> startNodeUuid,
           "endNodeUuid" -> endNodeUuid,
-          "propsKeys" -> propertyKeys
+          "propKeys" -> propertyKeys
         )
       )
 

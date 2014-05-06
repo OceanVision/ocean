@@ -32,6 +32,7 @@ object Server extends Runnable {
         println(s"The Lionfish server is listening on port $port.")
         availabilityLock.release()
         handleConnections(serverSocket)
+        serverSocket.close()
       } catch {
         case e: Exception => {
           println(s"Failed to start the Lionfish server. Error message: $e")

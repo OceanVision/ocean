@@ -6,6 +6,7 @@ import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb._
 import org.neo4j.cypher.{ExecutionEngine, ExecutionResult}
 import org.neo4j.tooling.GlobalGraphOperations
+import org.neo4j.cypher.internal.compiler.v2_0.ast.False
 
 // TODO: logging, nicer way of handling errors
 
@@ -20,7 +21,7 @@ object DatabaseManager {
   private var modelNodes: Map[String, Node] = Map()
   initCache()
 
-  private def parseNodeToMap(node: Node): Map[String, Any] = {
+  private def parseMap(node: Node): Map[String, Any] = {
     try {
       val keys = node.getPropertyKeys
       var map: Map[String, Any] = Map()
@@ -39,7 +40,26 @@ object DatabaseManager {
     }
   }
 
-  private def parseNodeToSet(node: Node): Set[(String, Any)] = {
+  private def parseMap(rel: Relationship): Map[String, Any] = {
+    try {
+      val keys = rel.getPropertyKeys
+      var map: Map[String, Any] = Map()
+      val it = keys.iterator()
+      while (it.hasNext) {
+        val key: String = it.next()
+        map += key -> rel.getProperty(key)
+      }
+      map
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Parsing node to map failed at line $line. Error message: $e")
+      }
+        null
+    }
+  }
+
+  private def parseSet(node: Node): Set[(String, Any)] = {
     try {
       val keys = node.getPropertyKeys
       var set: Set[(String, Any)] = Set()
@@ -47,6 +67,25 @@ object DatabaseManager {
       while (it.hasNext) {
         val key: String = it.next()
         set += Tuple2(key, node.getProperty(key))
+      }
+      set
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Parsing node to set failed at line $line. Error message: $e")
+      }
+        null
+    }
+  }
+
+  private def parseSet(rel: Relationship): Set[(String, Any)] = {
+    try {
+      val keys = rel.getPropertyKeys
+      var set: Set[(String, Any)] = Set()
+      val it = keys.iterator()
+      while (it.hasNext) {
+        val key: String = it.next()
+        set += Tuple2(key, rel.getProperty(key))
       }
       set
     } catch {
@@ -66,7 +105,7 @@ object DatabaseManager {
         var rowItems: ListBuffer[Any] = ListBuffer()
         for (column <- row) {
           // TODO: Do not assume that every value is Node
-          rowItems += parseNodeToMap(column._2.asInstanceOf[Node])
+          rowItems += parseMap(column._2.asInstanceOf[Node])
         }
         parsedResult += rowItems.toList
       }
@@ -120,7 +159,7 @@ object DatabaseManager {
         )
         val it = rawNode.iterator()
         if (it.hasNext) {
-          rawResult += parseNodeToMap(it.next())
+          rawResult += parseMap(it.next())
         } else {
           rawResult += null
         }
@@ -159,7 +198,7 @@ object DatabaseManager {
         )
         val it = rawNode.iterator()
         if (it.hasNext) {
-          rawResult += parseNodeToMap(it.next())
+          rawResult += parseMap(it.next())
         } else {
           rawResult += null
         }
@@ -195,8 +234,9 @@ object DatabaseManager {
       // Extracts result
       val it = rawModelNodes.iterator()
       while (it.hasNext) {
-        rawResult += parseNodeToMap(it.next())
+        rawResult += parseMap(it.next())
       }
+      it.close()
 
       result = List.fill[Any](args.length)(rawResult.toList)
     } catch {
@@ -229,9 +269,20 @@ object DatabaseManager {
           item("parentUuid").asInstanceOf[String]
         )
 
-        val props = item("childrenProps")
-          .asInstanceOf[Map[String, Any]]
-          .toSet[(String, Any)]
+        var childrenProps: Set[(String, Any)] = Set()
+        var relProps: Set[(String, Any)] = Set()
+
+        if (item("childrenProps") != null) {
+          childrenProps = item("childrenProps")
+            .asInstanceOf[Map[String, Any]]
+            .toSet[(String, Any)]
+        }
+
+        if (item("relProps") != null) {
+          relProps = item("relProps")
+            .asInstanceOf[Map[String, Any]]
+            .toSet[(String, Any)]
+        }
 
         val it = rawParentNode.iterator()
         if (it.hasNext) {
@@ -244,10 +295,12 @@ object DatabaseManager {
 
           // Gets children and extracts partial result
           while (relList.hasNext) {
-            val node = parseNodeToSet(relList.next().getEndNode)
+            val rel = relList.next()
+            val node = parseSet(rel.getEndNode)
 
             // TODO: make it more efficient
-            if (props.subsetOf(node)) {
+            val e = parseSet(rel)
+            if (childrenProps.subsetOf(node) && relProps.subsetOf(parseSet(rel))) {
               childrenOfOneNode += node.toMap[String, Any]
             }
           }
@@ -256,6 +309,7 @@ object DatabaseManager {
         } else {
           rawResult += List()
         }
+        it.close()
       }
       tx.success()
       result = rawResult.toList
@@ -289,9 +343,20 @@ object DatabaseManager {
           item("modelName").asInstanceOf[String]
         )
 
-        val props = item("childrenProps")
-          .asInstanceOf[Map[String, Any]]
-          .toSet[(String, Any)]
+        var childrenProps: Set[(String, Any)] = Set()
+        var relProps: Set[(String, Any)] = Set()
+
+        if (item("childrenProps") != null) {
+          childrenProps = item("childrenProps")
+            .asInstanceOf[Map[String, Any]]
+            .toSet[(String, Any)]
+        }
+
+        if (item("relProps") != null) {
+          relProps = item("relProps")
+            .asInstanceOf[Map[String, Any]]
+            .toSet[(String, Any)]
+        }
 
         val it = rawParentNode.iterator()
         if (it.hasNext) {
@@ -304,10 +369,11 @@ object DatabaseManager {
 
           // Gets children and extracts partial result
           while (relList.hasNext) {
-            val node = parseNodeToSet(relList.next().getEndNode)
+            val rel = relList.next()
+            val node = parseSet(rel.getEndNode)
 
             // TODO: make it more efficient
-            if (props.subsetOf(node)) {
+            if (childrenProps.subsetOf(node) && relProps.subsetOf(parseSet(rel))) {
               instancesOfOneNode += node.toMap[String, Any]
             }
           }
@@ -316,6 +382,7 @@ object DatabaseManager {
         } else {
           rawResult += List()
         }
+        it.close()
       }
       tx.success()
       result = rawResult.toList
@@ -358,6 +425,7 @@ object DatabaseManager {
               node.setProperty(key, value)
             }
           }
+          it.close()
         }
       }
       tx.success()
@@ -380,7 +448,7 @@ object DatabaseManager {
       val nodeLabel = DynamicLabel.label("Node")
 
       for (item <- args) {
-        val keys = item("propertyKeys").asInstanceOf[List[String]]
+        val keys = item("propKeys").asInstanceOf[List[String]]
 
         if (keys != null && !keys.isEmpty) {
           // Gets each node as an instance of Node
@@ -399,6 +467,7 @@ object DatabaseManager {
               node.removeProperty(key)
             }
           }
+          it.close()
         }
       }
       tx.success()
@@ -516,7 +585,7 @@ object DatabaseManager {
         if (it1.hasNext && it2.hasNext) {
           val startNode = it1.next()
           val endNode = it2.next()
-          val relType = DynamicRelationshipType.withName(item("relType").asInstanceOf[String])
+          val relType = DynamicRelationshipType.withName(item("type").asInstanceOf[String])
 
           // Creates a relationship of a given type
           val rel = startNode.createRelationshipTo(endNode, relType)
@@ -526,6 +595,8 @@ object DatabaseManager {
             rel.setProperty(key, value)
           }
         }
+        it1.close()
+        it2.close()
       }
       tx.success()
     } catch {
@@ -561,13 +632,16 @@ object DatabaseManager {
 
           // Looks through a list of relationships to delete a proper one
           val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
-          while (relList.hasNext) {
+          var break = false
+          while (!break && relList.hasNext) {
             val rel = relList.next()
             if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
               rel.delete()
+              break = true
             }
           }
         }
+        it.close()
       }
       tx.success()
     } catch {
@@ -600,19 +674,25 @@ object DatabaseManager {
         if (it.hasNext) {
           val startNode = it.next()
           val endNodeUuid = item("endNodeUuid").asInstanceOf[String]
+          val props = item("props").asInstanceOf[Map[String, Any]]
 
-          // Looks through a list of relationships to delete a proper one
-          val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
-          while (relList.hasNext) {
-            val rel = relList.next()
-            if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
-              // Sets properties to the relationship
-              for ((key, value) <- item("props").asInstanceOf[Map[String, Any]]) {
-                rel.setProperty(key, value)
+          if (props != null) {
+            // Looks through a list of relationships to delete a proper one
+            val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
+            var break = false
+            while (!break && relList.hasNext) {
+              val rel = relList.next()
+              if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
+                // Sets properties to the relationship
+                for ((key, value) <- props) {
+                  rel.setProperty(key, value)
+                }
+                break = true
               }
             }
           }
         }
+        it.close()
       }
       tx.success()
     } catch {
@@ -645,19 +725,25 @@ object DatabaseManager {
         if (it.hasNext) {
           val startNode = it.next()
           val endNodeUuid = item("endNodeUuid").asInstanceOf[String]
+          val propKeys = item("propKeys").asInstanceOf[List[String]]
 
-          // Looks through a list of relationships to delete a proper one
-          val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
-          while (relList.hasNext) {
-            val rel = relList.next()
-            if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
-              // Delete relationship's properties
-              for (key <- item("props").asInstanceOf[List[String]]) {
-                rel.removeProperty(key)
+          if (propKeys != null) {
+            // Looks through a list of relationships to delete a proper one
+            val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
+            var break = false
+            while (!break && relList.hasNext) {
+              val rel = relList.next()
+              if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
+                // Delete relationship's properties
+                for (key <- propKeys) {
+                  rel.removeProperty(key)
+                }
+                break = true
               }
             }
           }
         }
+        it.close()
       }
       tx.success()
     } catch {

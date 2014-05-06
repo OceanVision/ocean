@@ -590,12 +590,12 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
 
 
-  // =================== SET PROPERTY ===================
+  // =================== SET PROPERTIES ===================
 
   // not using batch, correct input
   "setProperties" should "set properties to a node" in {
     val modelName = "ContentSource"
-    val relType = "<<TEST_SET>>"
+    val relType = "<<TEST_SET_PROPERTIES>>"
     val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
     val propsToSet: Map[String, Any] = Map("key1" -> 55, "key2" -> 32)
@@ -619,7 +619,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
   // not using batch, incorrect input
   it should "not set properties to a node" in {
     val modelName = "ContentSource"
-    val relType = "<<TEST_SET>>"
+    val relType = "<<TEST_SET_PROPERTIES>>"
     val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
     val propsToSet: Map[String, Any] = null
@@ -644,7 +644,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
   // using batch, correct input
   it should "set properties to exactly two nodes" in {
     val modelName = "Content"
-    val relType = "<<TEST_SET>>"
+    val relType = "<<TEST_SET_PROPERTIES>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
     val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
@@ -682,7 +682,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
   // using batch, incorrect input
   it should "set properties only to one node" in {
     val modelName = "NeoUser"
-    val relType = "<<TEST_SET>>"
+    val relType = "<<TEST_SET_PROPERTIES>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
     val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
@@ -701,6 +701,135 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     batch += client.setProperties(uuid0, propsToSet0)
     batch += client.setProperties(uuid1, propsToSet1)
+    batch.submit()
+
+    batch += client.getByUuid(uuid0)
+    batch += client.getByUuid(uuid1)
+    val testedNodeList = batch.submit()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 2)
+    assert(testedNodeList(0).equals(validNodeList(0)))
+    assert(testedNodeList(1).equals(validNodeList(1)))
+
+    client.deleteNode(uuid0).run()
+    client.deleteNode(uuid1).run()
+  }
+
+
+
+  // =================== DELETE PROPERTIES ===================
+
+  // not using batch, correct input
+  "deleteProperties" should "delete node's properties" in {
+    val modelName = "ContentSource"
+    val relType = "<<TEST_DELETE_PROPERTIES>>"
+    val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val propsToDelete: List[String] = List("key1")
+
+    val uuid = client.createNode(modelName, relType, props).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+
+    client.deleteProperties(uuid, propsToDelete).run()
+
+    val validNode: Map[String, Any] = Map("uuid" -> uuid, "key0" -> "abc")
+
+    val testedNode = client.getByUuid(uuid).run()
+      .asInstanceOf[Map[String, Any]]
+
+    assert(testedNode != null)
+    assert(testedNode.equals(validNode))
+
+    client.deleteNode(uuid).run()
+  }
+
+  // not using batch, incorrect input
+  it should "not delete node's properties" in {
+    val modelName = "ContentSource"
+    val relType = "<<TEST_DELETE_PROPERTIES>>"
+    val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val propsToDelete: List[String] = List("nonExistingKey")
+
+    val uuid = client.createNode(modelName, relType, props).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+
+    var validNode = props
+    validNode += "uuid" -> uuid
+
+    client.deleteProperties(uuid, propsToDelete).run()
+
+    val testedNode = client.getByUuid(uuid).run()
+      .asInstanceOf[Map[String, Any]]
+
+    assert(testedNode != null)
+    assert(testedNode.equals(validNode))
+
+    client.deleteNode(uuid).run()
+  }
+
+  // using batch, correct input
+  it should "delete properties of exactly two nodes" in {
+    val modelName = "Content"
+    val relType = "<<TEST_DELETE_PROPERTIES>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val propsToDelete0: List[String] = List("key0")
+    val propsToDelete1: List[String] = List("key1")
+
+    val uuid0 = client.createNode(modelName, relType, props0).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+    val uuid1 = client.createNode(modelName, relType, props1).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+
+    val validNodeList = List(
+      Map("uuid" -> uuid0, "key1" -> "string"),
+      Map("uuid" -> uuid1, "key0" -> "abc")
+    )
+
+    batch += client.deleteProperties(uuid0, propsToDelete0)
+    batch += client.deleteProperties(uuid1, propsToDelete1)
+    batch.submit()
+
+    batch += client.getByUuid(uuid0)
+    batch += client.getByUuid(uuid1)
+    val testedNodeList = batch.submit()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 2)
+    assert(testedNodeList(0).equals(validNodeList(0)))
+    assert(testedNodeList(1).equals(validNodeList(1)))
+
+    client.deleteNode(uuid0).run()
+    client.deleteNode(uuid1).run()
+  }
+
+  // using batch, incorrect input
+  it should "delete properties of only one node" in {
+    val modelName = "NeoUser"
+    val relType = "<<TEST_DELETE_PROPERTIES>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val propsToDelete0: List[String] = List("nonExistingKey")
+    val propsToDelete1: List[String] = List("key1")
+
+    val uuid0 = client.createNode(modelName, relType, props0).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+    val uuid1 = client.createNode(modelName, relType, props1).run()
+      .asInstanceOf[Map[String, String]]("uuid")
+
+    val validNodeList = List(
+      Map("uuid" -> uuid0, "key0" -> 1, "key1" -> "string"),
+      Map("uuid" -> uuid1, "key0" -> "abc")
+    )
+
+    batch += client.deleteProperties(uuid0, propsToDelete0)
+    batch += client.deleteProperties(uuid1, propsToDelete1)
     batch.submit()
 
     batch += client.getByUuid(uuid0)
@@ -1202,6 +1331,369 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     assert(testedNodeList != null)
     assert(testedNodeList.length == 1)
     assert(testedNodeList(0).equals(validNodeList(1)))
+
+    batch += client.deleteNode(uuidList(0)("uuid"))
+    batch += client.deleteNode(uuidList(1)("uuid"))
+    batch += client.deleteNode(uuidList(2)("uuid"))
+    batch.submit()
+  }
+
+
+
+  // =================== SET RELATIONSHIP PROPERTIES ===================
+
+  // not using batch, correct input
+  "setRelationshipProperties" should "set properties to a relationship" in {
+    val modelName = "Content"
+    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val propsToSet: Map[String, Any] = Map("relKey" -> 92)
+
+    batch += client.createNode(modelName, relType, props0)
+    batch += client.createNode(modelName, relType, props1)
+    val uuidList = batch.submit()
+      .asInstanceOf[List[Map[String, String]]]
+
+    var validNode = props1
+    validNode += "uuid" -> uuidList(1)("uuid")
+
+    client.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2").run()
+    client.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), propsToSet).run()
+
+    val testedNodeList = client.getChildren(uuidList(0)("uuid"), relType + "2").run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    val testedNodeList2 = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), propsToSet).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 1)
+    assert(testedNodeList(0).equals(validNode))
+
+    assert(testedNodeList.equals(testedNodeList2))
+
+    batch += client.deleteNode(uuidList(0)("uuid"))
+    batch += client.deleteNode(uuidList(1)("uuid"))
+    batch.submit()
+  }
+
+  // not using batch, incorrect input
+  it should "not set properties to a relationship" in {
+    val modelName = "ContentSource"
+    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val nonExistingUuid = "*abc([)*"
+    val relProps: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
+    val propsToSet: Map[String, Any] = Map("relKey" -> 92)
+
+    batch += client.createNode(modelName, relType, props0)
+    batch += client.createNode(modelName, relType, props1)
+    val uuidList = batch.submit()
+      .asInstanceOf[List[Map[String, String]]]
+
+    client.createRelationship(uuidList(0)("uuid"), nonExistingUuid, relType + "2", relProps).run()
+    client.setRelationshipProperties(uuidList(0)("uuid"), nonExistingUuid, propsToSet).run()
+    client.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), null).run()
+
+    val testedNodeList = client.getChildren(uuidList(0)("uuid"), relType + "2", propsToSet).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 0)
+
+    batch += client.deleteNode(uuidList(0)("uuid"))
+    batch += client.deleteNode(uuidList(1)("uuid"))
+    batch.submit()
+  }
+
+  // using batch, correct input
+  it should "set properties to exactly two relationships" in {
+    val modelName = "Content"
+    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
+
+    val relPropsToSet0: Map[String, Any] = Map("relKey" -> 92)
+    val relPropsToSet1: Map[String, Any] = Map("relKey" -> 78)
+
+    batch += client.createNode(modelName, relType, props0)
+    batch += client.createNode(modelName, relType, props1)
+    batch += client.createNode(modelName, relType, props2)
+    val uuidList = batch.submit()
+      .asInstanceOf[List[Map[String, String]]]
+
+    val validNodeList = ListBuffer(props1, props2)
+    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
+    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
+
+    batch += client.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2")
+    batch += client.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2")
+    batch.submit()
+
+    batch += client.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToSet0)
+    batch += client.setRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToSet1)
+    batch.submit()
+
+    val testedNodeList = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet0).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    val testedNodeList2 = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet1).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 1)
+    assert(testedNodeList(0).equals(validNodeList(0)))
+
+    assert(testedNodeList2 != null)
+    assert(testedNodeList2.length == 1)
+    assert(testedNodeList2(0).equals(validNodeList(1)))
+
+    batch += client.deleteNode(uuidList(0)("uuid"))
+    batch += client.deleteNode(uuidList(1)("uuid"))
+    batch += client.deleteNode(uuidList(2)("uuid"))
+    batch.submit()
+  }
+
+  // using batch, incorrect input
+  it should "set properties only to one relationship" in {
+    val modelName = "NeoUser"
+    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
+
+    val relPropsToSet0: Map[String, Any] = Map("relKey" -> 92)
+    val relPropsToSet1: Map[String, Any] = null
+
+    batch += client.createNode(modelName, relType, props0)
+    batch += client.createNode(modelName, relType, props1)
+    batch += client.createNode(modelName, relType, props2)
+    val uuidList = batch.submit()
+      .asInstanceOf[List[Map[String, String]]]
+
+    val validNodeList = ListBuffer(props1, props2)
+    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
+    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
+
+    batch += client.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2")
+    batch += client.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2")
+    batch.submit()
+
+    batch += client.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToSet0)
+    batch += client.setRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToSet1)
+    batch.submit()
+
+    val testedNodeList = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet0).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    val testedNodeList2 = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet1).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 1)
+    assert(testedNodeList(0).equals(validNodeList(0)))
+
+    assert(testedNodeList2 != null)
+    assert(testedNodeList2.length == 2)
+
+    batch += client.deleteNode(uuidList(0)("uuid"))
+    batch += client.deleteNode(uuidList(1)("uuid"))
+    batch += client.deleteNode(uuidList(2)("uuid"))
+    batch.submit()
+  }
+
+
+
+  // =================== DELETE RELATIONSHIP PROPERTIES ===================
+
+  // not using batch, correct input
+  "deleteRelationshipProperties" should "delete relationship's properties" in {
+    val modelName = "Content"
+    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val relProps: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
+    val propsToDelete: List[String] = List("keyB")
+
+    batch += client.createNode(modelName, relType, props0)
+    batch += client.createNode(modelName, relType, props1)
+    val uuidList = batch.submit()
+      .asInstanceOf[List[Map[String, String]]]
+
+    var validNode = props1
+    validNode += "uuid" -> uuidList(1)("uuid")
+
+    client.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps).run()
+    client.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), propsToDelete).run()
+
+    val testedNodeList = client.getChildren(uuidList(0)("uuid"), relType + "2").run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    val testedNodeList2 = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 1)
+    assert(testedNodeList(0).equals(validNode))
+
+    assert(testedNodeList2 != null)
+    assert(testedNodeList2.length == 0)
+
+    batch += client.deleteNode(uuidList(0)("uuid"))
+    batch += client.deleteNode(uuidList(1)("uuid"))
+    batch.submit()
+  }
+
+  // not using batch, incorrect input
+  it should "not delete relationship's properties" in {
+    val modelName = "ContentSource"
+    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val nonExistingUuid = "*abc([)*"
+    val relProps: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
+    val propsToDelete: List[String] = List("keyB")
+
+    batch += client.createNode(modelName, relType, props0)
+    batch += client.createNode(modelName, relType, props1)
+    val uuidList = batch.submit()
+      .asInstanceOf[List[Map[String, String]]]
+
+    client.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps).run()
+
+    val testedNodeList = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    client.deleteRelationshipProperties(uuidList(0)("uuid"), nonExistingUuid, propsToDelete).run()
+    client.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), null).run()
+
+    val testedNodeList2 = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 1)
+
+    assert(testedNodeList2 != null)
+    assert(testedNodeList2.length == 1)
+    assert(testedNodeList.equals(testedNodeList2))
+
+    batch += client.deleteNode(uuidList(0)("uuid"))
+    batch += client.deleteNode(uuidList(1)("uuid"))
+    batch.submit()
+  }
+
+  // using batch, correct input
+  it should "delete properties of exactly two relationships" in {
+    val modelName = "Content"
+    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
+
+    val relProps0: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
+    val relProps1: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "bca")
+
+    val relPropsToDelete0: List[String] = List("keyA")
+    val relPropsToDelete1: List[String] = List("keyB")
+
+    batch += client.createNode(modelName, relType, props0)
+    batch += client.createNode(modelName, relType, props1)
+    batch += client.createNode(modelName, relType, props2)
+    val uuidList = batch.submit()
+      .asInstanceOf[List[Map[String, String]]]
+
+    val validNodeList = ListBuffer(props1, props2)
+    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
+    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
+
+    val validProps0: Map[String, Any] = Map("keyB" -> "aaa")
+    val validProps1: Map[String, Any] = Map("keyA" -> 5)
+
+    batch += client.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps0)
+    batch += client.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2", relProps1)
+    batch.submit()
+
+    batch += client.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToDelete0)
+    batch += client.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToDelete1)
+    batch.submit()
+
+    val testedNodeList = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), validProps0).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    val testedNodeList2 = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), validProps1).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 1)
+    assert(testedNodeList(0).equals(validNodeList(0)))
+
+    assert(testedNodeList2 != null)
+    assert(testedNodeList2.length == 1)
+    assert(testedNodeList2(0).equals(validNodeList(1)))
+
+    batch += client.deleteNode(uuidList(0)("uuid"))
+    batch += client.deleteNode(uuidList(1)("uuid"))
+    batch += client.deleteNode(uuidList(2)("uuid"))
+    batch.submit()
+  }
+
+  // using batch, incorrect input
+  it should "delete properties of only one relationship" in {
+    val modelName = "NeoUser"
+    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
+
+    val relProps0: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
+    val relProps1: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "bca")
+
+    val relPropsToDelete0: List[String] = null
+    val relPropsToDelete1: List[String] = List("keyB")
+
+    batch += client.createNode(modelName, relType, props0)
+    batch += client.createNode(modelName, relType, props1)
+    batch += client.createNode(modelName, relType, props2)
+    val uuidList = batch.submit()
+      .asInstanceOf[List[Map[String, String]]]
+
+    val validNodeList = ListBuffer(props1, props2)
+    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
+    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
+
+    val validProps1: Map[String, Any] = Map("keyA" -> 5)
+
+    batch += client.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps0)
+    batch += client.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2", relProps1)
+    batch.submit()
+
+    val testedNodeList = client.getChildren(uuidList(0)("uuid"), relType + "2", Map()).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    batch += client.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToDelete0)
+    batch += client.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToDelete1)
+    batch.submit()
+
+    val testedNodeList2 = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps0).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    val testedNodeList3 = client.getChildren(uuidList(0)("uuid"), relType + "2", Map(), validProps1).run()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList2 != null)
+    assert(testedNodeList2.length == 1)
+    assert(testedNodeList2(0).equals(validNodeList(0)))
+
+    assert(testedNodeList3 != null)
+    assert(testedNodeList3.length == 2)
+    assert(testedNodeList.equals(testedNodeList3))
 
     batch += client.deleteNode(uuidList(0)("uuid"))
     batch += client.deleteNode(uuidList(1)("uuid"))
