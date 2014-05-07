@@ -1,6 +1,6 @@
 #!/bin/bash
 source ./init.sh
-list=$(ps -ef | grep kafka_2 | grep -v grep | awk '{print $2}')
+list=$(ps -ef | grep kafka_2.8.0.*.jar | grep server.properties | grep -v grep | awk '{print $2}')
 
 if [ -n "$list" ]
 then

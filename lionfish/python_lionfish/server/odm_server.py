@@ -20,9 +20,9 @@ from threading import Thread
 import sys
 import json
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../don_corleone/'))
 sys.path.append(os.path.join(os.path.dirname(__file__),
-                             '../graph_workers/graph_workers'))
+                             '../../../graph_workers/graph_workers'))
 
 # DonCorleone configuration
 from don_utils import get_configuration
@@ -30,8 +30,6 @@ from don_utils import get_configuration
 from graph_defines import *
 from graph_utils import *
 
-HOST = ''
-PORT = get_configuration("lionfish", "port")
 
 # Defining levels to get rid of other loggers
 info_level = 100
@@ -45,7 +43,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.propagate = False
 ch_file = logging.FileHandler(os.path.join(os.path.dirname(__file__),
-                                           '../logs/odm_server.log'))
+                                           '../../../logs/odm_server.log'))
 ch_file.setLevel(info_level)
 logger.addHandler(ch_file)
 
@@ -611,6 +609,29 @@ class ODMServer(object):
             logger.log(error_level, 'Starting server failed. {error}'
                        .format(error=str(e)))
 
+
+from optparse import OptionParser
+
 if __name__ == '__main__':
-    server = ODMServer(HOST, PORT)
+    parser = OptionParser()
+    parser.add_option(
+        '-k',
+        '--host',
+        dest='host',
+        default='',
+        help='Host to bind to, default is empty - correct in almost all the cases'
+    )
+    parser.add_option(
+        '-p',
+        '--port',
+        dest='port',
+        default=7777,
+        type=int,
+        help='Port to bind to'
+    )
+    (options, args) = parser.parse_args()
+
+    logger.info("HOST="+options.host + " PORT="+str(options.port))
+
+    server = ODMServer(options.host, options.port)
     server.start()

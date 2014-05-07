@@ -1,5 +1,8 @@
 # Binary files
 *.pyc
+lionfish/project/
+lionfish/target/
+lionfish/lib/
 *.jar
 
 # Temporary files
