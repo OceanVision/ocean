@@ -44,7 +44,7 @@ if __name__ == '__main__':
     my_batch = neo4j.WriteBatch(graph_db)
     my_batch.append_cypher('match (a)-[r]-(b) delete r;')
     # fix: do not delete the root
-    my_batch.append_cypher('match (n) WHERE ID(n) <> 1 delete n ;')
+    my_batch.append_cypher('match (n) WHERE ID(n) <> 0 delete n ;')
     my_batch.submit()
 
     my_batch = neo4j.ReadBatch(graph_db)
@@ -57,10 +57,11 @@ if __name__ == '__main__':
         exit(1)
 
 
-    root = graph_db.node(1)
+    root = graph_db.node(0)
 
     my_batch = neo4j.WriteBatch(graph_db)
-    my_batch.append_cypher('match (e:Root) set e.root=1;')
+    my_batch.append_cypher('match (e:Root) set e:Node;')
+    my_batch.append_cypher('match (e:Root) set e.uuid="root";')
     my_batch.submit()
 
     # Create connection
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     ]
     websites = graph_db.create(*websites)
     for item in websites:
-        item.add_labels('Node', 'Website')
+        item.add_labels('Website', 'Node')
 
     # Create instance relations
     query = """
@@ -159,7 +160,7 @@ relacje na zywo i wiele wiecej.',
     # Create content sources
     content_sources = graph_db.create(*content_sources_list)
     for item in content_sources:
-        item.add_labels('Node', 'ContentSource')
+        item.add_labels('ContentSource', 'Node')
 
     # Create ContentSources instance relations
     query = """
