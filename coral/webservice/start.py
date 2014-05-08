@@ -3,29 +3,41 @@ import json
 from flask import Flask
 from flask import request, redirect, Response, url_for
 from cryptography import Cryptography
+from core_connector import CoreConnector
 app = Flask(__name__)
 crypto = None
+
 
 @app.route('/')
 def index():
     return redirect(url_for('about'))
 
+
 @app.route('/about')
 def about():
-    return 'Coral Service for Ocean'
+    return '<h1>Hello!</h1><p>You have already accessed the Coral webservice.</p>'
+
+
+@app.route('/test_connector', methods=['POST'])
+def test_connector():
+    conn = CoreConnector()
+    request_data = request.get_json()
+    response_data = conn.process_request(request_data)
+    return Response(json.dumps(response_data), mimetype='application/json')
 
 # Webservice methods
 
-@app.route('/handshake', methods=['POST'])
-def handshake():
-    request_data = request.get_json()
-    client_key = request_data['client_key']
+# @app.route('/handshake', methods=['POST'])
+# def handshake():
+#     request_data = request.get_json()
+#     client_key = request_data['client_key']
+#
+#     response_data = {
+#         'coral_key': crypto.get_coral_key(),
+#         'client_id': crypto.register_client_key(client_key)
+#     }
+#     return Response(json.dumps(response_data), mimetype='application/json')
 
-    response_data = {
-        'coral_key': crypto.get_coral_key(),
-        'client_id': crypto.register_client_key(client_key)
-    }
-    return Response(json.dumps(response_data), mimetype='application/json')
 
 @app.route('/sign_in', methods=['POST'])
 def sign_in():
@@ -41,6 +53,7 @@ def sign_in():
     response_data = {'status': response_data}
     return Response(json.dumps(response_data), mimetype='application/json')
 
+
 @app.route('/sign_out', methods=['POST'])
 def sign_out():
     request_data = request.get_json()
@@ -52,6 +65,7 @@ def sign_out():
 
     response_data = {'status': response_data}
     return Response(json.dumps(response_data), mimetype='application/json')
+
 
 @app.route('/get_article_list', methods=['POST'])
 def get_article_list():
@@ -78,6 +92,7 @@ def get_article_list():
     response_data = {'article_list': response_data}
     return Response(json.dumps(response_data), mimetype='application/json')
 
+
 @app.route('/get_article_details', methods=['POST'])
 def get_article_details():
     request_data = request.get_json()
@@ -93,6 +108,7 @@ def get_article_details():
 
     response_data = {'article_details': response_data}
     return Response(json.dumps(response_data), mimetype='application/json')
+
 
 @app.route('/get_feed_list', methods=['POST'])
 def get_feed_list():
@@ -114,6 +130,7 @@ def get_feed_list():
     response_data = {'feed_list': response_data}
     return Response(json.dumps(response_data), mimetype='application/json')
 
+
 @app.route('/create_feed', methods=['POST'])
 def create_feed():
     request_data = request.get_json()
@@ -127,9 +144,10 @@ def create_feed():
     response_data = {'status': response_data}
     return Response(json.dumps(response_data), mimetype='application/json')
 
+
 if __name__ == '__main__':
-    if not crypto:
-        crypto = Cryptography()
+    # if not crypto:
+    #     crypto = Cryptography()
 
     app.debug = True
     app.run(host='0.0.0.0', port=14)

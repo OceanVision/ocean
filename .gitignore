@@ -1,9 +1,10 @@
 # Binary files
 *.pyc
+*.jar
 lionfish/project/
 lionfish/target/
-lionfish/lib/
-*.jar
+coral/core/project/
+coral/core/target/
 
 # Temporary files
 *.~lock*
