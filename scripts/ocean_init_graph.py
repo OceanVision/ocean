@@ -69,7 +69,8 @@ if __name__ == '__main__':
     my_batch.submit()
 
     my_batch = neo4j.WriteBatch(graph_db)
-    my_batch.append_cypher('match (e:Root) set e.root=1;')
+    my_batch.append_cypher('match (e:Root) set e:Node;')
+    my_batch.append_cypher('match (e:Root) set e.uuid="root";')
     my_batch.submit()
 
     ### Add webservice types ###
@@ -102,7 +103,7 @@ if __name__ == '__main__':
 
     types = graph_db.create(*types)
     for item in types:
-        item.add_labels('Node', 'Model')
+        item.add_labels('Model', 'Node')
 
     # Create type relations
     write_batch = neo4j.WriteBatch(graph_db)
@@ -127,7 +128,7 @@ if __name__ == '__main__':
     ]
     users = graph_db.create(*users)
     for item in users:
-        item.add_labels('Node', 'NeoUser')
+        item.add_labels('NeoUser', 'Node')
 
     # Create instance relations
     graph_db.create(
