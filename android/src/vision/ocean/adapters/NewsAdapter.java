@@ -2,16 +2,29 @@ package vision.ocean.adapters;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.os.AsyncTask;
+import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import vision.ocean.helpers.MyHttpClient;
 import vision.ocean.objects.Feed;
 import vision.ocean.objects.News;
 import vision.ocean.R;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 
 public class NewsAdapter extends ArrayAdapter<News> {
@@ -74,7 +87,9 @@ public class NewsAdapter extends ArrayAdapter<News> {
 
         holder.title.setText(news.title);
         holder.description.setText(news.description);
-        holder.image.setImageResource(R.drawable.ic_launcher);
+//        holder.image.setImageResource(R.drawable.ic_launcher);
+
+        new DownloadImageTask(holder, news).execute();
 
         return convertView;
     }
@@ -84,4 +99,28 @@ public class NewsAdapter extends ArrayAdapter<News> {
         TextView description;
         ImageView image;
     }
+
+    /**
+     * Represents an asynchronous get feeds task used to fill navigation drawer with users feeds.
+     */
+    private class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> {
+        NewsHolder holder;
+        News news;
+
+        private DownloadImageTask(NewsHolder holder, News news) {
+            this.holder = holder;
+            this.news = news;
+        }
+
+        @Override
+        protected Bitmap doInBackground(Void... params) {
+            return MyHttpClient.downloadImage(news.image);
+        }
+
+        @Override
+        protected void onPostExecute(final Bitmap image) {
+            holder.image.setImageBitmap(image);
+        }
+    }
+
 }
