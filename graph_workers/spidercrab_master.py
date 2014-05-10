@@ -14,8 +14,7 @@ from threading import Thread
 
 from spidercrab import Spidercrab
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
-from don_utils import get_running_service, get_my_node_id
+from don_corleone import don_utils as du
 
 spidercrabs = []
 spidercrab_master_threads = []
@@ -42,9 +41,9 @@ if __name__ == '__main__':
 
     don_config = dict()
     try:
-        don_config = don_config = get_running_service(
+        don_config = don_config = du.get_running_service(
             service_name='spidercrab_master',
-            node_id=get_my_node_id(),
+            node_id=du.get_my_node_id(),
             enforce_running=False
         )['service_config']
     except Exception as error:
