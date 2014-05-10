@@ -18,25 +18,21 @@ def about():
     return '<h1>Hello!</h1><p>You have already accessed the Coral webservice.</p>'
 
 
-@app.route('/test_connector', methods=['POST'])
-def test_connector():
-    conn = CoreConnector()
-    request_data = request.get_json()
-    response_data = conn.process_request(request_data)
-    return Response(json.dumps(response_data), mimetype='application/json')
+# @app.route('/test_connector', methods=['POST'])
+# def test_connector():
+#     request_data = request.get_json()
+#     final_response = CoreConnector().process_request(request_data)
+#     return Response(json.dumps(final_response), mimetype='application/json')
+
 
 # Webservice methods
 
-# @app.route('/handshake', methods=['POST'])
-# def handshake():
-#     request_data = request.get_json()
-#     client_key = request_data['client_key']
-#
-#     response_data = {
-#         'coral_key': crypto.get_coral_key(),
-#         'client_id': crypto.register_client_key(client_key)
-#     }
-#     return Response(json.dumps(response_data), mimetype='application/json')
+@app.route('/handshake', methods=['POST'])
+def handshake():
+    final_response = {
+        'client_id': crypto.register_client_key('582ec7ba-bcf7-45f0-ac1e-ca7c5be136e3')
+    }
+    return Response(json.dumps(final_response), mimetype='application/json')
 
 
 @app.route('/sign_in', methods=['POST'])
@@ -50,8 +46,8 @@ def sign_in():
 
     response_data = True
 
-    response_data = {'status': response_data}
-    return Response(json.dumps(response_data), mimetype='application/json')
+    final_response = {'status': response_data}
+    return Response(json.dumps(final_response), mimetype='application/json')
 
 
 @app.route('/sign_out', methods=['POST'])
@@ -63,8 +59,8 @@ def sign_out():
 
     response_data = True
 
-    response_data = {'status': response_data}
-    return Response(json.dumps(response_data), mimetype='application/json')
+    final_response = {'status': response_data}
+    return Response(json.dumps(final_response), mimetype='application/json')
 
 
 @app.route('/get_article_list', methods=['POST'])
@@ -89,8 +85,8 @@ def get_article_list():
                             '/ecommerce-business/256/news-icon.png'
         })
 
-    response_data = {'article_list': response_data}
-    return Response(json.dumps(response_data), mimetype='application/json')
+    final_response = {'article_list': response_data}
+    return Response(json.dumps(final_response), mimetype='application/json')
 
 
 @app.route('/get_article_details', methods=['POST'])
@@ -106,8 +102,8 @@ def get_article_details():
         'body': 'Tekst 7',
     }
 
-    response_data = {'article_details': response_data}
-    return Response(json.dumps(response_data), mimetype='application/json')
+    final_response = {'article_details': response_data}
+    return Response(json.dumps(final_response), mimetype='application/json')
 
 
 @app.route('/get_feed_list', methods=['POST'])
@@ -115,20 +111,17 @@ def get_feed_list():
     request_data = request.get_json()
     client_id = request_data['client_id']
 
-    # TODO: implementation
+    final_request = {
+        'coralMethodName': 'getFeedList',
+        'data': {
+            'clientId': client_id
+        }
+    }
 
-    response_data = []
-    response_data.append({
-        'link': 'http://www.tvn24.pl/',
-        'title': 'TVN24.pl - Wiadomosci z kraju i ze swiata'
-    })
-    response_data.append({
-        'link': 'http://www.gry-online.pl/',
-        'title': 'GRY-OnLine'
-    })
+    response_data = CoreConnector().process_request(final_request)
 
-    response_data = {'feed_list': response_data}
-    return Response(json.dumps(response_data), mimetype='application/json')
+    final_response = {'feed_list': response_data}
+    return Response(json.dumps(final_response), mimetype='application/json')
 
 
 @app.route('/create_feed', methods=['POST'])
@@ -141,8 +134,8 @@ def create_feed():
 
     response_data = True
 
-    response_data = {'status': response_data}
-    return Response(json.dumps(response_data), mimetype='application/json')
+    final_response = {'status': response_data}
+    return Response(json.dumps(final_response), mimetype='application/json')
 
 
 if __name__ == '__main__':
