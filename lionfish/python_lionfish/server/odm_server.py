@@ -22,7 +22,7 @@ import json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../don_corleone/'))
 sys.path.append(os.path.join(os.path.dirname(__file__),
-                             '../../../graph_workers/graph_workers'))
+                             '../../../graph_workers'))
 
 # DonCorleone configuration
 from don_utils import get_configuration

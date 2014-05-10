@@ -131,4 +131,7 @@ if __name__ == '__main__':
     # Security stuff
     for temp_file in files:
         print 'Removing', temp_file
-        os.remove(temp_file)
+        if not os.path.isfile(temp_file):
+            print '... no such a file or file.'
+        else:
+            os.remove(temp_file)
