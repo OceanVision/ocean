@@ -26,6 +26,9 @@ from graph_workers.graph_defines import *
 
 
 if __name__ == '__main__':
+   # Create connection
+    graph_db = neo4j.GraphDatabaseService('http://ocean-lionfish.no-ip.biz:16/db/data/')
+    # graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
 
     print 'Running', __file__
     print 'This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*'
@@ -33,7 +36,33 @@ if __name__ == '__main__':
     print 'Press enter to proceed...'
     enter = raw_input()
 
-    os.system('python2 ocean_init_graph.py')
+    my_batch = neo4j.ReadBatch(graph_db)
+    my_batch.append_cypher('match (n) return count(n);')
+    print 'Nodes in graph initially ', my_batch.submit()
+    print 'Erasing nodes and relations'
+
+    my_batch = neo4j.WriteBatch(graph_db)
+    my_batch.append_cypher('match (a)-[r]-(b) delete r;')
+    # fix: do not delete the root
+    my_batch.append_cypher('match (n) WHERE ID(n) <> 0 delete n ;')
+    my_batch.submit()
+
+    my_batch = neo4j.ReadBatch(graph_db)
+    my_batch.append_cypher('match (n) return count(n);')
+    result = my_batch.submit()
+    print 'Nodes in graph erased. Sanity check : ', result
+
+    if result[0] != 1:
+        raise Exception('Not erased graph properly')
+        exit(1)
+
+
+    root = graph_db.node(0)
+
+    my_batch = neo4j.WriteBatch(graph_db)
+    my_batch.append_cypher('match (e:Root) set e:Node;')
+    my_batch.append_cypher('match (e:Root) set e.uuid="root";')
+    my_batch.submit()
 
     # Create connection
     graph_db = neo4j.GraphDatabaseService(
@@ -69,7 +98,7 @@ if __name__ == '__main__':
     ]
     websites = graph_db.create(*websites)
     for item in websites:
-        item.add_labels('Node', 'Website')
+        item.add_labels('Website', 'Node')
 
     # Create instance relations
     query = """
@@ -131,7 +160,7 @@ relacje na zywo i wiele wiecej.',
     # Create content sources
     content_sources = graph_db.create(*content_sources_list)
     for item in content_sources:
-        item.add_labels('Node', 'ContentSource')
+        item.add_labels('ContentSource', 'Node')
 
     # Create ContentSources instance relations
     query = """

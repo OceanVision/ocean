@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+import vision.ocean.objects.Feed;
 import vision.ocean.objects.News;
 import vision.ocean.R;
 
@@ -17,13 +18,37 @@ public class NewsAdapter extends ArrayAdapter<News> {
 
     Context context;
     int layoutResourceId;
-    ArrayList data = null;
+    ArrayList<News> data = null;
 
     public NewsAdapter(Context context, int layoutResourceId, ArrayList<News> data) {
         super(context, layoutResourceId, data);
         this.layoutResourceId = layoutResourceId;
         this.context = context;
         this.data = data;
+    }
+
+    public String getLastNewsId() {
+        return data.get(data.size() - 1).id;
+    }
+
+    public void addItem(final News item) {
+        data.add(item);
+        notifyDataSetChanged();
+    }
+
+    @Override
+    public int getCount() {
+        return data.size();
+    }
+
+    @Override
+    public News getItem(int position) {
+        return data.get(position);
+    }
+
+    @Override
+    public long getItemId(int position) {
+        return position;
     }
 
     @Override
@@ -45,11 +70,11 @@ public class NewsAdapter extends ArrayAdapter<News> {
             holder = (NewsHolder) convertView.getTag();
         }
 
-        News news = (News) data.get(position);
+        News news = data.get(position);
 
         holder.title.setText(news.title);
         holder.description.setText(news.description);
-        holder.image.setImageResource(news.image);
+        holder.image.setImageResource(R.drawable.ic_launcher);
 
         return convertView;
     }

@@ -3,27 +3,21 @@ import sys
 import time
 from py2neo import neo4j
 from unit_tests_interface import UnitTests
-sys.path.append(os.path.join(os.path.dirname(__file__), '../graph_workers'))
-from odm_client import ODMClient
+sys.path.append(os.path.join(os.path.dirname(__file__), '../lionfish/python_lionfish/client'))
+from client import Client
 
 
 class LionfishPerformanceUnitTests(UnitTests):
     def __init__(self):
         super(LionfishPerformanceUnitTests, self).__init__()
         self.run = self._run_performance_tests
-        self._client = ODMClient()
+        self._client = Client()
         self._client.connect()
         self._batch = self._client.get_batch()
-        graph_db = neo4j.GraphDatabaseService(
-            'http://ocean-neo4j.no-ip.biz:16/db/data/'
-            # 'http://localhost:7474/db/data/'
-        )
-        self._v_read_batch = neo4j.ReadBatch(graph_db)
-        self._v_write_batch = neo4j.WriteBatch(graph_db)
 
-    def create_and_delete_node__regular100(self):
-        for i in range(0, 100):
-            self._batch.append(self._client.create_node, 'Content', p='ok')
+    def create_and_delete_node__regular500(self):
+        for i in range(0, 500):
+            self._batch.append(self._client.create_node, 'NeoUser', p='ok')
         start_time = time.time()
         uuids = self._batch.submit()
 
@@ -34,8 +28,8 @@ class LionfishPerformanceUnitTests(UnitTests):
 
         return end_time - start_time
 
-    def create_and_delete_node__regular500(self):
-        for i in range(0, 500):
+    def create_and_delete_node__regular8000(self):
+        for i in range(0, 8000):
             self._batch.append(self._client.create_node, 'Content', p='ok')
         start_time = time.time()
         uuids = self._batch.submit()

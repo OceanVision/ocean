@@ -23,3 +23,7 @@ if __name__=="__main__":
 
     print "GET NODE ID"
     print get_my_node_id() 
+
+
+    print "GET ALL SERVICES"
+    print get_all_services()

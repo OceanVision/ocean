@@ -1,11 +1,20 @@
 # Binary files
 *.pyc
+lionfish/project/
+lionfish/target/
+lionfish/lib/
+*.jar
 
 # Temporary files
 *.~lock*
 *.swp
 *.swo
 *.vim
+
+# GPG keyring files
+*.gpg
+*.gpg~
+random_seed
 
 # Local configurations
 webservice/ocean/settings_local.py
