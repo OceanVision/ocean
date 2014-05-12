@@ -1,6 +1,7 @@
 package com.lionfish.server
 
 import java.net.ServerSocket
+//import akka.actor._
 import scala.concurrent.Lock
 
 object Server extends Runnable {
@@ -10,7 +11,7 @@ object Server extends Runnable {
   val availabilityLock = new Lock
   availabilityLock.acquire()
 
-  private def getNewId: Int = {
+  private def getConnectionId: Int = {
     dynamicId += 1
     dynamicId
   }
@@ -18,8 +19,8 @@ object Server extends Runnable {
   private def handleConnections(serverSocket: ServerSocket) = {
     while (true) {
       val socket = serverSocket.accept()
-      val newId = getNewId
-      new Thread(new Connection(newId, socket)).start()
+      val newId = getConnectionId
+      new Thread(new RequestHandler(newId, socket)).start()
     }
   }
 
