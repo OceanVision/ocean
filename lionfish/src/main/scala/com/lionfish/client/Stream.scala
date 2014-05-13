@@ -1,31 +1,21 @@
 package com.lionfish.client
 
-import java.net.Socket
-import com.lionfish.utils.IO
+import java.util.UUID
+import akka.actor._
+import akka.remote._
 
 trait Stream {
-  protected val host = "localhost" // TODO: create a config file
-  protected val port = 21
-  protected implicit val socket: Socket = new Socket(host, port)
+  protected val streamSystem: ActorSystem
+  protected val proxyAddress: String
+  protected val proxyPort: Int
+
+  // Connects to proxy
+  protected val proxyPath = "akka.tcp://proxySystem@localhost:21/user/proxy"
+  protected implicit val proxy = streamSystem.actorSelection(proxyPath)
+
+  protected implicit val streamUuid = UUID.randomUUID().toString
+
   protected var macroMethod: Method = null
-
-  def disconnect() = {
-    try {
-      socket.close()
-    } catch {
-      case e: Exception => {
-        println(s"Failed to disconnect with Lionfish server. Error message: $e")
-      }
-    }
-  }
-
-  def send(rawData: Any) = {
-    IO.send(rawData)
-  }
-
-  def receive[T: Manifest](): T = {
-    IO.receive[T]()
-  }
 
   def <<(method: Method) = {
     if (macroMethod == null) {
@@ -38,4 +28,6 @@ trait Stream {
   def !!(method: Method): Any
 
   def execute(): Any
+
+  def receive = null
 }

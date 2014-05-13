@@ -1,6 +1,12 @@
 package com.lionfish.client
 
-class BatchStream extends Stream {
+import akka.actor.ActorSystem
+
+class BatchStream(
+  protected val streamSystem: ActorSystem,
+  protected val proxyAddress: String,
+  protected val proxyPort: Int) extends Stream {
+
   override def !!(method: Method): Any = {
     method.executeBatch()
   }

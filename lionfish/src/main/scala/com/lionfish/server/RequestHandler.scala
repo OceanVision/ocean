@@ -1,25 +1,12 @@
 package com.lionfish.server
 
-import java.net.Socket
 import scala.collection.mutable.ListBuffer
-//import akka.actor._
-//import com.lionfish.messages._
-import com.lionfish.utils.IO
+import akka.actor.Actor
+import akka.event.Logging
+import com.lionfish.messages._
 
-class RequestHandler(private val id: Int, socket: Socket) extends Runnable {
-  println(s"Client $id connected.")
-
-  private def disconnect() = {
-    try {
-      socket.close()
-      println(s"Client $id disconnected.")
-    } catch {
-      case e: Exception => {
-        println(s"Client $id failed to disconnect. Error message: $e")
-      }
-    }
-  }
-
+class RequestHandler extends Actor {
+  val log = Logging(context.system, this)
   private def executeBatch(request: Map[String, Any]): List[Any] = {
     try {
       val count = request("count").asInstanceOf[Int]
@@ -32,7 +19,7 @@ class RequestHandler(private val id: Int, socket: Socket) extends Runnable {
           fullArgs += item(0).asInstanceOf[Map[String, Any]]
         }
 
-        println(s"Client $id executes $methodName in batch.")
+        println(s"Executing $methodName in batch.")
 
         // TODO: Solve this with reflection
         var rawResult: List[Any] = null
@@ -89,10 +76,9 @@ class RequestHandler(private val id: Int, socket: Socket) extends Runnable {
       response
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        println(s"Client $id failed to execute a batch at line $line. Error message: $e")
+        log.error(s"Failed to execute a batch. Error message: $e")
       }
-      List()
+        List()
     }
   }
 
@@ -105,7 +91,7 @@ class RequestHandler(private val id: Int, socket: Socket) extends Runnable {
         val methodName = item("methodName").asInstanceOf[String]
         val args = List(item("args").asInstanceOf[Map[String, Any]])
 
-        println(s"Client $id executes $methodName.")
+        println(s"Executing $methodName in sequence.")
 
         // TODO: Solve this with reflection
         var rawResult: List[Any] = null
@@ -162,32 +148,36 @@ class RequestHandler(private val id: Int, socket: Socket) extends Runnable {
       response.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        println(s"Client $id failed to execute a function at line $line. Error message: $e")
+        log.error(s"Failed to execute a sequence. Error message: $e")
       }
-      null
+        null
     }
   }
 
-  def run() = {
-    // Process requests
-    var request: Map[String, Any] = null
-    while ({request = IO.receive[Map[String, Any]](); request} != null) {
-      try {
-        var response: Any = null
-        val requestType = request("type").asInstanceOf[String]
-        if (requestType == "sequence") {
-          response = executeSequence(request)
-        } else {
-          //println(s"$request")
-          response = executeBatch(request)
-        }
-
-        //println(s"$response")
-        IO.send(response)
+  def handle(request: Map[String, Any]): Any = {
+    // Process request
+    try {
+      var result: Any = null
+      val requestType = request("type").asInstanceOf[String]
+      if (requestType == "sequence") {
+        result = executeSequence(request)
+      } else {
+        result = executeBatch(request)
       }
-    }
 
-    disconnect()
+      result
+    } catch {
+      case e: Exception => {
+        log.error(s"Failed to process a request. Error message: $e")
+      }
+        null
+    }
+  }
+
+  def receive = {
+    case Request(clientUuid, request) => {
+      val result = handle(request)
+      sender ! Response(clientUuid, result)
+    }
   }
 }

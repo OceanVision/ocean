@@ -1,12 +1,19 @@
 package com.lionfish.client
 
+import akka.actor._
+import com.typesafe.config.ConfigFactory
+
 object Database extends Factory {
+  private val streamSystem = ActorSystem("streamSystem", ConfigFactory.load("streamSystem"))
+  private val proxyAddress = "localhost"
+  private val proxyPort = 21
+
   def getBatchStream: Stream = {
-    new BatchStream
+    new BatchStream(streamSystem, proxyAddress, proxyPort)
   }
 
   def getSequenceStream: Stream = {
-    new SequenceStream
+    new SequenceStream(streamSystem, proxyAddress, proxyPort)
   }
 
   case class getByUuid(private val nodeUuid: String) extends Method {

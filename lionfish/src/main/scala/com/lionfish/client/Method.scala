@@ -1,22 +1,25 @@
 package com.lionfish.client
 
-import java.net.Socket
 import scala.collection.mutable.ListBuffer
-import com.lionfish.utils.IO
+import scala.concurrent.Await
+import scala.concurrent.duration._
+import akka.actor._
+import akka.pattern.ask
+import akka.util.Timeout
+import com.lionfish.messages.Request
 
 // Abstract command
 trait Method {
+  private implicit val timeout = Timeout(600 seconds)
   var tasks: ListBuffer[Map[String, Any]] = ListBuffer(getRequest)
 
   // Template method
   protected def getRequest: Map[String, Any]
 
-  protected def send(request: Map[String, Any])(implicit socket: Socket) = {
-    IO.send(request)
-  }
-
-  protected def receive[T: Manifest]()(implicit socket: Socket): T = {
-    IO.receive[T]()
+  protected def execute(request: Map[String, Any])
+                       (implicit proxy: ActorSelection, streamUuid: String): Any = {
+    val future = proxy ? Request(streamUuid, request)
+    Await.result[Any](future, timeout.duration)
   }
 
   def <<(method: Method): Method = {
@@ -24,18 +27,18 @@ trait Method {
     this
   }
 
-  def executeSequence()(implicit socket: Socket): Any = {
+  def executeSequence()(implicit proxy: ActorSelection, streamUuid: String): Any = {
     val finalRequest: Map[String, Any] = Map(
       "type" -> "sequence",
       "tasks" -> tasks.toList
     )
 
-    send(finalRequest)
-    receive[Any]()
+    execute(finalRequest)
   }
 
-  def executeBatch()(implicit socket: Socket): List[Any] = {
-    var groupedTasks: Map[String, Any] = Map()
+  def executeBatch()(implicit proxy: ActorSelection, streamUuid: String): List[Any] = {
+    var groupedTasks: scala.collection.mutable.Map[String, List[List[Any]]] =
+      scala.collection.mutable.Map()
     var count = 0
 
     for (item <- tasks) {
@@ -43,10 +46,9 @@ trait Method {
       val args = item("args").asInstanceOf[Map[String, Any]]
 
       if (!groupedTasks.contains(methodName)) {
-        groupedTasks += methodName -> ListBuffer(List(args, count))
+        groupedTasks += methodName -> List(List(args, count))
       } else {
-        var buffer = groupedTasks(methodName).asInstanceOf[ListBuffer[List[Any]]]
-        buffer += List(args, count)
+        groupedTasks(methodName) = groupedTasks(methodName) :+ List(args, count)
       }
 
       count += 1
@@ -55,10 +57,9 @@ trait Method {
     val finalRequest: Map[String, Any] = Map(
       "type" -> "batch",
       "count" -> count,
-      "tasks" -> groupedTasks
+      "tasks" -> groupedTasks.toMap
     )
 
-    send(finalRequest)
-    receive[List[Any]]()
+    execute(finalRequest).asInstanceOf[List[Any]]
   }
 }

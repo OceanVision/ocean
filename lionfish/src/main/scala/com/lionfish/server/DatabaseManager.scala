@@ -6,18 +6,18 @@ import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb._
 import org.neo4j.cypher.{ExecutionEngine, ExecutionResult}
 import org.neo4j.tooling.GlobalGraphOperations
-import org.neo4j.cypher.internal.compiler.v2_0.ast.False
 
 // TODO: logging, nicer way of handling errors
 
 object DatabaseManager {
-  private val DB_PATH = "/usr/lib/neo4j/data/graph.db" // TODO: consider SCALA_HOME in some way
-  private val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(DB_PATH)
+  private val databasePath = "/usr/lib/neo4j/data/graph.db" // TODO: consider SCALA_HOME in some way
+  private val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath)
 
   private val globalOperations = GlobalGraphOperations.at(graphDB)
   private val cypherEngine = new ExecutionEngine(graphDB)
   private var cypherResult: ExecutionResult = null
 
+  // Simple cache of model nodes
   private var modelNodes: Map[String, Node] = Map()
   initCache()
 

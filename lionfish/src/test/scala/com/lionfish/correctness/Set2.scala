@@ -2,28 +2,18 @@ package com.lionfish.correctness
 
 import scala.collection.mutable.ListBuffer
 import org.scalatest.{FlatSpec, BeforeAndAfterAll}
-import com.lionfish.server.Server
+import com.lionfish.server.Launcher
 import com.lionfish.client._
 
 class Set2 extends FlatSpec with BeforeAndAfterAll {
-  private var serverThread: Thread = null
   private var seqStream: Stream = null
   private var batchStream: Stream = null
 
   override def beforeAll() {
-    serverThread = new Thread(Server)
-    serverThread.start()
+    Launcher.main(Array())
 
-    Server.availabilityLock.acquire()
     seqStream = Database.getSequenceStream
     batchStream = Database.getBatchStream
-    Server.availabilityLock.release()
-  }
-
-  override def afterAll() {
-    seqStream.disconnect()
-    batchStream.disconnect()
-    serverThread.interrupt()
   }
 
   // =================== SET 2.1 ===================
@@ -55,7 +45,7 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
     val instances = (seqStream !! Database.getInstances(modelName, childrenProps))
       .asInstanceOf[List[Map[String, Any]]]
 
-    Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "-2")
+    seqStream !! Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "-2")
 
     val children2 = (seqStream !! Database.getChildren(uuidList(0)("uuid"), relType + "-2"))
       .asInstanceOf[List[Map[String, Any]]]
@@ -101,7 +91,7 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
     assert(nodeList.length == instances.length)
     assert(instances.equals(nodeList))
 
-    Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "-2")
+    seqStream !! Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "-2")
 
     val children2 = (seqStream !! Database.getChildren(uuidList(0)("uuid"), relType + "-2"))
       .asInstanceOf[List[Map[String, Any]]]
@@ -149,7 +139,7 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
     val nodeList = batchStream.execute()
       .asInstanceOf[List[Map[String, Any]]]
 
-    Database.deleteRelationship(modelUuid, uuidList(0)("uuid"))
+    seqStream !! Database.deleteRelationship(modelUuid, uuidList(0)("uuid"))
 
     val instances2 = (seqStream !! Database.getInstances(modelName))
       .asInstanceOf[List[Map[String, Any]]]
@@ -212,7 +202,7 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
     val nodeByLinkList = batchStream.execute()
       .asInstanceOf[List[Map[String, Any]]]
 
-    Database.deleteRelationship(modelUuid, uuidList(0)("uuid"))
+    seqStream !! Database.deleteRelationship(modelUuid, uuidList(0)("uuid"))
 
     val children2 = (seqStream !! Database.getChildren(modelUuid, relType))
       .asInstanceOf[List[Map[String, Any]]]
@@ -244,7 +234,7 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
     val nonExistingUuid = "*abc([)*"
     val relType = "<<TYPE>>"
 
-    Database.deleteRelationship(rootUuid, nonExistingUuid)
+    seqStream !! Database.deleteRelationship(rootUuid, nonExistingUuid)
 
     val children = (seqStream !! Database.getChildren(rootUuid, relType))
       .asInstanceOf[List[Map[String, Any]]]
@@ -301,7 +291,7 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
     val nodeByLinkList = batchStream.execute()
       .asInstanceOf[List[Map[String, Any]]]
 
-    Database.deleteRelationship(modelUuid, uuidList(0)("uuid"))
+    seqStream !! Database.deleteRelationship(modelUuid, uuidList(0)("uuid"))
 
     val instances2 = (seqStream !! Database.getInstances(modelName))
       .asInstanceOf[List[Map[String, Any]]]
@@ -346,7 +336,7 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
     val nodeByLinkList = batchStream.execute()
       .asInstanceOf[List[Map[String, Any]]]
 
-    Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "-2")
+    seqStream !! Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "-2")
 
     val children = (seqStream !! Database.getChildren(uuidList(0)("uuid"), relType + "-2"))
       .asInstanceOf[List[Map[String, Any]]]
@@ -403,7 +393,7 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
       .asInstanceOf[List[Map[String, Any]]]
 
     var propsToSet: Map[String, Any] = Map("key1" -> "def", "key2" -> 56)
-    Database.setProperties(uuidList(0)("uuid"), propsToSet)
+    seqStream !! Database.setProperties(uuidList(0)("uuid"), propsToSet)
 
     val children2 = (seqStream !! Database.getChildren(modelUuid, relType))
       .asInstanceOf[List[Map[String, Any]]]
@@ -460,7 +450,7 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
       .asInstanceOf[Map[String, Any]]
 
     var propsToSet: Map[String, Any] = Map("key1" -> "def", "key2" -> 56)
-    Database.setProperties(uuidList(0)("uuid"), propsToSet)
+    seqStream !! Database.setProperties(uuidList(0)("uuid"), propsToSet)
 
     val testedNode2 = (seqStream !! Database.getByUuid(uuidList(0)("uuid")))
       .asInstanceOf[Map[String, Any]]

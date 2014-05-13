@@ -1,6 +1,12 @@
 package com.lionfish.client
 
-class SequenceStream extends Stream {
+import akka.actor.ActorSystem
+
+class SequenceStream(
+  protected val streamSystem: ActorSystem,
+  protected val proxyAddress: String,
+  protected val proxyPort: Int) extends Stream {
+
   override def !!(method: Method): Any = {
     val result = method.executeSequence().asInstanceOf[List[Any]]
 
