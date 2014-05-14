@@ -1,4 +1,5 @@
 {
     "update_interval_s": 900,
-    "graph_worker_id": "UNDEFINED"
+    "graph_worker_id": "UNDEFINED",
+    "terminate_on_end": 1
 }

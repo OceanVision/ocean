@@ -251,3 +251,20 @@ def _get_configuration_by_id(service_id, config_name, config=None):
         return None
 
 
+OCEAN_ROOT_MARKER_FILE = '.__ocean_root__'
+
+
+def get_ocean_root_dir():
+    """
+        Search for the root directory location and return it
+    """
+    # TODO: Store it inside don_corleone config.json?
+    lookup_dir = './'
+    while not os.path.isfile(lookup_dir + OCEAN_ROOT_MARKER_FILE):
+        lookup_dir += '../'
+        if os.path.abspath(lookup_dir) == '/':
+            raise SystemError(
+                'Ocean root directory could not be found. '
+                'Is there a ' + OCEAN_ROOT_MARKER_FILE + ' file inside it?'
+            )
+    return os.path.abspath(lookup_dir)

@@ -91,7 +91,7 @@ if __name__ == '__main__':
         print 'Adding ' + str(i) + '/' + str(len(content_sources_list)) +\
             ' ' + str(cs[:-1]) + ' to batch...'
         try:
-            cs_node = eval(cs)
+            cs_node = eval(unicode(cs))
             cs_node['last_updated'] = 0
 
             odm_batch.append(
@@ -100,7 +100,7 @@ if __name__ == '__main__':
                 HAS_INSTANCE_RELATION,
                 **cs_node
             )
-            if i % 200 == 0 or i == len(content_sources_list)-1:
+            if i % 25 == 0 or i == len(content_sources_list)-1:
                 print 'Submitting batch... Please have patience...'
                 odm_batch.submit()
         except Exception as e:

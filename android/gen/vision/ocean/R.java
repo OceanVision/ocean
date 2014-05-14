@@ -33,38 +33,68 @@ public final class R {
         public static final int ic_launcher=0x7f020002;
     }
     public static final class id {
-        public static final int action_example=0x7f080009;
-        public static final int action_settings=0x7f080008;
+        public static final int action_example=0x7f080017;
+        public static final int action_login=0x7f080016;
+        public static final int action_logout=0x7f080015;
+        public static final int action_settings=0x7f080014;
         public static final int container=0x7f080001;
-        public static final int description=0x7f080007;
+        public static final int description=0x7f080013;
         public static final int drawer_layout=0x7f080000;
-        public static final int gridview=0x7f080003;
+        public static final int gridview=0x7f080009;
         public static final int image=0x7f080006;
+        public static final int login=0x7f08000f;
+        public static final int login_form=0x7f08000c;
+        public static final int login_status=0x7f08000a;
+        public static final int login_status_message=0x7f08000b;
         public static final int navigation_drawer=0x7f080002;
-        public static final int text_separator=0x7f080004;
-        public static final int title=0x7f080005;
+        public static final int password=0x7f08000e;
+        public static final int sign_in_button=0x7f080010;
+        public static final int textNewsAuthor=0x7f080003;
+        public static final int textNewsBody=0x7f080008;
+        public static final int textNewsDescription=0x7f080007;
+        public static final int textNewsTime=0x7f080004;
+        public static final int textNewsTitle=0x7f080005;
+        public static final int text_separator=0x7f080011;
+        public static final int title=0x7f080012;
+        public static final int userName=0x7f08000d;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;
-        public static final int fragment_grid_view_news=0x7f030001;
-        public static final int fragment_navigation_drawer=0x7f030002;
-        public static final int item_drawer_separator=0x7f030003;
-        public static final int item_news=0x7f030004;
+        public static final int activity_news_details=0x7f030001;
+        public static final int fragment_grid_view_news=0x7f030002;
+        public static final int fragment_login=0x7f030003;
+        public static final int fragment_navigation_drawer=0x7f030004;
+        public static final int item_drawer_separator=0x7f030005;
+        public static final int item_news=0x7f030006;
     }
     public static final class menu {
-        public static final int global_authenticated =0x7f070000;
-        public static final int main_authenticated =0x7f070001;
+        public static final int global_authenticated=0x7f070000;
+        public static final int global_default=0x7f070001;
+        public static final int main_authenticated=0x7f070002;
+        public static final int main_default=0x7f070003;
     }
     public static final class string {
-        public static final int action_example=0x7f050007;
-        public static final int action_settings=0x7f050008;
-        public static final int app_name=0x7f050000;
-        public static final int navigation_drawer_close=0x7f050006;
-        public static final int navigation_drawer_open=0x7f050005;
-        public static final int title_section1=0x7f050001;
-        public static final int title_section2=0x7f050002;
-        public static final int title_section3=0x7f050003;
-        public static final int title_section4=0x7f050004;
+        public static final int action_example=0x7f050008;
+        public static final int action_login=0x7f05000d;
+        public static final int action_logout=0x7f05000e;
+        public static final int action_settings=0x7f050009;
+        public static final int app_name=0x7f050003;
+        public static final int client_id=0x7f050000;
+        public static final int error_field_required=0x7f050010;
+        public static final int error_incorrect_password=0x7f050011;
+        public static final int error_incorrect_username=0x7f050012;
+        public static final int is_user_authenticated=0x7f050002;
+        public static final int login_progress_signing_in=0x7f05000f;
+        public static final int navigation_drawer_close=0x7f050007;
+        public static final int navigation_drawer_open=0x7f050006;
+        public static final int prompt_password=0x7f05000c;
+        /**  Strings related to login 
+         */
+        public static final int prompt_username=0x7f05000b;
+        public static final int server_public_key=0x7f050001;
+        public static final int title_activity_login=0x7f05000a;
+        public static final int title_section_feeds=0x7f050005;
+        public static final int title_section_recommended=0x7f050004;
     }
     public static final class style {
         /** 
@@ -93,5 +123,6 @@ public final class R {
  All customizations that are NOT specific to a particular API-level can go here. 
          */
         public static final int AppTheme=0x7f060001;
+        public static final int LoginFormContainer=0x7f060002;
     }
 }
