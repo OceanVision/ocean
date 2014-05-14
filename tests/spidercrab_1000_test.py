@@ -53,7 +53,7 @@ if __name__ == '__main__':
     ]
 
     NUMBER_OF_SLAVES = 10
-    NEWS_TO_BE_FETCHED = 25  # for each slave
+    NEWS_TO_BE_FETCHED = 50  # for each slave
 
     print 'Running', __file__
     print '\nNOTE: You need following file to run this test ' \

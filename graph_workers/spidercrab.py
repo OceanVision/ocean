@@ -106,6 +106,10 @@ class Spidercrab(GraphWorker):
         @param master: master Spidercrab object
         @type master: Spidercrab
         """
+
+        # Clean logs. TODO: do not use unix command
+        os.system("rm "+self.STANDARD_STATS_EXPORT_FILE)
+
         self.logger = logger
         # Config used to be stored inside the database (only values from file)
         self.given_config = dict()
@@ -279,7 +283,7 @@ class Spidercrab(GraphWorker):
             info_level,
             self.fullname + ' Finished!\nStats:\n' + str(self.stats))
         self._export_stats_to(self.STANDARD_STATS_EXPORT_FILE)
-        if not self.export_stats_to is None:
+        if not self.export_stats_to is None and self.export_stats_to != self.STANDARD_STATS_EXPORT_FILE:
             self._export_stats_to(self.export_stats_to)
 
     def _export_stats_to(self, file_name):
@@ -288,12 +292,14 @@ class Spidercrab(GraphWorker):
             'runtime_id': self.runtime_id,
             'stats': self.stats
         }
+        data = None
         if not os.path.isfile(file_name):
             with open(file_name, 'w') as json_file:
                 json_file.write(json.dumps({}))
         try:
-            with open(file_name, 'r') as json_file:
-                data = json.load(json_file)
+            with open(file_name, 'r') as json_file: 
+                x= json_file.read()
+                data = json.loads(x)
             try:
                 graph_worker_id = self.config[self.C_GRAPH_WORKER_ID]
                 if graph_worker_id not in data:
@@ -303,7 +309,7 @@ class Spidercrab(GraphWorker):
                 data[graph_worker_id][self.level].append(json_export)
             finally:
                 with open(file_name, 'w') as json_file:
-                    json_file.write(json.dumps(data, indent=4, sort_keys=True))
+                    json_file.write(json.dumps(data))
         except IOError as e:
             print e
             pass
