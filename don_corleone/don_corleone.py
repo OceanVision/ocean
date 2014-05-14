@@ -448,8 +448,14 @@ def register_node():
         return jsonify(error=pack_error(e))
 
 
-   
-
+@app.route('/get_service', methods=['GET'])
+def get_service():
+    service_id = request.args.get('service_id')
+    try:
+        s = get_service_by_id(service_id)
+        return jsonify(result=s)
+    except Exception, e:
+        return pack_error(e)
 
 @app.route('/register_service', methods=['POST'])
 def register_service():
