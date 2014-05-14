@@ -5,7 +5,8 @@
     Testing of availability and communication of dependent system elements
     NOTE: Does not harm graph database.
 """
-
+import sys, os
+sys.path.append(os.path.abspath(".."))
 from graph_workers import odm_client
 from don_corleone import don_utils as du
 

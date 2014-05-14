@@ -9,7 +9,8 @@
 
 import os
 import time
-
+import sys
+sys.path.append(os.path.abspath(".."))
 from don_corleone import don_utils as du
 
 if __name__ == '__main__':
