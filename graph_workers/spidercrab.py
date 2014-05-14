@@ -14,8 +14,7 @@ import time
 import urllib2
 import uuid
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
-from don_utils import get_running_service, get_my_node_id
+from don_corleone import don_utils as du
 
 from graph_workers.graph_defines import *
 from graph_workers.graph_utils import *
@@ -321,7 +320,7 @@ class Spidercrab(GraphWorker):
                 'graph_worker_id = \''
                 + str(self.given_config['graph_worker_id']) + '\'!')
 
-        master_config = get_running_service(
+        master_config = du.get_running_service(
             service_config={
                 'graph_worker_id': self.given_config['graph_worker_id']
             },
@@ -424,9 +423,9 @@ class Spidercrab(GraphWorker):
             service_name = 'spidercrab_master'
         if config_file_name == '':
             # No config file - load from Don Corleone
-            don_config = get_running_service(
+            don_config = du.get_running_service(
                 service_name=service_name,
-                node_id=get_my_node_id(),
+                node_id=du.get_my_node_id(),
                 enforce_running=False
             )['service_config']
 
@@ -1027,9 +1026,7 @@ if __name__ == '__main__':
     print "Press Enter to create one master with 5 slaves."
     enter = raw_input()
 
-    master_sc = Spidercrab.create_master(
-        #master_sources_urls_file='../data/bad_contentsource'
-    )
+    master_sc = Spidercrab.create_master()
     thread = threading.Thread(target=master_sc.run)
     thread.start()
 
