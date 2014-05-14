@@ -105,10 +105,10 @@ def install_node(config, run=True):
     for id, responsibility in enumerate(config[RESPONSIBILITIES]):
         logger.info("Registering "+str(id)+" responsibility "+str(responsibility))
         service = responsibility[0]
-        additional_config = responsibility[1]
+        service_parameters = responsibility[1]
         params = urllib.urlencode\
                 ({"service":json.dumps(service),"run":json.dumps(False) , "config":json.dumps(config),
-                  "additional_config":json.dumps(additional_config), "node_id":json.dumps(config[NODE_ID]), "public_url":json.dumps(config[PUBLIC_URL])
+                  "additional_config":json.dumps(service_parameters), "node_id":json.dumps(config[NODE_ID]), "public_url":json.dumps(config[PUBLIC_URL])
                   })
 
 
@@ -127,11 +127,17 @@ def install_node(config, run=True):
 
     if run: 
         for service_id in service_ids:
-            response = urllib2.urlopen(get_don_corleone_url(config)+\
-		"/run_service?service_id="+str(service_id)).read()
-	    if not has_succeded(response):
-	        logger.error("SHOULDNT HAPPEN FAILED RUNNING")
-            logger.error(response)
+            for i in xrange(5):
+                response = urllib2.urlopen(get_don_corleone_url(config)+\
+            "/run_service?service_id="+str(service_id)).read()
+                if not has_succeded(response):
+                    logger.error("SHOULDNT HAPPEN FAILED RUNNING")
+                    logger.error(response)
+                else:
+                    break
+
+                if i == 4:
+                    logger.error("Failed running service 4 times in a row. Abandoning")
 
 #    for id, responsibility in enumerate(config[RESPONSIBILITIES]):
 

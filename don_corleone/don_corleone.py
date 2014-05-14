@@ -25,116 +25,45 @@ Assumptions:
 
 
 """
-
-#TODO: timeout for ssh
-
 import json
-
 import threading
-import logging
 import os
 import subprocess
-
-from don_corleone_exceptions import *
+from don_corleone_constants import *
 from don_utils import logger
-
 from flask.ext.jsonpify import jsonify
 
 
-OK = "ok"
-
-CONFIG_PORT = "port"
-CONFIG_HOME = "home"
-CONFIG_SSH_USER = "ssh-user"
-CONFIG_SSH_HOST = "public_ssh_domain"
-CONFIG_SSH_PORT = "ssh-port"
-
-
-SERVICE_ODM = "odm"
-SERVICE_LIONFISH = "lionfish"
-SERVICE_ZOOKEEPER = "zookeeper"
-SERVICE_KAFKA = "kafka"
-SERVICE_NEO4J = "neo4j"
-SERVICE_NEWS_FETCHER_MASTER = "news_fetcher_master"
-SERVICE_NEWS_FETCHER = "news_fetcher"
-SERVICE_SPIDERCRAB_MASTER = "spidercrab_master"
-SERVICE_SPIDERCRAB_SLAVE = "spidercrab_slave"
-SERVICE_MANTIS_MASTER = "mantis_master"
-SERVICE_MANTIS_PREDICTOR = "mantis_predictor"
-SERVICE_MANTIS_DATABASE_WORKER = "mantis_database_worker"
-
-
-
-PARAMETRIZED_SERVICES = set([SERVICE_LIONFISH, SERVICE_MANTIS_MASTER
-,SERVICE_MANTIS_DATABASE_WORKER, SERVICE_MANTIS_PREDICTOR, SERVICE_SPIDERCRAB_MASTER,
-                             SERVICE_SPIDERCRAB_SLAVE])
-
-UNARY_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH, SERVICE_NEO4J, SERVICE_NEWS_FETCHER, SERVICE_ZOOKEEPER, SERVICE_KAFKA])
-NONUNARY_SERVICES = set([SERVICE_SPIDERCRAB_SLAVE, SERVICE_SPIDERCRAB_MASTER,\
- SERVICE_MANTIS_MASTER
-,SERVICE_MANTIS_DATABASE_WORKER, SERVICE_MANTIS_PREDICTOR
-                         ])
-
-KNOWN_SERVICES = set([SERVICE_ODM, SERVICE_LIONFISH,  SERVICE_NEO4J, SERVICE_NEWS_FETCHER,\
-                      SERVICE_KAFKA, SERVICE_ZOOKEEPER, SERVICE_SPIDERCRAB_MASTER,\
-                      SERVICE_SPIDERCRAB_SLAVE,
-                       SERVICE_MANTIS_MASTER
-    ,SERVICE_MANTIS_DATABASE_WORKER, SERVICE_MANTIS_PREDICTOR
-                      ])
-
-SERVICE = "service"
-#Service ID is in most cases the same as SERVICE, however if it is local, or if it is multiple_slave it can differ
-#For instance hadoop slaves will have service id hadoop_slave:2, whereas local service will have id
-#neo4j_local, service id is basically service_name:additional_config ,where service_name can have
-#additionally local tag
-SERVICE_ID = "service_id"
-SERVICE_STATUS = "status"
-#Without http
-SERVICE_HOME = "home"
-SERVICE_PORT = "port"
-SERVICE_RUN_CMD = "run_cmd"
-SERVICE_NAME = "service"
-SERVICE_CONFIG = "service_config" # Additional service config
-NODE_ID = "node_id" # Id for node
-SERVICE_LOCAL = "local"
-
+#Configuration for services read from CONFIG_DIRECTORY
+service_configs = {}
 
 #Nodes in the system
 #Each node is "config" + "services"
 registered_nodes = {}
-NODE_RESPONSIBILITIES = "node_responsibilities"
-NODE_ADDRESS = "node_address"
-NODE_CONFIG = "node_config"
-NODE_SSH_HOST = "node_ssh_host"
-NODE_SSH_PORT = "node_ssh_port"
-NODE_SSH_USER = "node_ssh_user"
 
-
-additional_default_options = {}
-additional_default_options[SERVICE_ODM] = {SERVICE_PORT: 7777}
-additional_default_options[SERVICE_NEO4J] = {SERVICE_PORT: 7474}
-
-
-DEFAULT_COMMAND = "default"
-DEFAULT_SSH_PORT = 22
-DEFAULT_USER = "ocean"
-
-STATUS_NOTREGISTERED = "not_registered"
-STATUS_TERMINATED = "terminated"
-STATUS_RUNNING = "running"
-
-
-services_lock = threading.RLock()
-registered_nodes_lock = threading.RLock()
+#Services registered in the system
 services = []
 
+# Lock for synchronization
+services_lock = threading.RLock()
+registered_nodes_lock = threading.RLock()
 
+# Sttatus of checker daemon
 status_checker_job_status = "NotRunning"
 
-
+# Default configs for services
+default_service_parameters = {}
 
 
 import socket
+import sys
+import inspect
+
+def pack_error(e):
+    curframe = inspect.currentframe()
+    calframe = inspect.getouterframes(curframe, 2)
+    logger.error("error: "+str(calframe[1][3])+"::"+str(sys.exc_traceback.tb_lineno)+":"+str(e))
+    return jsonify(error=str(calframe[1][3])+"::"+str(sys.exc_traceback.tb_lineno)+":"+str(e))
 
 def get_bare_ip(address):
     """ Return bare ip for address (ip->ip, domain -> ip) """
@@ -280,11 +209,18 @@ def cautious_run_cmd_over_ssh(cmd, node_id, m, sudo_queue=True):
 def update_status(m):
     """ Checks and updates status of given service  """
     logger.info("Updating status for " + str(m))
+
+
+
+
+
     cmd = "(cd {0} && {1})".format(
                                     os.path.join(m[SERVICE_HOME],"don_corleone"),
-                                    "./scripts/{0}_test.sh".format(m[SERVICE]))
+                                    "./scripts/{0}".format(service_configs[m[SERVICE]][CONFIG_TEST_SCRIPT]))
 
-    
+
+
+
     status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID], m, sudo_queue=False)
 
     logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", str(status)))
@@ -308,8 +244,20 @@ def status_checker_job():
     while True:
         logger.info("Registered {0} services".format(len(services)))
         for m in services:
-            update_status(m)
-        time.sleep(10)
+                update_status(m)
+
+        for n in registered_nodes:
+            ret = os.system("ping {0}".format(n[NODE_ADDRESS]))
+            if ret != 0:
+                logger.info("Failed ping for "+NODE_ID)
+                n[NODE_LAST_PING_ANSWER] += 1
+            else:
+                n[NODE_LAST_PING_ANSWER] = 0
+
+            if n[NODE_LAST_PING_ANSWER] > KILL_NODE_COUNTER:
+                  _terminate_node(n[NODE_ID])
+
+        time.sleep(UPDATE_FREQ)
 
 
 ### Flask module ###
@@ -383,22 +331,35 @@ def _run_service(service_id):
             logger.error("Wrong service status")
             exit(1)
 
-        cmd = ""
-        ### Pass parameters?
-        if m[SERVICE] in PARAMETRIZED_SERVICES:
-            params = ""
-            for config_name in m[SERVICE_CONFIG]:
-                if config_name != "local":
-                    params += "--"+config_name+"="+str(m[SERVICE_CONFIG][config_name])+ " "
-            #params += "--don_corleone_service_id="+str(service_id)
+        # Check dependencies
+        for d in service_configs[m[SERVICE]][CONFIG_DEPENDS]:
+            try:
+                s = _get_service(d, None, m[NODE_ID])
+                if not s[SERVICE_STATUS] == STATUS_RUNNING:
+                    raise ERROR_NOT_SATISFIED_DEPENDENCIES
+            except Exception, e:
+                raise ERROR_NOT_SATISFIED_DEPENDENCIES
 
-            cmd = "(cd {0} && {1})".format(
-                                            os.path.join(m[SERVICE_HOME],"don_corleone"),
-                                            "./scripts/run.sh {1} ./scripts/{0}_run.sh {2}".format(m[SERVICE], m[SERVICE_ID], params))
-        else:
-            cmd = "(cd {0} && {1})".format(
-                                            os.path.join(m[SERVICE_HOME],"don_corleone"),
-                                            "./scripts/run.sh {1} ./scripts/{0}_run.sh".format(m[SERVICE], m[SERVICE_ID]))
+        # Calculate params
+        params = ""
+
+        for p in service_configs[m[SERVICE]][CONFIG_PARAMS]:
+            if len(p) == 2:
+                #Non dependant
+                params += " --{0} {1}".format(p[0], m[SERVICE_PARAMETERS].get(p[0], p[1]))
+            elif len(p) == 3:
+                # Dependant
+                params += " --{0} {1}".format(p[0], _get_configuration(service_name=p[2].split(":")[0], service_id=None,\
+                                                                      node_id=m[NODE_ID], config_name=p[2].split(":")[1]))
+
+
+
+
+        logger.info("Running {0} with params ".format(m[SERVICE_ID], params))
+
+        cmd = "(cd {0} && {1})".format(
+                                        os.path.join(m[SERVICE_HOME],"don_corleone"),
+                                        "./scripts/run.sh {1} ./scripts/{0} {2}".format(service_configs[m[SERVICE]][CONFIG_RUN_SCRIPT], m[SERVICE_ID], params))
 
     status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID],m)
 
@@ -441,7 +402,7 @@ def deregister_service():
         return jsonify(result=str(OK))
     except DonCorleoneException,e:
         logger.error("Failed deregistering service " + service_id + " with DonCorleoneException "+str(e))
-        return jsonify(error=str(e))
+        return pack_error(e)
     except Exception,e:
         logger.error("Failed deregistering service " + service_id + " with unexpected error "+str(e))
         return jsonify(result=str(ERROR))
@@ -463,8 +424,8 @@ def register_node():
 
             with registered_nodes_lock:
                 if not node_id in registered_nodes:
-                    node = {NODE_ID:node_id, NODE_ADDRESS:config[CONFIG_SSH_HOST],NODE_CONFIG:config, NODE_RESPONSIBILITIES:[], NODE_SSH_HOST:config[CONFIG_SSH_HOST],
-                    NODE_SSH_PORT:config[CONFIG_SSH_PORT], NODE_SSH_USER:config[CONFIG_SSH_USER]
+                    node = {NODE_ID:node_id, NODE_ADDRESS:config[CLIENT_CONFIG_SSH_HOST],NODE_CONFIG:config, NODE_RESPONSIBILITIES:[], NODE_SSH_HOST:config[CLIENT_CONFIG_SSH_HOST],
+                    NODE_SSH_PORT:config[CLIENT_CONFIG_SSH_PORT], NODE_SSH_USER:config[CLIENT_CONFIG_SSH_USER]
                     }
                     registered_nodes[node_id] = node
             
@@ -474,8 +435,9 @@ def register_node():
         return jsonify(result=str(output))
 
     except Exception, e:
+        logger.error((sys.exc_traceback.tb_lineno ))
         logger.error("Failed registering node with "+str(e))
-        return jsonify(error=str(e))
+        return pack_error(e)
 
 
    
@@ -499,12 +461,12 @@ def register_service():
             logger.info("Registering "+str(service_id)+ " service_name="+str(service_name))
 
             # Load default service additional config (like port configuration)
-            additional_service_config = additional_default_options.get(service_name, {})
+            additional_service_parameters = default_service_parameters.get(service_name, {})
             try:
-                additional_service_config = json.loads(request.form['additional_config'])
+                additional_service_parameters.update(json.loads(request.form['additional_config']))
             except Exception, ex:
                 print request.form['additional_config']
-                print str(ex)+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
 
             node_id = json.loads(request.form['node_id'])
 
@@ -512,7 +474,15 @@ def register_service():
                 if not node_id in registered_nodes:
                     raise ERROR_NOT_REGISTERED_NODE
 
-            local = True if 'local' in request.form or additional_service_config.get('local', False)\
+
+            # Check dependencies
+            for d in service_configs[service_name][CONFIG_DEPENDS]:
+                try:
+                    s = _get_service(d, None, node_id)
+                except Exception, e:
+                    raise ERROR_NOT_SATISFIED_DEPENDENCIES
+
+            local = True if 'local' in request.form or additional_service_parameters.get('local', False)\
                 else False
 
             logger.info("Registering local="+str(local)+" service")
@@ -554,8 +524,8 @@ def register_service():
                        NODE_ADDRESS: public_url,
                        SERVICE_LOCAL: local,
                        SERVICE_RUN_CMD:DEFAULT_COMMAND,
-                       SERVICE_HOME:config[CONFIG_HOME],
-                       SERVICE_CONFIG: additional_service_config
+                       SERVICE_HOME:config[CLIENT_CONFIG_HOME],
+                       SERVICE_PARAMETERS: additional_service_parameters
                        }
 
 
@@ -596,8 +566,7 @@ def register_service():
 
 
     except Exception, e:
-        logger.error("Failed registering with "+str(e))
-        return jsonify(error=str(e))
+        return pack_error(e)
 
 
 
@@ -613,7 +582,7 @@ def terminate_service():
         return jsonify(result=str(OK))
     except DonCorleoneException,e:
         logger.error("Failed terminating service " + service_id + " with DonCorleoneException "+str(e))
-        return jsonify(error=str(e))
+        return pack_error(e)
     except Exception,e:
         logger.error("Failed terminating service " + service_id + " with non expected exception "+str(e))
         return jsonify(error=str(ERROR_FAILED_SERVICE_RUN))
@@ -638,7 +607,7 @@ def run_service():
         return jsonify(result=str(OK))
     except DonCorleoneException,e:
         logger.error("Failed running service " + service_id + " with DonCorleoneException "+str(e))
-        return jsonify(error=str(e))
+        return pack_error(e)
     except Exception,e:
         logger.error("Failed running service " + service_id + " with non expected exception "+str(e))
         return jsonify(error=str(ERROR_FAILED_SERVICE_RUN))
@@ -658,8 +627,69 @@ def get_nodes():
         return jsonify(result=registered_nodes)
 
 
+
+def _get_service(service_name, service_id=None, node_id=None):
+        # Check parameters
+        if node_id is None:
+            raise ERROR
+        # Get appropriate configuration
+        if service_id == None:
+            services_of_node = filter(lambda x: x[SERVICE] == service_name and x[NODE_ID] == node_id, services)
+            if len(services_of_node) > 0:
+                # Try getting value
+                try:
+                    return services_of_node[0]
+                except Exception, e:
+                    logger.error("Found service of given node - local or not, but missed configuration")
+                    raise ERROR_NOT_RECOGNIZED_CONFIGURATION
+
+            else:
+                # Get global, discard local
+                services_list = filter(lambda x: x[SERVICE] == service_name and x[SERVICE_LOCAL] == False, services)
+
+                #Typical service_feature configuration
+                if len(services_list) > 0:
+                    try:
+                        return services_list[0]
+                    except Exception, e:
+                        logger.error(services_list[0][SERVICE_PARAMETERS])
+                        logger.error("Found global service, but missed configuration")
+                        raise ERROR_NOT_RECOGNIZED_CONFIGURATION
+
+                else:
+                    logger.error("Not registered service that was requested configuration")
+                    raise ERROR_NOT_REGISTERED_SERVICE
+        else:
+
+            try:
+                s = get_service_by_id(service_id)
+                config_value = s[SERVICE_PARAMETERS][config_name]
+                return config_value
+            except ERROR_NOT_REGISTERED_SERVICE, e:
+                logger.error("Not registered service that was requested configuration")
+                raise e
+            except Exception, e:
+                logger.error("Found service by service_id, but missed configuration")
+                raise ERROR_NOT_RECOGNIZED_CONFIGURATION
+
+def _get_configuration(service_name, service_id, config_name, node_id):
+        # Check parameters
+        if node_id is None or config_name is None:
+            raise ERROR
+
+        logger.info("Getting configuration for {0}/{3} {1} {2}".format(service_name, config_name, node_id, service_id))
+
+
+        try:
+            s = _get_service(service_name, service_id, node_id)
+            return s[SERVICE_PARAMETERS].get(config_name, default_service_parameters[s[SERVICE]][config_name])
+        except Exception, e:
+            raise e
+
+
+
 @app.route('/get_configuration', methods=["GET"])
-def get_configuraiton():
+def get_configuration():
     """
         Loads configuration request.
 
@@ -674,52 +704,12 @@ def get_configuraiton():
         config_name = request.args.get('config_name')
         node_id = request.args.get('node_id')
 
-        # Check parameters
-        if node_id is None or config_name is None:
-            raise ERROR
+        result = _get_configuration(service_name, service_id, config_name, node_id)
 
-        logger.info("Getting configuration for {0}/{3} {1} {2}".format(service_name, config_name, node_id, service_id))
-
-        # Get appropriate configuration
-        if service_id == None:
-            services_of_node = filter(lambda x: x[SERVICE] == service_name and x[NODE_ID] == node_id, services)
-            if len(services_of_node) > 0:
-                # Try getting value
-                try:
-                    config_value = services_of_node[0][SERVICE_CONFIG][config_name]
-                    return jsonify(result=config_value)
-                except Exception, e:
-                    logger.error("Found service of given node - local or not, but missed configuration")
-                    raise ERROR_NOT_RECOGNIZED_CONFIGURATION
-
-            else:
-                # Get global, discard local
-                services_list = filter(lambda x: x[SERVICE] == service_name and x[SERVICE_LOCAL] == False, services)
-
-                #Typical service_feature configuration
-                if len(services_list) > 0:
-                    try:
-                        config_value = services_list[0][SERVICE_CONFIG][config_name]
-                        return jsonify(result=config_value)
-                    except Exception, e:
-                        logger.error(services_list[0][SERVICE_CONFIG])
-                        logger.error("Found global service, but missed configuration")
-                        raise ERROR_NOT_RECOGNIZED_CONFIGURATION
-
-                else:
-                    raise ERROR_NOT_RECOGNIZED_CONFIGURATION
-        else:
-            s = get_service_by_id(service_id)
-            try:
-                config_value = s[SERVICE_CONFIG][config_name]
-                return jsonify(result=config_value)
-            except Exception, e:
-                logger.error("Found service by service_id, but missed configuration")
-                raise ERROR_NOT_RECOGNIZED_CONFIGURATION
-
+        return jsonify(result=result)
 
     except Exception, e:
-        return jsonify(error=str(e))
+        return pack_error(e)
 
 
 @app.route('/get_services', methods=['GET'])
@@ -741,19 +731,12 @@ def get_node_config():
     return jsonify(result=registered_nodes[node_id])
 
 
-@app.route('/terminate_node', methods=['GET'])
-def terminate_node():
-    """ Terminates node with all the responsibilities """
-    node_id = request.args.get('node_id')
-
-
-    logger.info("Terminating node "+node_id)
-
+def _terminate_node(node_id):
     # Basic error checking
     if node_id not in registered_nodes:
         return jsonify(result=str(ERROR_NODE_NOT_REGISTERED))
 
-
+    logger.info("Terminating node "+node_id)
 
     try:
         with services_lock:
@@ -765,7 +748,7 @@ def terminate_node():
                     logger.info("Deregistering service "+m[SERVICE_ID]+ " "+output_run_service)
                 except DonCorleoneException,e:
                     logger.error("Failed deregistering service "+m[SERVICE_ID]+" with DonCorleoneException "+str(e))
-                    return jsonify(error=str(e))
+                    return pack_error(e)
                 except Exception,e:
                     logger.error("Failed deregistering service " + m[SERVICE_ID] + " with unexpected error "+str(e))
                     return jsonify(error=str(ERROR_FAILED_SERVICE_RUN))
@@ -775,7 +758,19 @@ def terminate_node():
 
     except Exception, e:
         logger.error("Failed termination with "+str(e))
-        return jsonify(error=str(ERROR))
+        raise e
+
+@app.route('/terminate_node', methods=['GET'])
+def terminate_node():
+    """ Terminates node with all the responsibilities """
+    node_id = request.args.get('node_id')
+
+
+
+    try:
+        _terminate_node(node_id)
+    except Exception, e:
+        return pack_error(e)
 
     return jsonify(result=OK)
 
@@ -800,9 +795,9 @@ def register_reversed():
         
         config = json.loads(open("config.json").read())
 
-        ssh_user_don = config[CONFIG_SSH_USER]  
-        ssh_port_don = config[CONFIG_SSH_PORT]
-        ssh_host_don = config[CONFIG_SSH_HOST]
+        ssh_user_don = config[CLIENT_CONFIG_SSH_USER]
+        ssh_port_don = config[CLIENT_CONFIG_SSH_PORT]
+        ssh_host_don = config[CLIENT_CONFIG_SSH_HOST]
 
         port = 7000
 
@@ -814,7 +809,7 @@ def register_reversed():
 
         return jsonify(result={"ssh-user":ssh_user_don, "ssh-port":ssh_port_don, "ssh-host":ssh_host_don, "ssh-port-redirect":port})
     except Exception, e:
-        return jsonify(error=str(e))
+        return pack_error(e)
 
 
 
@@ -834,12 +829,45 @@ def get_status():
         return jsonify(error=str(STATUS_NOTREGISTERED))
 
 
+def read_configs():
+    # Read configurations
+    logger.info("Reading configurations")
 
+
+    ### Read in configuration files and setup default parameters ###
+    for s in KNOWN_SERVICES:
+        default_service_parameters[s] = {}
+        config_file = os.path.join(CONFIG_DIRECTORY, s+".config")
+        if os.path.exists(config_file):
+
+            service_configs[s] = {CONFIG_DEPENDS: [], CONFIG_PARAMS: []}
+            service_configs[s].update(json.loads(open(config_file,"r").read()))
+
+
+
+            params = service_configs[s][CONFIG_PARAMS]
+            for p in params:
+                if len(p) == 2: #non dependant
+                    default_service_parameters[s][p[0]] = p[1]
+
+
+            logger.info("Read service configuration")
+            logger.info(s)
+            logger.info(default_service_parameters[s])
+            logger.info(service_configs[s])
+
+        else:
+            logger.warn("No configuration for {0}, writing empty config (default)".format(s))
+            service_configs[s] = {}
 
 @app.before_first_request
 def run_daemons_flask():
     global status_checker_job_status
+
+
+
     if status_checker_job_status != "Running":
+        read_configs()
         run_daemons()
 
 
@@ -849,5 +877,6 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 
 
 if __name__ == '__main__':
+    read_configs()
     run_daemons()
     app.run(port=8881)
