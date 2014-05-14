@@ -10,7 +10,7 @@ trait Stream {
   protected val proxyPort: Int
 
   // Connects to proxy
-  protected val proxyPath = "akka.tcp://proxySystem@localhost:21/user/proxy"
+  protected val proxyPath = s"akka.tcp://proxySystem@$proxyAddress:$proxyPort/user/proxy"
   protected implicit val proxy = streamSystem.actorSelection(proxyPath)
 
   protected implicit val streamUuid = UUID.randomUUID().toString

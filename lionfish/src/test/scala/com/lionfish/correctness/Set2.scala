@@ -1,16 +1,20 @@
 package com.lionfish.correctness
 
-import scala.collection.mutable.ListBuffer
 import org.scalatest.{FlatSpec, BeforeAndAfterAll}
 import com.lionfish.server.Launcher
 import com.lionfish.client._
+import com.lionfish.utils.Config
 
 class Set2 extends FlatSpec with BeforeAndAfterAll {
   private var seqStream: Stream = null
   private var batchStream: Stream = null
 
   override def beforeAll() {
-    Launcher.main(Array())
+    val address = Config.debugProxyAddress
+    val port = Config.debugProxyPort
+    Launcher.main(Array("--debug"))
+    Database.setProxyAddress(address)
+    Database.setProxyPort(port)
 
     seqStream = Database.getSequenceStream
     batchStream = Database.getBatchStream

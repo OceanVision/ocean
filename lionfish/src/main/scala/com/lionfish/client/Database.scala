@@ -2,11 +2,28 @@ package com.lionfish.client
 
 import akka.actor._
 import com.typesafe.config.ConfigFactory
+import com.lionfish.utils.Config
 
 object Database extends Factory {
   private val streamSystem = ActorSystem("streamSystem", ConfigFactory.load("streamSystem"))
-  private val proxyAddress = "localhost"
-  private val proxyPort = 21
+  private var proxyAddress = Config.defaultProxyAddress
+  private var proxyPort = Config.defaultProxyPort
+
+  def getProxyAddress = {
+    proxyAddress
+  }
+
+  def getProxyPort = {
+    proxyPort
+  }
+
+  def setProxyAddress(address: String) = {
+    proxyAddress = address
+  }
+
+  def setProxyPort(port: Int) = {
+    proxyPort = port
+  }
 
   def getBatchStream: Stream = {
     new BatchStream(streamSystem, proxyAddress, proxyPort)
