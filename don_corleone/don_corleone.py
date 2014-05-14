@@ -63,7 +63,10 @@ def pack_error(e):
     curframe = inspect.currentframe()
     calframe = inspect.getouterframes(curframe, 2)
     logger.error("error: "+str(calframe[1][3])+"::"+str(sys.exc_traceback.tb_lineno)+":"+str(e))
-    return jsonify(error=str(calframe[1][3])+"::"+str(sys.exc_traceback.tb_lineno)+":"+str(e))
+    return str(calframe[1][3])+"::"+str(sys.exc_traceback.tb_lineno)+":"+str(e)
+
+
+
 
 def get_bare_ip(address):
     """ Return bare ip for address (ip->ip, domain -> ip) """
@@ -201,7 +204,7 @@ def cautious_run_cmd_over_ssh(cmd, node_id, m, sudo_queue=True):
     logger.info(output)
 
     if prog.returncode != 0:
-        logger.info("Error running command " + str(ERROR_FAILED_SSH_CMD))
+        logger.info("Error running command " + str(ERROR_FAILED_SSH_CMD)+ " "+str(prog.returncode))
         return (ERROR_FAILED_SSH_CMD, output)
 
     return (OK, output)
@@ -219,11 +222,11 @@ def update_status(m):
                                     "./scripts/{0}".format(service_configs[m[SERVICE]][CONFIG_TEST_SCRIPT]))
 
 
-
+    logger.info("Running {0} to check if service is running ".format(cmd))
 
     status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID], m, sudo_queue=False)
 
-    logger.info(("Checking ssh (reachability) for ",m[SERVICE_ID], "result ", str(status)))
+
 
     with services_lock:
 
@@ -246,16 +249,17 @@ def status_checker_job():
         for m in services:
                 update_status(m)
 
-        for n in registered_nodes:
-            ret = os.system("ping {0}".format(n[NODE_ADDRESS]))
-            if ret != 0:
-                logger.info("Failed ping for "+NODE_ID)
-                n[NODE_LAST_PING_ANSWER] += 1
-            else:
-                n[NODE_LAST_PING_ANSWER] = 0
+        with registered_nodes_lock:
+            for n in registered_nodes.itervalues():
+                ret = os.system("ping {0} -c 1".format(n[NODE_ADDRESS]))
+                if ret != 0:
+                    logger.info("Failed ping for "+NODE_ID)
+                    n[NODE_LAST_PING_ANSWER] += 1
+                else:
+                    n[NODE_LAST_PING_ANSWER] = 0
 
-            if n[NODE_LAST_PING_ANSWER] > KILL_NODE_COUNTER:
-                  _terminate_node(n[NODE_ID])
+                if n[NODE_LAST_PING_ANSWER] > KILL_NODE_COUNTER:
+                      _terminate_node(n[NODE_ID])
 
         time.sleep(UPDATE_FREQ)
 
@@ -325,7 +329,7 @@ def _run_service(service_id):
         m = get_service_by_id(service_id)
 
         if m[SERVICE_STATUS] == STATUS_RUNNING:
-            raise ERROR_SERVICE_ALREADY_RUNNING
+            return ERROR_SERVICE_ALREADY_RUNNING
 
         if m[SERVICE_STATUS] != STATUS_TERMINATED:
             logger.error("Wrong service status")
@@ -336,9 +340,10 @@ def _run_service(service_id):
             try:
                 s = _get_service(d, None, m[NODE_ID])
                 if not s[SERVICE_STATUS] == STATUS_RUNNING:
-                    raise ERROR_NOT_SATISFIED_DEPENDENCIES
+                    raise ERROR_NOT_SATISFIED_DEPENDENCIES_NOT_RUNNING
             except Exception, e:
-                raise ERROR_NOT_SATISFIED_DEPENDENCIES
+                logger.error("Failed getting service in checking dependencies "+str(e))
+                raise e
 
         # Calculate params
         params = ""
@@ -351,6 +356,9 @@ def _run_service(service_id):
                 # Dependant
                 params += " --{0} {1}".format(p[0], _get_configuration(service_name=p[2].split(":")[0], service_id=None,\
                                                                       node_id=m[NODE_ID], config_name=p[2].split(":")[1]))
+            # No default value
+            elif len(p) == 1 and p[0] in m[SERVICE_PARAMETERS]:
+                params += " --{0} {1}".format(p[0], m[SERVICE_PARAMETERS][p[0]])
 
 
 
@@ -402,7 +410,7 @@ def deregister_service():
         return jsonify(result=str(OK))
     except DonCorleoneException,e:
         logger.error("Failed deregistering service " + service_id + " with DonCorleoneException "+str(e))
-        return pack_error(e)
+        return jsonify(error=pack_error(e))
     except Exception,e:
         logger.error("Failed deregistering service " + service_id + " with unexpected error "+str(e))
         return jsonify(result=str(ERROR))
@@ -437,7 +445,7 @@ def register_node():
     except Exception, e:
         logger.error((sys.exc_traceback.tb_lineno ))
         logger.error("Failed registering node with "+str(e))
-        return pack_error(e)
+        return jsonify(error=pack_error(e))
 
 
    
@@ -566,7 +574,7 @@ def register_service():
 
 
     except Exception, e:
-        return pack_error(e)
+        return jsonify(error=pack_error(e))
 
 
 
@@ -582,7 +590,7 @@ def terminate_service():
         return jsonify(result=str(OK))
     except DonCorleoneException,e:
         logger.error("Failed terminating service " + service_id + " with DonCorleoneException "+str(e))
-        return pack_error(e)
+        return jsonify(error=pack_error(e))
     except Exception,e:
         logger.error("Failed terminating service " + service_id + " with non expected exception "+str(e))
         return jsonify(error=str(ERROR_FAILED_SERVICE_RUN))
@@ -603,14 +611,14 @@ def run_service():
     # Try running the service and delegate errror checking to _run_service
     try:
         output_run_service = _run_service(service_id)
-        logger.info("Running service "+service_id+" result "+output_run_service)
+        logger.info("Running service "+str(service_id)+" result "+str(output_run_service))
         return jsonify(result=str(OK))
     except DonCorleoneException,e:
         logger.error("Failed running service " + service_id + " with DonCorleoneException "+str(e))
-        return pack_error(e)
+        return jsonify(error=pack_error(e))
     except Exception,e:
         logger.error("Failed running service " + service_id + " with non expected exception "+str(e))
-        return jsonify(error=str(ERROR_FAILED_SERVICE_RUN))
+        return jsonify(result=str(ERROR_FAILED_SERVICE_RUN))
 
 
 
@@ -636,12 +644,7 @@ def _get_service(service_name, service_id=None, node_id=None):
         if service_id == None:
             services_of_node = filter(lambda x: x[SERVICE] == service_name and x[NODE_ID] == node_id, services)
             if len(services_of_node) > 0:
-                # Try getting value
-                try:
-                    return services_of_node[0]
-                except Exception, e:
-                    logger.error("Found service of given node - local or not, but missed configuration")
-                    raise ERROR_NOT_RECOGNIZED_CONFIGURATION
+                return services_of_node[0]
 
             else:
                 # Get global, discard local
@@ -649,12 +652,7 @@ def _get_service(service_name, service_id=None, node_id=None):
 
                 #Typical service_feature configuration
                 if len(services_list) > 0:
-                    try:
-                        return services_list[0]
-                    except Exception, e:
-                        logger.error(services_list[0][SERVICE_PARAMETERS])
-                        logger.error("Found global service, but missed configuration")
-                        raise ERROR_NOT_RECOGNIZED_CONFIGURATION
+                    return services_list[0]
 
                 else:
                     logger.error("Not registered service that was requested configuration")
@@ -662,15 +660,10 @@ def _get_service(service_name, service_id=None, node_id=None):
         else:
 
             try:
-                s = get_service_by_id(service_id)
-                config_value = s[SERVICE_PARAMETERS][config_name]
-                return config_value
+                return get_service_by_id(service_id)
             except ERROR_NOT_REGISTERED_SERVICE, e:
                 logger.error("Not registered service that was requested configuration")
                 raise e
-            except Exception, e:
-                logger.error("Found service by service_id, but missed configuration")
-                raise ERROR_NOT_RECOGNIZED_CONFIGURATION
 
 def _get_configuration(service_name, service_id, config_name, node_id):
         # Check parameters
@@ -684,7 +677,7 @@ def _get_configuration(service_name, service_id, config_name, node_id):
             s = _get_service(service_name, service_id, node_id)
             return s[SERVICE_PARAMETERS].get(config_name, default_service_parameters[s[SERVICE]][config_name])
         except Exception, e:
-            raise e
+            raise pack_error(e)
 
 
 
@@ -709,7 +702,7 @@ def get_configuration():
         return jsonify(result=result)
 
     except Exception, e:
-        return pack_error(e)
+        return jsonify(error=pack_error(e))
 
 
 @app.route('/get_services', methods=['GET'])
@@ -748,7 +741,7 @@ def _terminate_node(node_id):
                     logger.info("Deregistering service "+m[SERVICE_ID]+ " "+output_run_service)
                 except DonCorleoneException,e:
                     logger.error("Failed deregistering service "+m[SERVICE_ID]+" with DonCorleoneException "+str(e))
-                    return pack_error(e)
+                    return jsonify(error=pack_error(e))
                 except Exception,e:
                     logger.error("Failed deregistering service " + m[SERVICE_ID] + " with unexpected error "+str(e))
                     return jsonify(error=str(ERROR_FAILED_SERVICE_RUN))
@@ -770,7 +763,7 @@ def terminate_node():
     try:
         _terminate_node(node_id)
     except Exception, e:
-        return pack_error(e)
+        return jsonify(error=pack_error(e))
 
     return jsonify(result=OK)
 
@@ -809,7 +802,7 @@ def register_reversed():
 
         return jsonify(result={"ssh-user":ssh_user_don, "ssh-port":ssh_port_don, "ssh-host":ssh_host_don, "ssh-port-redirect":port})
     except Exception, e:
-        return pack_error(e)
+        return jsonify(error=pack_error(e))
 
 
 
@@ -843,6 +836,12 @@ def read_configs():
             service_configs[s] = {CONFIG_DEPENDS: [], CONFIG_PARAMS: []}
             service_configs[s].update(json.loads(open(config_file,"r").read()))
 
+            if service_configs[s][CONFIG_UNARY]:
+                UNARY_SERVICES.add(s)
+                if s in NONUNARY_SERVICES: NONUNARY_SERVICES.remove(s)
+            else:
+                if s in UNARY_SERVICES: UNARY_SERVICES.remove(s)
+                NONUNARY_SERVICES.add(s)
 
 
             params = service_configs[s][CONFIG_PARAMS]

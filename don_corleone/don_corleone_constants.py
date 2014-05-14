@@ -4,8 +4,8 @@ File defines constants used by don corleone. Modify to reflect your needs.
 TODO: load from file
 """
 
-UPDATE_FREQ = 100
-KILL_NODE_COUNTER = 1000*60 / UPDATE_FREQ # Kill not answering server if doesn't answer for 60s
+UPDATE_FREQ = 1
+KILL_NODE_COUNTER = 1000*60 / (1000*UPDATE_FREQ) # Kill not answering server if doesn't answer for 60s
 CONFIG_DIRECTORY = "config"
 OK = "ok"
 
@@ -24,7 +24,7 @@ CONFIG_TERMINATE_SCRIPT = "terminate_script"
 CONFIG_TEST_SCRIPT = "test_script"
 
 
-
+SERVICE_TEST_SERVICE = "test_service"
 SERVICE_LIONFISH = "lionfish"
 SERVICE_ZOOKEEPER = "zookeeper"
 SERVICE_KAFKA = "kafka"
@@ -35,7 +35,7 @@ SERVICE_SPIDERCRAB_SLAVE = "spidercrab_slave"
 
 KNOWN_SERVICES = set([SERVICE_LIONFISH,  SERVICE_NEO4J,
                       SERVICE_KAFKA, SERVICE_ZOOKEEPER, SERVICE_SPIDERCRAB_MASTER,\
-                      SERVICE_SPIDERCRAB_SLAVE
+                      SERVICE_SPIDERCRAB_SLAVE, SERVICE_TEST_SERVICE
 
                       ])
 
@@ -117,3 +117,4 @@ ERROR = DonCorleoneException("error_not_specified")
 ERROR_DUPLICATE = DonCorleoneException("error_duplicate")
 ERROR_FILE_NOT_FOUND = DonCorleoneException("error_file_not_found")
 ERROR_NOT_SATISFIED_DEPENDENCIES = DonCorleoneException("error_not_satisfied_dependencies")
+ERROR_NOT_SATISFIED_DEPENDENCIES_NOT_RUNNING = DonCorleoneException("error_not_satisfied_dependencies_not_running")

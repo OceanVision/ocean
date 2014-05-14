@@ -38,20 +38,9 @@ def get_spidercrab_graph_workers():
 
 
 if __name__ == '__main__':
-
-    don_config = dict()
-    try:
-        don_config = don_config = du.get_running_service(
-            service_name='spidercrab_master',
-            node_id=du.get_my_node_id(),
-            enforce_running=False
-        )['service_config']
-    except Exception as error:
-        print str(error)
-
-    default_number = don_config.get('number', 1)
-    default_sources_url_file = don_config.get('sources_urls_file', '')
-    default_export_stats_file_name = don_config.get('export_stats_to', None)
+    default_number = 1
+    default_sources_url_file = ''
+    default_export_stats_file_name = None
 
     parser = OptionParser()
     parser.add_option(

@@ -16,7 +16,7 @@ from terminate_node import terminate_node
 from don_utils import get_don_corleone_url, has_succeded
 
 from optparse import OptionParser
-
+import time
 def create_parser():
     """ Configure options and return parser object """
     parser = OptionParser()
@@ -125,19 +125,24 @@ def install_node(config, run=True):
 
         print "Succeded = ", has_succeded(response)
 
-    if run: 
+    if run:
+        trails = 20
         for service_id in service_ids:
-            for i in xrange(5):
+            print "Running ",service_id
+            for i in xrange(20):
                 response = urllib2.urlopen(get_don_corleone_url(config)+\
             "/run_service?service_id="+str(service_id)).read()
                 if not has_succeded(response):
                     logger.error("SHOULDNT HAPPEN FAILED RUNNING")
                     logger.error(response)
                 else:
+                    logger.info(response)
                     break
 
+                time.sleep(1.0)
+
                 if i == 4:
-                    logger.error("Failed running service 4 times in a row. Abandoning")
+                    logger.error("Failed running service 20 times in a row. Abandoning")
 
 #    for id, responsibility in enumerate(config[RESPONSIBILITIES]):
 
@@ -175,16 +180,25 @@ def run_client(config, state_callback):
             os.system("./scripts/run.sh don ./scripts/don_corleone_run.sh")
 
     #Ensure command_queue exists
+    os.system("rm command_queue")
 
-    #Install
-    install_node(config)    
+    def install_node_daemon():
+        #Install
+        install_node(config)
+
+        # Indicate having finished installing
+        state_callback['value']=True
+
+
+    t = threading.Thread(target=install_node_daemon)
+    t.daemon = True
+    t.start()
 
     # Init command queue
-    os.system("touch command_queue")
-    
 
-    # Indicate having finished installing
-    state_callback['value']=True
+    os.system("touch command_queue")
+
+
 
     #Run daemon - ONLY PROTOTYPED
     while True:

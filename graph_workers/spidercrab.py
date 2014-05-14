@@ -13,7 +13,8 @@ import threading
 import time
 import urllib2
 import uuid
-
+### TODO: this line shouldn't be here (it worked on Konrad's laptop?) adding toquickly test
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from don_corleone import don_utils as du
 
 from graph_workers.graph_defines import *
