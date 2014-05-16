@@ -26,8 +26,13 @@ from graph_workers.graph_defines import *
 
 
 if __name__ == '__main__':
-   # Create connection
-    graph_db = neo4j.GraphDatabaseService('http://ocean-lionfish.no-ip.biz:16/db/data/')
+   # Create connection        
+    neo4j_port = None
+    neo4j_host = None
+    graph_db = neo4j.GraphDatabaseService(
+            'http://{0}:{1}/db/data/'.format(neo4j_host if neo4j_host else
+        get_configuration("neo4j","host"), neo4j_port if  neo4j_port else get_configuration("neo4j", "port"))
+        )
     # graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
 
     print 'Running', __file__

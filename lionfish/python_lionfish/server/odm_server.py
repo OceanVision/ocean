@@ -22,7 +22,7 @@ import json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../don_corleone/'))
 sys.path.append(os.path.join(os.path.dirname(__file__),
-                             '../../../graph_workers/graph_workers'))
+                             '../../../graph_workers'))
 
 # DonCorleone configuration
 from don_utils import get_configuration
@@ -50,11 +50,12 @@ logger.addHandler(ch_file)
 
 class DatabaseManager(object):
     """ Driver for Neo4j database """
-    def __init__(self):
+    def __init__(self, neo4j_host=None, neo4j_port = None):
         """ Creates DatabaseManager driver """
         logger.log(info_level, 'Created DatabaseManager object')
         self._graph_db = neo4j.GraphDatabaseService(
-            'http://{0}:{1}/db/data/'.format(get_configuration("neo4j","host"), get_configuration("neo4j", "port"))
+            'http://{0}:{1}/db/data/'.format(neo4j_host if neo4j_host else
+        get_configuration("neo4j","host"), neo4j_port if  neo4j_port else get_configuration("neo4j", "port"))
         )
         self._uuid_images = dict()
         self._model_name_images = dict()
@@ -577,10 +578,10 @@ class Connection():
 
 
 class ODMServer(object):
-    def __init__(self, host, port):
+    def __init__(self, host, port, neo4j_host=None, neo4j_port=None):
         self._host = host
         self._port = port
-        self._manager = DatabaseManager()
+        self._manager = DatabaseManager(neo4j_host, neo4j_port)
         self._dynamic_id = 0
 
     def _get_new_id(self):
@@ -622,6 +623,18 @@ if __name__ == '__main__':
         help='Host to bind to, default is empty - correct in almost all the cases'
     )
     parser.add_option(
+        '--neo4j_host',
+        dest='neo4j_host',
+        default='127.0.0.1',
+        help='Host to bind to neo4j'
+    )
+    parser.add_option(
+        '--neo4j_port',
+        dest='neo4j_port',
+        default='7474',
+        help='Port to bind to neo4j'
+    )
+    parser.add_option(
         '-p',
         '--port',
         dest='port',
@@ -633,5 +646,5 @@ if __name__ == '__main__':
 
     logger.info("HOST="+options.host + " PORT="+str(options.port))
 
-    server = ODMServer(options.host, options.port)
+    server = ODMServer(options.host, options.port, options.neo4j_host, options.neo4j_port)
     server.start()

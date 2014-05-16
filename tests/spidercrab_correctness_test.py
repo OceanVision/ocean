@@ -9,9 +9,13 @@
 
 import os
 import time
-
+import sys
+sys.path.append(os.path.abspath(".."))
+from don_corleone import don_utils as du
 
 if __name__ == '__main__':
+
+    OCEAN_ROOT = du.get_ocean_root_dir()
 
     TEMP_URL_LIST_FILE = '../data/spidercrab_correctness_test_urls'
     TEMP_SPIDERCRAB_CONFIG = '../data/spidercrab_correctness_test_config'
@@ -35,8 +39,11 @@ if __name__ == '__main__':
     if error:
         exit(1)
 
+    print '\nTesting spidercrab<->system integrity...'
+    os.system(OCEAN_ROOT + '/tests/spidercrab_integrity_test.py')
+
     print '\nWiping neo4j...'
-    os.system('../scripts/ocean_init_graph.py')
+    os.system(OCEAN_ROOT + '/scripts/ocean_init_graph.py')
 
     print '\nCreating a file with a list of urls...'
     urls = [
@@ -81,14 +88,15 @@ if __name__ == '__main__':
     enter = raw_input()
 
     print '\nRunning Spidercrab master with option to enqueue above sources.'
-    command = '../graph_workers/spidercrab_master.py -o -s %s -c %s'
+    command = OCEAN_ROOT + '/graph_workers/spidercrab_master.py -o -s %s -c %s'
     command %= (TEMP_URL_LIST_FILE, TEMP_SPIDERCRAB_CONFIG)
     print command
     time.sleep(1)
     os.system(command)
 
     print '\nRunning 10 slaves (One ContentSource for every slave)...'
-    command = '../graph_workers/spidercrab_slave.py -o -n 10 -c %s -e %s'
+    command = OCEAN_ROOT \
+        + '/graph_workers/spidercrab_slave.py -o -n 10 -c %s -e %s'
     command %= (TEMP_SPIDERCRAB_CONFIG, TEMP_SLAVE_EXPORT_FILE)
     print command
     time.sleep(1)

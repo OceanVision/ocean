@@ -20,7 +20,7 @@ class BasicTests(unittest.TestCase):
         config = get_test_config("config_test_1.json")
         run_node(config, hang=False)
 
-        assert(count_services(config) == 3)
+        assert(count_services(config) == 2)
         print "Terminating don corleone node"
         # Terminate
         os.system("scripts/don_corleone_terminate.sh")

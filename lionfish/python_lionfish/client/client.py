@@ -10,7 +10,7 @@ import socket
 HOST = 'localhost'  # 'ocean-lionfish.no-ip.biz'
 PORT = 21
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../graph_workers/graph_workers'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../graph_workers'))
 from graph_utils import *
 
 # Defining levels to get rid of other loggers
