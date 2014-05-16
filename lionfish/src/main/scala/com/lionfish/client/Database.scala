@@ -106,7 +106,7 @@ object Database extends Factory {
     }
   }
 
-  case class setLabel(private val uuid: String, label: Map[String, Any])
+  case class setLabel(private val uuid: String, label: String)
     extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
@@ -121,7 +121,7 @@ object Database extends Factory {
     }
   }
 
-  case class deleteLabel(private val uuid: String, label: List[String])
+  case class deleteLabel(private val uuid: String, label: String)
     extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
