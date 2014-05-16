@@ -106,6 +106,36 @@ object Database extends Factory {
     }
   }
 
+  case class setLabel(private val uuid: String, label: Map[String, Any])
+    extends Method {
+    override def getRequest: Map[String, Any] = {
+      val request = Map(
+        "methodName" -> "setLabel",
+        "args" -> Map(
+          "uuid" -> uuid,
+          "label" -> label
+        )
+      )
+
+      request
+    }
+  }
+
+  case class deleteLabel(private val uuid: String, label: List[String])
+    extends Method {
+    override def getRequest: Map[String, Any] = {
+      val request = Map(
+        "methodName" -> "deleteLabel",
+        "args" -> Map(
+          "uuid" -> uuid,
+          "label" -> label
+        )
+      )
+
+      request
+    }
+  }
+
   case class setProperties(private val uuid: String, properties: Map[String, Any])
     extends Method {
     override def getRequest: Map[String, Any] = {

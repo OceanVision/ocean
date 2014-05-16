@@ -39,6 +39,12 @@ class RequestHandler extends Actor {
           case "getInstances" => {
             rawResult = DatabaseManager.getInstances(fullArgs.toList)
           }
+          case "setLabel" => {
+            rawResult = DatabaseManager.setLabel(fullArgs.toList)
+          }
+          case "deleteLabel" => {
+            rawResult = DatabaseManager.deleteLabel(fullArgs.toList)
+          }
           case "setProperties" => {
             rawResult = DatabaseManager.setProperties(fullArgs.toList)
           }
@@ -110,6 +116,12 @@ class RequestHandler extends Actor {
           }
           case "getInstances" => {
             rawResult = DatabaseManager.getInstances(args)
+          }
+          case "setLabel" => {
+            rawResult = DatabaseManager.setLabel(args)
+          }
+          case "deleteLabel" => {
+            rawResult = DatabaseManager.deleteLabel(args)
           }
           case "setProperties" => {
             rawResult = DatabaseManager.setProperties(args)
