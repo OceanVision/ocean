@@ -42,36 +42,35 @@ if __name__ == '__main__':
     print 'Press enter to proceed...'
     enter = raw_input()
 
-    batch = neo4j.ReadBatch(graph_db)
-    batch.append_cypher('MATCH n RETURN count(n)')
-    print 'Nodes in graph initially ', batch.submit()
+    read_batch = neo4j.ReadBatch(graph_db)
+    read_batch.append_cypher('MATCH n RETURN count(n)')
+    print 'Nodes in graph initially ', read_batch.submit()
     print 'Erasing nodes and relations'
+    read_batch.clear()
 
     # Erases database data without the Root node
-    batch = neo4j.WriteBatch(graph_db)
-    batch.append_cypher('MATCH ()-[r]-() DELETE r')
-    batch.append_cypher('MATCH n WHERE id(n) <> 0 DELETE n')
-    batch.submit()
+    write_batch = neo4j.WriteBatch(graph_db)
+    write_batch.append_cypher('MATCH ()-[r]-() DELETE r')
+    write_batch.append_cypher('MATCH n DELETE n')
+    write_batch.submit()
+    write_batch.clear()
 
     # Sanity check
-    batch = neo4j.ReadBatch(graph_db)
-    batch.append_cypher('MATCH (n) RETURN count(n)')
-    result = batch.submit()
+    read_batch.append_cypher('MATCH (n) RETURN count(n)')
+    result = read_batch.submit()
     print 'Nodes in graph erased. Sanity check : ', result
+    read_batch.clear()
 
-    if result[0] != 1:
+    if result[0] > 0:
         raise Exception('Not erased graph properly')
 
-    root = graph_db.node(0)
-
     # Configures the Root node
-    batch = neo4j.WriteBatch(graph_db)
-    batch.append_cypher('MATCH (n:Root) SET n:Node')
-    batch.append_cypher('MATCH (n:Root) SET n.uuid="root"')
-    batch.submit()
+    write_batch.append_cypher('CREATE (n:Root {uuid: "root"}) RETURN id(n)')
+    root_result = write_batch.submit()
+    write_batch.clear()
 
-    read_batch = neo4j.ReadBatch(graph_db)
-    write_batch = neo4j.WriteBatch(graph_db)
+    root = graph_db.node(root_result[0])
+    root.add_labels('Node')
 
     # ===================== MODELS =====================
     type_list = [
