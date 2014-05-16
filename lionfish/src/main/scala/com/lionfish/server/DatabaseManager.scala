@@ -400,6 +400,60 @@ object DatabaseManager {
     result
   }
 
+  def getUserFeeds(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[List[Map[String, Any]]] = null
+
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[List[Map[String, Any]]] = ListBuffer()
+      val userLabel = DynamicLabel.label("NeoUser")
+
+      for (item <- args) {
+        // Gets each user as an instance of Node
+        val rawParentNode = graphDB.findNodesByLabelAndProperty(
+          userLabel,
+          "uuid",
+          item("uuid").asInstanceOf[String]
+        )
+
+        val it = rawParentNode.iterator()
+        if (it.hasNext) {
+          val feedsOfOneNode: ListBuffer[Map[String, Any]] = ListBuffer()
+          val user = it.next()
+
+          // Gets all outgoing relationships of type <<FEED>>
+          val relType = DynamicRelationshipType.withName("<<FEED>>")
+          val relList = user.getRelationships(relType, Direction.OUTGOING).iterator()
+
+          // Gets feeds and extracts partial result
+          while (relList.hasNext) {
+            val rel = relList.next()
+            val node = parseSet(rel.getEndNode)
+            feedsOfOneNode += node.toMap[String, Any]
+          }
+
+          rawResult += feedsOfOneNode.toList
+        } else {
+          rawResult += List()
+        }
+        it.close()
+      }
+      tx.success()
+      result = rawResult.toList
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+        result = List()
+    } finally {
+      tx.close()
+    }
+
+    result
+  }
+
   def setLabel(args: List[Map[String, Any]]): List[Any] = {
     val tx = graphDB.beginTx()
     try {

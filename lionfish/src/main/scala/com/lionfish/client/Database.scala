@@ -106,6 +106,19 @@ object Database extends Factory {
     }
   }
 
+  case class getUserFeeds(private val uuid: String) extends Method {
+    override def getRequest: Map[String, Any] = {
+      val request = Map(
+        "methodName" -> "getUserFeeds",
+        "args" -> Map(
+          "uuid" -> uuid
+        )
+      )
+
+      request
+    }
+  }
+
   case class setLabel(private val uuid: String, label: String)
     extends Method {
     override def getRequest: Map[String, Any] = {
@@ -182,12 +195,12 @@ object Database extends Factory {
     }
   }
 
-  case class deleteNode(private val nodeUuid: String) extends Method {
+  case class deleteNode(private val uuid: String) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "deleteNodes",
         "args" -> Map(
-          "uuid" -> nodeUuid
+          "uuid" -> uuid
         )
       )
 

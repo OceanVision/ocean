@@ -39,6 +39,9 @@ class RequestHandler extends Actor {
           case "getInstances" => {
             rawResult = DatabaseManager.getInstances(fullArgs.toList)
           }
+          case "getUserFeeds" => {
+            rawResult = DatabaseManager.getUserFeeds(fullArgs.toList)
+          }
           case "setLabel" => {
             rawResult = DatabaseManager.setLabel(fullArgs.toList)
           }
@@ -116,6 +119,9 @@ class RequestHandler extends Actor {
           }
           case "getInstances" => {
             rawResult = DatabaseManager.getInstances(args)
+          }
+          case "getUserFeeds" => {
+            rawResult = DatabaseManager.getUserFeeds(args)
           }
           case "setLabel" => {
             rawResult = DatabaseManager.setLabel(args)

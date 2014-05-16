@@ -1,6 +1,6 @@
 name := "lionfish"
 
-version := "0.9.1"
+version := "0.9.3"
 
 scalaVersion := "2.10.4"
 
