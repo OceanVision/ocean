@@ -74,7 +74,7 @@ NODE_CONFIG = "node_config"
 NODE_SSH_HOST = "node_ssh_host"
 NODE_SSH_PORT = "node_ssh_port"
 NODE_SSH_USER = "node_ssh_user"
-NODE_LAST_PING_ANSWER = 0 #time delta to last ping answer.
+NODE_LAST_PING_ANSWER = "node_last_ping" #time delta to last ping answer.
 
 
 
