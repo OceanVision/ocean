@@ -8,7 +8,7 @@ import unittest
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from run_node import run_node
-from don_utils import get_configuration, run_procedure, get_don_corleone_url, get_running_service
+from don_utils import get_configuration, run_procedure, get_don_corleone_url
 from test_util import count_services, get_test_config
 
 class BasicTests(unittest.TestCase):
@@ -60,6 +60,27 @@ class BasicTests(unittest.TestCase):
         assert( get_running_service(service_name="neo4j", config=config) is not None )
         assert( get_running_service(service_name="lionfish", config=config) is not None )
         
+#         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)
+#                                +"/terminate_service?service_id=moj_neo4j").read())
+#         
+#         #Non deterministic :(
+#         time.sleep(10)
+# 
+#         ret = os.system("./scripts/neo4j_test.sh")
+# 
+#         assert(ret!=0)
+# 
+# 
+#         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)
+#                                +"/run_service?service_id=moj_neo4j").read())
+# 
+#         #Non deterministic :(
+#         time.sleep(10)
+# 
+#         ret = os.system("./scripts/neo4j_test.sh")
+# 
+#         assert(ret==0)
+
         print "Terminating don corleone node"
         # Terminate
         os.system("scripts/don_corleone_terminate.sh")

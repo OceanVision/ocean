@@ -12,8 +12,7 @@ import sys
 import uuid
 import os
 
-from py2neo import neo4j
-from py2neo import node, rel
+from py2neo import neo4j, node, rel
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
 
@@ -24,100 +23,183 @@ lib_path = os.path.abspath('./graph_workers')
 sys.path.append(lib_path)
 from graph_workers.graph_defines import *
 
+APP_LABEL = 'rss'
 
 if __name__ == '__main__':
-   # Create connection
-    graph_db = neo4j.GraphDatabaseService('http://ocean-lionfish.no-ip.biz:16/db/data/')
-    # graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
-
-    print 'Running', __file__
-    print 'This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*'
-    print 'NOTE: This script *already executes* ocean_init_graph.py.'
-    print 'Press enter to proceed...'
-    enter = raw_input()
-
-    my_batch = neo4j.ReadBatch(graph_db)
-    my_batch.append_cypher('match (n) return count(n);')
-    print 'Nodes in graph initially ', my_batch.submit()
-    print 'Erasing nodes and relations'
-
-    my_batch = neo4j.WriteBatch(graph_db)
-    my_batch.append_cypher('match (a)-[r]-(b) delete r;')
-    # fix: do not delete the root
-    my_batch.append_cypher('match (n) WHERE ID(n) <> 0 delete n ;')
-    my_batch.submit()
-
-    my_batch = neo4j.ReadBatch(graph_db)
-    my_batch.append_cypher('match (n) return count(n);')
-    result = my_batch.submit()
-    print 'Nodes in graph erased. Sanity check : ', result
-
-    if result[0] != 1:
-        raise Exception('Not erased graph properly')
-        exit(1)
-
-
-    root = graph_db.node(0)
-
-    my_batch = neo4j.WriteBatch(graph_db)
-    my_batch.append_cypher('match (e:Root) set e:Node;')
-    my_batch.append_cypher('match (e:Root) set e.uuid="root";')
-    my_batch.submit()
-
-    # Create connection
+    # Creates connection
     graph_db = neo4j.GraphDatabaseService(
         'http://{0}:{1}/db/data/'.format(
             get_configuration("neo4j", "host"),
             get_configuration("neo4j", "port")
         )
     )
+    # graph_db = neo4j.GraphDatabaseService('http://ocean-lionfish.no-ip.biz:16/db/data/')
+    # graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
+
+    print 'Running', __file__
+    print 'This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*'
+    print 'NOTE: The Root node is required to exist in database.'
+    print 'Press enter to proceed...'
+    enter = raw_input()
+
+    batch = neo4j.ReadBatch(graph_db)
+    batch.append_cypher('MATCH n RETURN count(n)')
+    print 'Nodes in graph initially ', batch.submit()
+    print 'Erasing nodes and relations'
+
+    # Erases database data without the Root node
+    batch = neo4j.WriteBatch(graph_db)
+    batch.append_cypher('MATCH ()-[r]-() DELETE r')
+    batch.append_cypher('MATCH n WHERE id(n) <> 0 DELETE n')
+    batch.submit()
+
+    # Sanity check
+    batch = neo4j.ReadBatch(graph_db)
+    batch.append_cypher('MATCH (n) RETURN count(n)')
+    result = batch.submit()
+    print 'Nodes in graph erased. Sanity check : ', result
+
+    if result[0] != 1:
+        raise Exception('Not erased graph properly')
+
+    root = graph_db.node(0)
+
+    # Configures the Root node
+    batch = neo4j.WriteBatch(graph_db)
+    batch.append_cypher('MATCH (n:Root) SET n:Node')
+    batch.append_cypher('MATCH (n:Root) SET n.uuid="root"')
+    batch.submit()
 
     read_batch = neo4j.ReadBatch(graph_db)
     write_batch = neo4j.WriteBatch(graph_db)
 
-    ### Add websites ###
-    websites = [
+    # ===================== MODELS =====================
+    type_list = [
         node(
-            uuid='97678546-a07d-11e3-9f3a-2cd05ae1c39b',
-            link='http://www.gry-online.pl/',
-            title='GRY-OnLine',
-            language='pl',
+            uuid=str(uuid.uuid1()),
+            app_label=APP_LABEL,
+            name=APP_LABEL+':'+NEOUSER_TYPE_MODEL_NAME,
+            model_name=NEOUSER_TYPE_MODEL_NAME
         ),
         node(
-            uuid='976787bc-a07d-11e3-9f3a-2cd05ae1c39b',
-            link='http://www.wp.pl/',
-            title='Wirtualna Polska',
-            language='pl',
+            uuid=str(uuid.uuid1()),
+            app_label=APP_LABEL,
+            name=APP_LABEL+':'+TAG_TYPE_MODEL_NAME,
+            model_name=TAG_TYPE_MODEL_NAME
         ),
         node(
-            uuid='97678938-a07d-11e3-9f3a-2cd05ae1c39b',
-            link='http://www.tvn24.pl/',
-            title='TVN24.pl - Wiadomosci z kraju i ze swiata',
-            language='pl',
+            uuid=str(uuid.uuid1()),
+            app_label=APP_LABEL,
+            name=APP_LABEL+':'+CONTENT_SOURCE_TYPE_MODEL_NAME,
+            model_name=CONTENT_SOURCE_TYPE_MODEL_NAME
         ),
+        node(
+            uuid=str(uuid.uuid1()),
+            app_label=APP_LABEL,
+            name=APP_LABEL+':'+CONTENT_TYPE_MODEL_NAME,
+            model_name=CONTENT_TYPE_MODEL_NAME
+        )
     ]
-    websites = graph_db.create(*websites)
-    for item in websites:
-        item.add_labels('Website', 'Node')
 
-    # Create instance relations
-    query = """
-        MATCH (m:Model {model_name: '%s'}), (w:%s)
-        CREATE (m)-[:`%s`]->(w)
-        RETURN m,w
-    """
-    query %= (
-        WEBSITE_TYPE_MODEL_NAME,
-        WEBSITE_TYPE_MODEL_NAME,
-        HAS_INSTANCE_RELATION,
+    type_list = graph_db.create(*type_list)
+    for item in type_list:
+        item.add_labels('Model', 'Node')
+
+    # Creates type relations
+    graph_db.create(
+        rel(root, HAS_TYPE_RELATION, type_list[0]),
+        rel(root, HAS_TYPE_RELATION, type_list[1]),
+        rel(root, HAS_TYPE_RELATION, type_list[2]),
+        rel(root, HAS_TYPE_RELATION, type_list[3])
     )
-    write_batch.append_cypher(query)
-    write_batch.submit()
 
+    # ===================== USERS =====================
+    # Creates nodes
+    user_list = [
+        node(uuid=str(uuid.uuid1()), username='kudkudak'),
+        node(uuid=str(uuid.uuid1()), username='konrad'),
+        node(uuid=str(uuid.uuid1()), username='brunokam'),
+        node(uuid=str(uuid.uuid1()), username='szymon')
+    ]
+
+    user_list = graph_db.create(*user_list)
+    for item in user_list:
+        item.add_labels(NEOUSER_TYPE_MODEL_NAME, 'Node')
+
+    # Creates instance relations
+    graph_db.create(
+        rel(type_list[0], HAS_INSTANCE_RELATION, user_list[0]),
+        rel(type_list[0], HAS_INSTANCE_RELATION, user_list[1]),
+        rel(type_list[0], HAS_INSTANCE_RELATION, user_list[2]),
+        rel(type_list[0], HAS_INSTANCE_RELATION, user_list[3])
+    )
+
+    # ===================== TAGS =====================
+    # Creates nodes
+    tag_list = [
+        node(uuid=str(uuid.uuid1()), tag='AssassinsCreedIV'),
+        node(uuid=str(uuid.uuid1()), tag='FarCry3'),
+        node(uuid=str(uuid.uuid1()), tag='Ubisoft'),
+        node(uuid=str(uuid.uuid1()), tag='wynikisprzedazy'),
+        node(uuid=str(uuid.uuid1()), tag='AssassinsCreed'),
+
+        node(uuid=str(uuid.uuid1()), tag='FarCry'),
+        node(uuid=str(uuid.uuid1()), tag='Krakow'),
+        node(uuid=str(uuid.uuid1()), tag='Wisla'),
+        node(uuid=str(uuid.uuid1()), tag='alarmpowodziowy'),
+        node(uuid=str(uuid.uuid1()), tag='falawezbraniowa'),
+
+        node(uuid=str(uuid.uuid1()), tag='IMGW'),
+        node(uuid=str(uuid.uuid1()), tag='powodz'),
+        node(uuid=str(uuid.uuid1()), tag='Lodz'),
+        node(uuid=str(uuid.uuid1()), tag='deszcz'),
+        node(uuid=str(uuid.uuid1()), tag='sygnalizacjaswietlna'),
+
+        node(uuid=str(uuid.uuid1()), tag='RydzaSmiglego'),
+        node(uuid=str(uuid.uuid1()), tag='Pilsudskiego'),
+        node(uuid=str(uuid.uuid1()), tag='Bombaj'),
+        node(uuid=str(uuid.uuid1()), tag='pogotowieprzeciwpowodziowe'),
+        node(uuid=str(uuid.uuid1()), tag='Majchrowski'),
+
+        node(uuid=str(uuid.uuid1()), tag='podtopienie'),
+    ]
+
+    tag_list = graph_db.create(*tag_list)
+    for item in tag_list:
+        item.add_labels(TAG_TYPE_MODEL_NAME, 'Node')
+
+    # Creates instance relations
+    for tag in tag_list:
+        graph_db.create(rel(type_list[1], HAS_INSTANCE_RELATION, tag))
+
+    # ===================== FEEDS =====================
     # Create nodes
-    content_sources_list = [
+    feed_list = [
+        node(uuid=str(uuid.uuid1()), name='Moje miasto'),
+    ]
+
+    feed_list = graph_db.create(*feed_list)
+    for item in feed_list:
+        item.add_labels(FEED_TYPE_NAME, 'Node')
+
+    # Creates instance relations
+    graph_db.create(
+        rel(user_list[2], HAS_FEED_RELATION, feed_list[0])
+    )
+
+    # Creates tag relations
+    graph_db.create(
+        rel(feed_list[0], HAS_INCLUDES_RELATION, tag_list[6])
+    )
+    graph_db.create(
+        rel(feed_list[0], HAS_EXCLUDES_RELATION, tag_list[12])
+    )
+
+    # ===================== CONTENT SOURCES =====================
+    # Creates nodes
+    content_source_list = [
         node(
-            uuid='977466da-a07d-11e3-9f3a-2cd05ae1c39b',
+            uuid=str(uuid.uuid1()),
             link='http://www.gry-online.pl/rss/news.xml',
             title='GRY-OnLine Wiadomosci',
             description='Najnowsze Wiadomosci',
@@ -130,7 +212,7 @@ if __name__ == '__main__':
             source_type='rss'
         ),
         node(
-            uuid='97746a22-a07d-11e3-9f3a-2cd05ae1c39b',
+            uuid=str(uuid.uuid1()),
             link='http://wiadomosci.wp.pl/kat,1329,ver,rss,rss.xml',
             title='Wiadomosci WP - Wiadomosci - Wirtualna Polska',
             description='Wiadomosci.wp.pl to serwis, dzieki ktoremu mozna \
@@ -144,7 +226,7 @@ zapoznac sie z biezaca sytuacja w kraju i na swiecie.',
             source_type='rss'
         ),
         node(
-            uuid='97746bf8-a07d-11e3-9f3a-2cd05ae1c39b',
+            uuid=str(uuid.uuid1()),
             link='http://www.tvn24.pl/najwazniejsze.xml',
             title='TVN24.pl - Wiadomosci z kraju i ze swiata - najnowsze \
 informacje w TVN24',
@@ -157,97 +239,108 @@ relacje na zywo i wiele wiecej.',
         )
     ]
 
-    # Create content sources
-    content_sources = graph_db.create(*content_sources_list)
-    for item in content_sources:
-        item.add_labels('ContentSource', 'Node')
+    content_source_list = graph_db.create(*content_source_list)
+    for item in content_source_list:
+        item.add_labels(CONTENT_SOURCE_TYPE_MODEL_NAME, 'Node')
 
-    # Create ContentSources instance relations
-    query = """
-        MATCH (m:Model {model_name: '%s'}), (w:%s)
-        CREATE (m)-[:`%s`]->(w)
-        RETURN m,w
-    """
-    query %= (
-        CONTENT_SOURCE_TYPE_MODEL_NAME,
-        CONTENT_SOURCE_TYPE_MODEL_NAME,
-        HAS_INSTANCE_RELATION,
-    )
-    write_batch.append_cypher(query)
-    write_batch.submit()
-
-    # Create Website __has__ ContentSource relations
+    # Creates instance relations
     graph_db.create(
-        rel(websites[0], HAS_RELATION, content_sources[0]),
-        rel(websites[1], HAS_RELATION, content_sources[1]),
-        rel(websites[2], HAS_RELATION, content_sources[2])
+        rel(type_list[2], HAS_INSTANCE_RELATION, content_source_list[0]),
+        rel(type_list[2], HAS_INSTANCE_RELATION, content_source_list[1]),
+        rel(type_list[2], HAS_INSTANCE_RELATION, content_source_list[2])
     )
 
-    my_batch = neo4j.WriteBatch(graph_db)
-    my_batch.append_cypher('create index on :Node(uuid)')
-    my_batch.append_cypher('create index on :ContentSource(link)')
-    my_batch.submit()
+    # ===================== CONTENT =====================
+    # Creates nodes
+    content_list = [
+        node(
+            uuid=str(uuid.uuid1()),
+            link='http://www.gry-online.pl/S013.asp?ID=85249',
+            time=int(time.time() - 100000),
+            title='Assassin\'s Creed IV i Far Cry 3 - wyniki sprzedaży gier Ubisoftu',
+            image_link='http://www.gry-online.pl/galeria/html/wiadomosci/bigphotos/preview/82726815.jpg',
+        ),
+        node(
+            uuid=str(uuid.uuid1()),
+            link='http://www.tvnmeteo.pl/informacje/polska,28/na-wisle-tworzy-sie-fala-wezbraniowa,'
+                 '123095,1,0.html',
+            time=int(time.time() - 100000),
+            title='Na Wiśle tworzy się fala wezbraniowa',
+            image_link='http://r-scale-ca.dcs.redcdn.pl/scale/o2/tvn/web-content/m/p5/i/90db9da4fc'
+                       '5414ab55a9fe495d555c06/6685b2b6-dce8-11e3-9205-0025b511226e.jpg?type=1&amp;'
+                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50',
+        ),
+        node(
+            uuid=str(uuid.uuid1()),
+            link='http://www.tvn24.pl/w-lodzi-jak-w-bombaju-totalny-chaos-na-skrzyzowaniach,429020,s.html',
+            time=int(time.time() - 100000),
+            title='W Łodzi jak w Bombaju. "Totalny chaos na skrzyżowaniach"',
+            image_link='http://r-scale-3f.dcs.redcdn.pl/scale/o2/tvn/web-content/m/p1/i/90db9da4fc5'
+                       '414ab55a9fe495d555c06/84fe9534-dcf0-11e3-9d17-0025b511229e.jpg?type=1&amp;'
+                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50',
+        ),
+        node(
+            uuid=str(uuid.uuid1()),
+            link='http://www.tvn24.pl/krakow,50/w-krakowie-ogloszono-pogotowie-przeciwpowodziowe,428917.html',
+            time=int(time.time() - 100000),
+            title='W Krakowie ogłoszono pogotowie przeciwpowodziowe',
+            image_link='http://r-scale-8d.dcs.redcdn.pl/scale/o2/tvn/web-content/m/p1/i/90db9da4fc5'
+                       '414ab55a9fe495d555c06/eeba57b0-dccd-11e3-8531-0025b511226e.jpg?type=1&amp;'
+                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50',
+        )
+    ]
 
-    ##TODO: Delete following code after system refactorization
-    ## Create old type websites
-    #old_websites = graph_db.create(*content_sources_list)
-    #
-    ## Create old type websites instance relations
-    #graph_db.create(
-    #    rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[0]),
-    #    rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[1]),
-    #    rel(old_types[0], HAS_INSTANCE_RELATION, old_websites[2])
-    #)
-    ##NOTE: End of future deletion
-    #
-    ##map(lambda w: w.add_labels(NEWS_CHANNELS_LABEL),channels) # Add labels
-    ##print [x for x in  graph_db.find(NEWS_CHANNELS_LABEL)] # Sanity check
-    #
-    #
-    #graph_db.create(
-    #    rel(users[0], SUBSCRIBES_TO_RELATION, content_sources[2]),
-    #    rel(users[0], SUBSCRIBES_TO_RELATION, content_sources[1]),
-    #    rel(users[1], SUBSCRIBES_TO_RELATION, content_sources[1]),
-    #)
-#        rel(users[2], SUBSCRIBES_TO_RELATION, content_sources[0]),
-#        rel(users[3], SUBSCRIBES_TO_RELATION, content_sources[0]),
-#    )
+    content_list = graph_db.create(*content_list)
+    for item in content_list:
+        item.add_labels(CONTENT_TYPE_MODEL_NAME, 'Node')
 
-    # Adding news is working, so we do not need to populate graph with news
-    #news = [
-    #node(
-    #    label=NEWS_LABEL, link='http://konflikty.wp.pl/kat,106090,title,Nowe-smiglowce-USA-Wielki-projekt-'
-    #                           'zbrojeniowy-w-cieniu-budzetowych-ciec,wid,16116470,wiadomosc.html?ticaid=111908',
-    #    title='Wypadek busa w Egipcie. Rannych zostalo dwoch Polakow',
-    #    description='Szesciu cudzoziemcow, w tym dwoch Polakow, zostalo rannych w wypadku drogowym w Egipcie. '
-    #                'Do zdarzenia doszlo na drodze miedzy Kairem a Aleksandria - informuje serwis ruvr.ru.',
-    #    guuid='http://wiadomosci.wp.pl/kat,1329,title,Wypadek-busa-w-Egipcie-Rannych-zostalo-dwoch-Polakow,wid,'
-    #         '16151839,wiadomosc.html'
-    #)
-    #, node(
-    #    label=NEWS_LABEL, link='http://www.tvn24.pl/naukowcy-slady-polonu-w-ciele-arafata-sugeruja-udzial-osob-'
-    #                           'trzecich,369594,s.html',
-    #    title='Naukowcy: slady polonu w ciele Arafata sugeruja udzial osob trzecich',
-    #    description='Palestynskiego lidera otruto w roku 2004.',
-    #    guuid='http://www.tvn24.pl/naukowcy-slady-polonu-w-ciele-arafata-sugeruja-udzial-osob-trzecich,369594,s.html'
-    #)
-    #]
-    #
-    #news = graph_db.create(*news)  # Create nodes in graph database
-    ##map(lambda w: w.add_labels(NEWS_LABEL),news) # Add labels
-    #
-    #graph_db.create(
-    #rel(users[0], SUBSCRIBES_TO_RELATION, websites[2]),
-    #rel(users[0], SUBSCRIBES_TO_RELATION, websites[1]),
-    #rel(users[1], SUBSCRIBES_TO_RELATION, websites[1]),
-    #rel(websites[1], PRODUDES_RELATION, news[0]),
-    #rel(websites[2], PRODUDES_RELATION, news[1])
-    #)
-    #
-    #graph_db.create(
-    #rel(types[2], HAS_INSTANCE_RELATION, news[0]),
-    #rel(types[2], HAS_INSTANCE_RELATION, news[1])
-    #)
+    # Creates instance relations
+    graph_db.create(
+        rel(type_list[3], HAS_INSTANCE_RELATION, content_list[0]),
+        rel(type_list[3], HAS_INSTANCE_RELATION, content_list[1]),
+        rel(type_list[3], HAS_INSTANCE_RELATION, content_list[2])
+    )
 
-    print 'Graph populated successfully'
+    # Creates tag relations
+    graph_db.create(
+        rel(tag_list[0], HAS_TAG_RELATION, content_list[0]),
+        rel(tag_list[1], HAS_TAG_RELATION, content_list[0]),
+        rel(tag_list[2], HAS_TAG_RELATION, content_list[0]),
+        rel(tag_list[3], HAS_TAG_RELATION, content_list[0]),
+        rel(tag_list[4], HAS_TAG_RELATION, content_list[0]),
+
+        rel(tag_list[5], HAS_TAG_RELATION, content_list[0]),
+        rel(tag_list[6], HAS_TAG_RELATION, content_list[1]),
+        rel(tag_list[6], HAS_TAG_RELATION, content_list[3]),
+        rel(tag_list[7], HAS_TAG_RELATION, content_list[1]),
+        rel(tag_list[7], HAS_TAG_RELATION, content_list[3]),
+
+        rel(tag_list[8], HAS_TAG_RELATION, content_list[1]),
+        rel(tag_list[9], HAS_TAG_RELATION, content_list[1]),
+        rel(tag_list[10], HAS_TAG_RELATION, content_list[1]),
+        rel(tag_list[10], HAS_TAG_RELATION, content_list[3]),
+        rel(tag_list[11], HAS_TAG_RELATION, content_list[1]),
+
+        rel(tag_list[11], HAS_TAG_RELATION, content_list[3]),
+        rel(tag_list[12], HAS_TAG_RELATION, content_list[2]),
+        rel(tag_list[13], HAS_TAG_RELATION, content_list[2]),
+        rel(tag_list[13], HAS_TAG_RELATION, content_list[1]),
+        rel(tag_list[13], HAS_TAG_RELATION, content_list[3]),
+
+        rel(tag_list[14], HAS_TAG_RELATION, content_list[2]),
+        rel(tag_list[15], HAS_TAG_RELATION, content_list[2]),
+        rel(tag_list[16], HAS_TAG_RELATION, content_list[2]),
+        rel(tag_list[17], HAS_TAG_RELATION, content_list[2]),
+        rel(tag_list[18], HAS_TAG_RELATION, content_list[3]),
+
+        rel(tag_list[19], HAS_TAG_RELATION, content_list[3]),
+        rel(tag_list[20], HAS_TAG_RELATION, content_list[3])
+    )
+
+    batch = neo4j.WriteBatch(graph_db)
+    batch.append_cypher('CREATE INDEX ON :Node(uuid)')
+    batch.submit()
+
+    print 'Graph populated successfully!'
+    print 'Remember to (RE)START Lionfish server!'
 
