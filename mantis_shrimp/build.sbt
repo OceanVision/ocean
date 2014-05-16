@@ -2,11 +2,17 @@ lazy val stampleRootProject = Project(id = "mantis_shrimp",base = file("."))
 
 name := "mantis_shrimp"
 
+excludeFilter in unmanagedSources := HiddenFileFilter || "FourClassNERTagger.scala"
+
+excludeFilter in unmanagedSources := HiddenFileFilter || "ThreeClassNERTagger.scala"
+
 version := "1.0"
 
 scalaVersion := "2.10.2"
 
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
+
+libraryDependencies += "com.rabbitmq" % "amqp-client" % "2.7.1"
 
 libraryDependencies += "org.apache.kafka" % "kafka_2.10" % "0.8.1"
 

@@ -11,9 +11,10 @@ import ner._
 
 object Main extends App{
 
+
   def runSystem = {
     val system = ActorSystem("mantisshrimp")
-    val mantisMaster = system.actorOf(Props[MantisMaster], name = "mantisMaster")
+    val mantisMaster = system.actorOf(Props[MantisTaggerCoordinator], name = "mantisMaster")
 
     mantisMaster ! "start"
   }

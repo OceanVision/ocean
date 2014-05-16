@@ -11,7 +11,7 @@ class SevenClassNERTagger extends NERTagger {
   val serializedClassifier = "stanford_classifiers/english.muc.7class.distsim.crf.ser.gz"
   val classifier = CRFClassifier.getClassifierNoExceptions(serializedClassifier)
 
-  def tag(text: String): Seq[MantisTag] = {
+  override def tag(text: String): Seq[MantisTag] = {
     val keywords = ListBuffer[(String, String)]()
     val tag_list = ListBuffer[MantisTag]()
 

@@ -12,7 +12,7 @@ class FourClassNERTagger extends NERTagger {
   val serializedClassifier = "stanford_classifiers/english.conll.4class.distsim.crf.ser.gz"
   val classifier = CRFClassifier.getClassifierNoExceptions(serializedClassifier)
 
-  def tag(text: String): Seq[MantisTag] = {
+  override def tag(text: String): Seq[MantisTag] = {
 
     val keywords = ListBuffer[(String, String)]()
     val tag_list = ListBuffer[MantisTag]()

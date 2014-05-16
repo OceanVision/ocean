@@ -2,16 +2,38 @@ package mantisshrimp
 
 import akka.actor.Actor
 
-/**
- * Created by staszek on 4/21/14.
- */
+
+trait MantisNewsFetcher extends Actor{
+
+  /*
+  * Override in inhertiting classes
+   */
+  def getNews(): scala.collection.mutable.Map[String, AnyRef]
+
+  def handleAlreadyTagged(uuid: String): Unit
+
+  /**
+   * Override in inheriting classes
+   */
+  def getType(): String={
+    return "NewsFetcher"
+  }
+
+  def receive = {
+    case "get_news" => {
+      sender ! ItemArrive(getNews())
+    }
+    case AlreadyTagged(uuid) => {
+      handleAlreadyTagged(uuid)
+    }
+  }
+}
+
 
 /*
 * Basic class for tagger
 */
-
-
-class BasicTaggerActor extends Actor{
+trait MantisTagger extends Actor{
 
   /*
   * Override in inhertiting classes
@@ -25,7 +47,7 @@ class BasicTaggerActor extends Actor{
    * Override in inheriting classes
    */
   def getType(): String={
-    return "BasicTagger"
+    return "Tagger"
   }
 
   def receive = {

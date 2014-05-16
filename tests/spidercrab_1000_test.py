@@ -50,6 +50,7 @@ if __name__ == '__main__':
     files = [
         TEMP_SPIDERCRAB_CONFIG,
         TEMP_SPIDERCRAB_STATS_EXPORT,
+        DATA_FILE
     ]
 
     NUMBER_OF_SLAVES = 10

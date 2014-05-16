@@ -3,7 +3,7 @@ package mantisshrimp
 import ner.SevenClassNERTagger
 
 
-class Mantis7ClassNERTagger extends BasicTaggerActor {
+class Mantis7ClassNERTagger extends MantisTagger {
    val nerTagger = new SevenClassNERTagger()
 
   override def tag(x: scala.collection.mutable.Map[String, AnyRef]): Tuple2[String, Seq[MantisTag]] = {
