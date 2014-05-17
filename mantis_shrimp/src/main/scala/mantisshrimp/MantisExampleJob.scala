@@ -10,7 +10,7 @@ class MantisExampleJob(config: Map[String, String]) extends Actor with MantisNod
    val parentMantisPath: String = config(MantisLiterals.ParentMantisPath)
 
    override def onAdd(actor: ActorRef){
-        println("Added "+ actor.path.name)
+        logMaster("Added "+ actor.path.name)
    }
 
   override def onSetMaster(_master:ActorRef){

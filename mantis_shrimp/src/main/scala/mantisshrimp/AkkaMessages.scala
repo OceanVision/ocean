@@ -43,3 +43,8 @@ case class RegisteredActors(nodes: Seq[ActorRef])
 
 //Every non-master node will receive this message
 case class SetMaster(master: ActorRef)
+
+
+//For conversion of ActorSelection to ActorRef
+case class Identify
+case class ActorIdentity

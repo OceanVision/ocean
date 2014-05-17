@@ -10,7 +10,13 @@ Run
 `sbt gen-idea`
 
 And open project in IntelliJ (remember to see project structure if is correct -
-ctrl+alt+shift+s)
+ctrl+alt+shift+s).
+
+You will need to add manually following libraries (sbt gen-idea plugin bug):
+
+com.typesafe.akka.akka_remote == 2.3.1
+com.typesafe.akka.akka_actor == 2.3.1
+com.typesafe.config == 2.2.1
 
 **Dependencies**
 
@@ -29,6 +35,11 @@ put stanford_classifiers (trained classifiers) folder in mantis_shrimp/ folder
 **Running project**
 
 Type `sbt run`
+
+To run with parameters : `sbt "run --param 1 --param 2"`
+
+Example : `sbt "run --port 2553 --config_path mantis_slave.conf"`
+
 
 **Note**
 

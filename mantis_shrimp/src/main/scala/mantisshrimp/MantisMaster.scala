@@ -21,9 +21,6 @@ class MantisMaster(config: Map[String, String]) extends Actor with MantisNode {
 
   }
 
-  println(self.path)
-  println(getMantisPath())
-
 
 
   def onRegister(parentMantisPath: String, registrant_actor: ActorRef){
@@ -53,6 +50,9 @@ class MantisMaster(config: Map[String, String]) extends Actor with MantisNode {
         }
         case Log(msg: String) => {
           println(sender.path.name+"::"+msg)
+        }
+        case Identify => {
+          sender ! ActorIdentity
         }
     }
 

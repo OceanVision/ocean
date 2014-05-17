@@ -26,11 +26,15 @@ libraryDependencies += "log4j" % "log4j" % "1.2.17"
 
 libraryDependencies += "com.github.scopt" %% "scopt" % "3.2.0"
 
-libraryDependencies += "com.typesafe" % "config" % "0.4.0"
+libraryDependencies += "com.typesafe" % "config" % "1.2.0"
 
-libraryDependencies += "com.typesafe.akka" % "akka-actor_2.10" % "2.2-M1"
+libraryDependencies ++= Seq(
+  "com.typesafe.akka" %% "akka-actor" % "2.3.1"
+)
 
-libraryDependencies += "com.typesafe.akka" % "akka-remote_2.10" % "2.2-M1"
+libraryDependencies ++= Seq(
+  "com.typesafe.akka" %% "akka-remote" % "2.3.1"
+)
 
 libraryDependencies ++= Seq("com.propensive" %% "rapture-core" % "0.9.0")
 
