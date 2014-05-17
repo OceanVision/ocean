@@ -3,10 +3,7 @@
  */
 package mantisshrimp
 
-import akka.actor._
-import ner._
 import com.typesafe.config.ConfigFactory
-import java.lang.Exception
 
 //Rapture JSON parser
 import rapture.json._
@@ -14,18 +11,13 @@ import jsonParsers.scalaJson._
 import rapture.core._
 import strategy.throwExceptions
 
-import io.Source._
 import rapture.io._
-import rapture.core._
 import rapture.json._
 
 import akka.actor._
-import akka.pattern.ask
 
 import scala.concurrent.duration._
 import scala.concurrent.Await
-import scala.concurrent.Await
-import scala.concurrent.Future
 
 
 object MantisLiterals{
@@ -42,24 +34,40 @@ object MantisLiterals{
   val MantisNode = "MantisNode"
   val MantisTagger = "MantisTagger"
   val MantisNewsFetcher = "MantisNewsFetcher"
-}
 
-case class Config(host_master: String = "localhost",
-port_master: Int= 2552, port: Int = 2552, host: String = "localhost",
-actor_system_name: String = "MantisShrimp", mantis_master_name: String = "mantis_master",
-config_path: String = "mantis.conf"
+  val MantisLoggerRabbitConf = "rabbitmq"
+  val MantisLoggerStdErrConf = "stderr"
+}                        
+
+case class Config(
+                   host_master: String = "localhost",
+                  port_master: Int= 2552,
+                  port: Int = 2552, host: String = "localhost",
+                  actor_system_name: String = "MantisShrimp",
+                  mantis_master_name: String = "mantis_master",
+                  config_path: String = "mantis.conf" ,
+                  logging_strategy: String = MantisLiterals.MantisLoggerStdErrConf
+
+
                    )
 
 
 
+
+
+
 object Main extends App{
+
+  println("WARNING: hardcoded setup for RabbitMQ logger and RabbitMQ connection. " +
+    "Modify mantishrimp.utils package. Will change soon enought")
+
   //Encoding for JSON parsing
   implicit val enc = Encodings.`UTF-8`
 
   //Master has to be created or fetched from existing cluster. It is sent by SetMaster function
   var system: akka.actor.ActorSystem  = null
   var master: akka.actor.ActorRef = null
-
+  var mantisLogger: mantisshrimp.utils.MantisLogger = null
 
   //Parse configuration
   val parser = new scopt.OptionParser[Config]("scopt") {
@@ -74,10 +82,13 @@ object Main extends App{
       c.copy(port = x) } text("Port to which is binding ActorSystem. Default 2552")
     opt[String]('l', "actor_system_name")  action { (x, c) =>
       c.copy(actor_system_name = x) } text("Actor System Name - do not change unless you know what you are doing" )
-    opt[String]('l', "mantis_master_name")  action { (x, c) =>
+    opt[String]('u', "mantis_master_name")  action { (x, c) =>
       c.copy(mantis_master_name = x) } text("Master in the system - has to match across whole cluster - do not change unless you know what you are doing" )
-    opt[String]('l', "config_path") action { (x, c) =>
+    opt[String]('q', "config_path") action { (x, c) =>
       c.copy(config_path = x) } text("Path to config file" )
+    opt[String]('r', "logging_strategy") action { (x, c) =>
+      c.copy(logging_strategy = x) } text("Logging strategy: " +
+      MantisLiterals.MantisLoggerStdErrConf + "/" + MantisLiterals.MantisLoggerRabbitConf )
 
   }
   var config: Config = Config()
@@ -87,24 +98,16 @@ object Main extends App{
     println("Failed parsing parameters. Please see help")
     sys.exit(1)
   }
-  
 
 
-
-
-  def runSystem = {
-    val system = ActorSystem(config.actor_system_name)
-    val mantisMaster = system.actorOf(Props[MantisTaggerCoordinator], name = "mantisMaster")
-
-    mantisMaster ! "start"
+  if(config.logging_strategy == MantisLiterals.MantisLoggerRabbitConf){
+     mantisLogger = mantisshrimp.utils.LoggerRabbitMQ
+  }else if(config.logging_strategy == MantisLiterals.MantisLoggerStdErrConf){
+    mantisLogger = mantisshrimp.utils.LoggerStdErr
+  }else {
+     println("Not recognized logging_strategy")
+     sys.exit(1)
   }
-
-   def nerTest = {
-     val tg = new SevenClassNERTagger()
-     println(tg.tag("Bruce Willis left apartment killing people"))
-   }
-
-
 
   ///Runs system specified in this mantis shrimp node
   def runMantisShrimp = {

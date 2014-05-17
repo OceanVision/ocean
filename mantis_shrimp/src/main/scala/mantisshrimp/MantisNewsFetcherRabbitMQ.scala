@@ -2,7 +2,7 @@ package mantisshrimp
 
 
 import com.rabbitmq.client._
-import akka.actor.{Actor, Props}
+import akka.actor.Actor
 import rapture.io._
 import rapture.core._
 import rapture.json._
@@ -12,29 +12,8 @@ import strategy.throwExceptions
 import java.nio.file.{Paths, Files}
 
 import akka.actor.{Actor, Props, ActorSystem}
+import mantisshrimp.utils.RabbitMQConnection
 
-
-object RabbitMQConnection {
-
-  private val connection: Connection = null;
-
-  /**
-   * Return a connection if one doesn't exist. Else create
-   * a new one
-   */
-  def getConnection(): Connection = {
-    connection match {
-      case null => {
-        val factory = new ConnectionFactory();
-        factory.setHost("localhost");
-        factory.setUsername("admin");
-        factory.setPassword("password");
-        factory.newConnection();
-      }
-      case _ => connection
-    }
-  }
-}
 
 /**
  * Fetching news from RabbitMQ
@@ -49,7 +28,7 @@ class MantisNewsFetcherRabbitMQ(config: Map[String, String]) extends Actor with 
   val maximumQueueSize = 100
   //Queue to store messages
   val Q = new mutable.SynchronizedQueue[scala.collection.mutable.Map[String, AnyRef]]()
-  val rabbitMqMetaData: mutable.HashMap[String, QueueingConsumer.Delivery] = new mutable.HashMap[String, QueueingConsumer.Delivery]
+  val rabbitMqMetaData: mutable.HashMap[String, Long] = new mutable.HashMap[String, Long]
 
   val connection = RabbitMQConnection.getConnection()
   val fetchingChannel = connection.createChannel()
@@ -60,7 +39,9 @@ class MantisNewsFetcherRabbitMQ(config: Map[String, String]) extends Actor with 
     def run() {
       val consumer = new QueueingConsumer(fetchingChannel)
 
-      fetchingChannel.basicConsume(queue, false, consumer)
+      //TODO: set to false and correct bug
+      val auto_ack = false
+      fetchingChannel.basicConsume(queue, auto_ack, consumer)
 
       while (true) {
         val delivery = consumer.nextDelivery();
@@ -82,7 +63,7 @@ class MantisNewsFetcherRabbitMQ(config: Map[String, String]) extends Actor with 
             entry += "uuid" -> msg.uuid.as[String]
 
 
-            rabbitMqMetaData(msg.uuid.as[String]) = delivery
+            rabbitMqMetaData(msg.uuid.as[String]) = delivery.getEnvelope().getDeliveryTag()
 
             Q.enqueue(entry)
 
@@ -92,7 +73,9 @@ class MantisNewsFetcherRabbitMQ(config: Map[String, String]) extends Actor with 
           case e: Exception => println("Failed parsing consumer message "+msg_raw)
         }
 
-        if (Q.length % 1000 == 0) {
+        if (Q.length % maximumQueueSize == 0) {
+          println(rabbitMqMetaData.toString())
+
           println("Already enqueued " + Q.length.toString + " news")
         }
 
@@ -114,8 +97,16 @@ class MantisNewsFetcherRabbitMQ(config: Map[String, String]) extends Actor with 
   }
 
   override def handleAlreadyTagged(uuid: String){
-    fetchingChannel.basicAck(rabbitMqMetaData(uuid).getEnvelope().getDeliveryTag(), false)
-    rabbitMqMetaData.remove(uuid)
+    //Try because if we have tagged 2 times same news it doesn't matter
+    try {
+      fetchingChannel.basicAck(rabbitMqMetaData(uuid), false)
+      rabbitMqMetaData.remove(uuid)
+    }
+    catch{
+      case e: Throwable => {
+
+      }
+    }
   }
 
 }

@@ -1,6 +1,7 @@
 package mantisshrimp
 
-import ner.SevenClassNERTagger
+import mantisshrimp.ner._
+
 
 
 class Mantis7ClassNERTagger(config: Map[String, String]) extends MantisTagger {

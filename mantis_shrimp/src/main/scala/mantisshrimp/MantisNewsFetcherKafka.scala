@@ -17,6 +17,7 @@ import rapture.json._
 import jsonParsers.scalaJson._
 
 import scala.collection.mutable
+import mantisshrimp.utils.DonCorleoneUtils
 
 //import kafka.producer.{ProducerConfig, ProducerData, Producer}
 
@@ -30,12 +31,12 @@ import scala.collection.JavaConverters._
 import kafka.consumer.ConsumerConfig
 import java.nio.file.{Paths, Files}
 
-import akka.actor.{Actor, Props, ActorSystem}
+import akka.actor.{Actor, Props}
 
 
 
 
-import java.lang.{Runnable, Thread}
+import java.lang.Thread
 
 /**
  * Basic Kafka Actor. Note that it will be sufficient in most cases because

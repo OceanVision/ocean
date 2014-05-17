@@ -26,8 +26,8 @@ trait MantisNode extends Actor{
 
 
   //TODO: replace with some sensible logging
-  def logStdOut(msg: String){
-     println(context.self.path.name + "::" + msg)
+  def logSelf(msg: String){
+     Main.mantisLogger.log(context.self.path.name + "::" + msg)
   }
 
   def logMaster(msg: String){
@@ -43,7 +43,7 @@ trait MantisNode extends Actor{
      return MantisLiterals.MantisNode
   }
 
-  logStdOut("starting "+getMantisType())
+  logSelf("starting "+getMantisType())
 
   ///Return mantis path of Actor (simply stripped from unnecessary data for now)
   def getMantisPath(): String = {

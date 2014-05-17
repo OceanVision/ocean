@@ -1,6 +1,5 @@
 package mantisshrimp
-import akka.actor.{ActorRef, Actor, Props}
-import akka.actor
+import akka.actor.{ActorRef, Actor}
 
 /**
  * Created by staszek on 5/16/14.
@@ -16,7 +15,7 @@ class MantisMaster(config: Map[String, String]) extends Actor with MantisNode {
 
 
   override def onAdd(actor: ActorRef){
-    logStdOut("Added path "+actor.path)
+    logSelf("Added path "+actor.path)
     addedActors.prepend(actor)
 
   }
@@ -24,7 +23,7 @@ class MantisMaster(config: Map[String, String]) extends Actor with MantisNode {
 
 
   def onRegister(parentMantisPath: String, registrant_actor: ActorRef){
-    logStdOut("Registered path "+registrant_actor.path)
+    logSelf("Registered path "+registrant_actor.path)
 
     //Find target actor
     for(a <- registeredActors){
@@ -49,7 +48,7 @@ class MantisMaster(config: Map[String, String]) extends Actor with MantisNode {
           sender ! RegisteredActors(registeredActors.toSeq)
         }
         case Log(msg: String) => {
-          println(sender.path.name+"::"+msg)
+          Main.mantisLogger.log(sender.path.name+"::"+msg)
         }
         case Identify => {
           sender ! ActorIdentity

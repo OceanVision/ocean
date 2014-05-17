@@ -1,17 +1,14 @@
 package mantisshrimp
 
 
-import akka.actor.{ActorRef, Props, ActorSystem, Actor}
-import scala.collection.mutable
+import akka.actor.{ActorRef, Actor}
 import akka.pattern.ask
 
 import scala.concurrent._
-import scala.concurrent.util._
 import scala.concurrent.duration._
 
 import java.util.concurrent.locks.{ReadWriteLock, ReentrantReadWriteLock}
 
-import monifu.concurrent._
 import akka.util.Timeout
 
 /**
@@ -55,13 +52,13 @@ class MantisTaggerCoordinator(config: Map[String, String]) extends Actor with Ma
           implicit val timeout = Timeout(5 seconds)
           val mantisType = Await.result(actor ? GetMantisType, 5 seconds).
             asInstanceOf[MantisType].mantisType
-            logStdOut("adding type resolved "+mantisType)
+            logSelf("adding type resolved "+mantisType)
 
             if(MantisNode.isOfType(mantisType, MantisLiterals.MantisTagger)){
-               logStdOut("Received MantisTagger")
+               logSelf("Received MantisTagger")
                taggers = actor :: taggers
             }else if(MantisNode.isOfType(mantisType, MantisLiterals.MantisNewsFetcher)){
-               logStdOut("Received MantisNewsFetcher")
+               logSelf("Received MantisNewsFetcher")
                newsFetcher = actor
             }else{
               logMaster("ERROR not recognized actor.Shutting down!")
@@ -86,11 +83,14 @@ class MantisTaggerCoordinator(config: Map[String, String]) extends Actor with Ma
 
   }
 
-
+  var tagged = 0
   override def receive = receiveMantisNode orElse {
     case Tagged(uuid, x) => {
-      println(uuid + " tagged with " + x.mkString + " from "+sender.path)
-      newsFetcher ! AlreadyTagged(uuid)
+      tagged += 1
+      if(tagged % 100 == 0)
+        logMaster(uuid + " tagged with " + x.mkString + " from "+sender.path)
+
+      newsFetcher ! AlreadyTagged(uuid.toString)
     }
     case ItemArrive(x) => {
       actorsLock.readLock().lock()
