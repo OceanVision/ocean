@@ -21,8 +21,10 @@ class MantisTaggerCoordinator extends Actor {
   var taggers = List[akka.actor.ActorRef]()
   var currentTagger = monifu.concurrent.atomic.AtomicInt(0)
   val system = ActorSystem("mantisshrimp")
+
+  //Creating child-actor
   val kafkaFetcher: akka.actor.ActorRef =
-    system.actorOf(Props[MantisNewsFetcherRabbitMQ], name = ("kafkaFetcher0") )
+    context.actorOf(Props[MantisNewsFetcherRabbitMQ], name = ("kafkaFetcher0") )
 
   def start {
     //Define number of Taggers
@@ -32,7 +34,7 @@ class MantisTaggerCoordinator extends Actor {
 
     // Construct taggers
     for(i <- 0 to taggersCount)
-      taggers = system.actorOf(Props[Mantis7ClassNERTagger], name = ("taggerActor" + i.toString) ) :: taggers
+      taggers = context.actorOf(Props[Mantis7ClassNERTagger], name = ("taggerActor" + i.toString) ) :: taggers
 
 
     // Run flow

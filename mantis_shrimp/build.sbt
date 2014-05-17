@@ -18,11 +18,15 @@ libraryDependencies += "org.apache.kafka" % "kafka_2.10" % "0.8.1"
 
 libraryDependencies += "org.monifu" %% "monifu-core" % "0.5"
 
-libraryDependencies += "com.typesafe.akka" % "akka-actor_2.10" % "2.2-M1"
-
 libraryDependencies += "org.scala-sbt" % "sbt" % "0.13.1"
 
 libraryDependencies += "log4j" % "log4j" % "1.2.17"
+
+libraryDependencies += "com.typesafe" % "config" % "0.4.0"
+
+libraryDependencies += "com.typesafe.akka" % "akka-actor_2.10" % "2.2-M1"
+
+libraryDependencies += "com.typesafe.akka" % "akka-remote_2.10" % "2.2-M1"
 
 libraryDependencies ++= Seq("com.propensive" %% "rapture-core" % "0.9.0")
 

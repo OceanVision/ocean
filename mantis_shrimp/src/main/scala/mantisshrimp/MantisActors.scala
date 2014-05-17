@@ -1,7 +1,30 @@
 package mantisshrimp
 
-import akka.actor.Actor
+import akka.actor.{ActorRef, Actor}
 
+
+/*
+* Basic job handler. Accepts registrations of sub jobs, and decides when to run on itself
+*/
+trait MantisJobHandler extends Actor{
+
+  val myActors: scala.collection.mutable.ListBuffer[(String, ActorRef)] =
+    new scala.collection.mutable.ListBuffer[(String, ActorRef)]
+
+  ///How to act on registration of new actor to this node
+  def onAdd(mantisPath:String, actor:ActorRef){
+
+  }
+
+
+
+
+  def receive = {
+    case AddActor(mantisPath, actor) => {
+      onAdd(mantisPath, actor)
+    }
+  }
+}
 
 trait MantisNewsFetcher extends Actor{
 
