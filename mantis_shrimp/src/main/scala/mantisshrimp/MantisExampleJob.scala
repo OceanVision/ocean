@@ -23,7 +23,7 @@ class MantisExampleJob(config: Map[String, String]) extends Actor with MantisNod
 
      case RegisteredActors(nodes: Seq[ActorRef])    =>
      {
-        logStdOut("Registered actors in the system: "+nodes.toString)
+        logMaster("Registered actors in the system: "+nodes.toString)
      }
 
    }

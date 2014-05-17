@@ -19,7 +19,11 @@ trait MantisNode extends Actor{
 
   //TODO: replace with some sensible logging
   def logStdOut(msg: String){
-     println(context.self.path.name + "\t" + msg)
+     println(context.self.path.name + "::" + msg)
+  }
+
+  def logMaster(msg: String){
+     master ! Log(msg)
   }
 
   ///Return mantis path of Actor (simply stripped from unnecessary data for now)

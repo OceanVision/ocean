@@ -34,6 +34,10 @@ case class AddActor(actor: ActorRef)
 //Retrieve all registered nodes in the form of list of tuples (akkaPath, name, actor)
 case class GetRegisteredActors()
 
+
+//Log - received by master
+case class Log(msg: String)
+
 //Answer to GetRegisteredNodes
 case class RegisteredActors(nodes: Seq[ActorRef])
 

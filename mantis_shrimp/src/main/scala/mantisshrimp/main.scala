@@ -22,6 +22,8 @@ import rapture.json._
 object MantisConfiguration{
   val host_master = "localhost"
   val port_master = 2552
+  val port = 2553
+  val host = "localhost"
   val actor_system_name = "MantisShrimp"
   val mantis_master_name = "mantis_master"
   val configuration_file = "mantis.conf"
@@ -61,14 +63,29 @@ object Main extends App{
   ///Runs system specified in this mantis shrimp node
   def runSystem2 = {
     //Run system as configured
-    val system = ActorSystem(MantisConfiguration.actor_system_name)
 
-    /*,
-      ConfigFactory.parseString("""
-                            akka.remote.netty.port = 9999
-      """)
-    )
-    */
+
+    val port = MantisConfiguration.port
+
+    val hostname = MantisConfiguration.host
+
+    var config_string = s"""
+        akka {
+            actor {
+              provider = "akka.remote.RemoteActorRefProvider"
+            }
+            remote {
+                enabled-transports = ["akka.remote.netty.tcp"]
+                netty.tcp {
+                  hostname = $hostname
+                  port = $port
+               }
+            }
+            }
+    """
+
+    val system = ActorSystem(MantisConfiguration.actor_system_name, ConfigFactory.load(ConfigFactory.parseString(config_string)))
+
 
     //Read in node configuration
     val conf =
