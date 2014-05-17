@@ -6,18 +6,18 @@ import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb._
 import org.neo4j.cypher.{ExecutionEngine, ExecutionResult}
 import org.neo4j.tooling.GlobalGraphOperations
-import org.neo4j.cypher.internal.compiler.v2_0.ast.False
 
 // TODO: logging, nicer way of handling errors
 
 object DatabaseManager {
-  private val DB_PATH = "/usr/lib/neo4j/data/graph.db" // TODO: consider SCALA_HOME in some way
-  private val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(DB_PATH)
+  private val databasePath = "/usr/lib/neo4j/data/graph.db" // TODO: consider SCALA_HOME in some way
+  private val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath)
 
   private val globalOperations = GlobalGraphOperations.at(graphDB)
   private val cypherEngine = new ExecutionEngine(graphDB)
   private var cypherResult: ExecutionResult = null
 
+  // Simple cache of model nodes
   private var modelNodes: Map[String, Node] = Map()
   initCache()
 
@@ -155,7 +155,7 @@ object DatabaseManager {
         val rawNode = graphDB.findNodesByLabelAndProperty(
           DynamicLabel.label("Node"),
           "uuid",
-          item("uuid")
+          item("uuid").asInstanceOf[String]
         )
         val it = rawNode.iterator()
         if (it.hasNext) {
@@ -194,7 +194,7 @@ object DatabaseManager {
         val rawNode = graphDB.findNodesByLabelAndProperty(
           DynamicLabel.label(item("modelName").asInstanceOf[String]),
           "link",
-          item("link")
+          item("link").asInstanceOf[String]
         )
         val it = rawNode.iterator()
         if (it.hasNext) {
@@ -398,6 +398,134 @@ object DatabaseManager {
     }
 
     result
+  }
+
+  def getUserFeeds(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[List[Map[String, Any]]] = null
+
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[List[Map[String, Any]]] = ListBuffer()
+      val userLabel = DynamicLabel.label("NeoUser")
+
+      for (item <- args) {
+        // Gets each user as an instance of Node
+        val rawParentNode = graphDB.findNodesByLabelAndProperty(
+          userLabel,
+          "uuid",
+          item("uuid").asInstanceOf[String]
+        )
+
+        val it = rawParentNode.iterator()
+        if (it.hasNext) {
+          val feedsOfOneNode: ListBuffer[Map[String, Any]] = ListBuffer()
+          val user = it.next()
+
+          // Gets all outgoing relationships of type <<FEED>>
+          val relType = DynamicRelationshipType.withName("<<FEED>>")
+          val relList = user.getRelationships(relType, Direction.OUTGOING).iterator()
+
+          // Gets feeds and extracts partial result
+          while (relList.hasNext) {
+            val rel = relList.next()
+            val node = parseSet(rel.getEndNode)
+            feedsOfOneNode += node.toMap[String, Any]
+          }
+
+          rawResult += feedsOfOneNode.toList
+        } else {
+          rawResult += List()
+        }
+        it.close()
+      }
+      tx.success()
+      result = rawResult.toList
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+        result = List()
+    } finally {
+      tx.close()
+    }
+
+    result
+  }
+
+  def setLabel(args: List[Map[String, Any]]): List[Any] = {
+    val tx = graphDB.beginTx()
+    try {
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+          // Gets each node as an instance of Node
+          val rawNode = graphDB.findNodesByLabelAndProperty(
+            nodeLabel,
+            "uuid",
+            item("uuid").asInstanceOf[String]
+          )
+
+          val it = rawNode.iterator()
+          if (it.hasNext) {
+            val node = it.next()
+
+            // Sets label to the node
+            val label = DynamicLabel.label(item("label").asInstanceOf[String])
+            node.addLabel(label)
+          }
+          it.close()
+      }
+      tx.success()
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+    } finally {
+      tx.close()
+    }
+
+    null
+  }
+
+  def deleteLabel(args: List[Map[String, Any]]): List[Any] = {
+    val tx = graphDB.beginTx()
+    try {
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each node as an instance of Node
+        val rawNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("uuid").asInstanceOf[String]
+        )
+
+        val it = rawNode.iterator()
+        if (it.hasNext) {
+          val node = it.next()
+
+          // Deletes label from the node
+          val label = DynamicLabel.label(item("label").asInstanceOf[String])
+          node.removeLabel(label)
+        }
+        it.close()
+      }
+      tx.success()
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+    } finally {
+      tx.close()
+    }
+
+    null
   }
 
   def setProperties(args: List[Map[String, Any]]): List[Any] = {
