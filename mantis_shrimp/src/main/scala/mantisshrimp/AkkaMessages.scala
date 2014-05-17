@@ -26,21 +26,16 @@ case class ItemArrive(x: scala.collection.mutable.Map[String, AnyRef])
 case class Tag(x: scala.collection.mutable.Map[String, AnyRef])
 
 //Register new node in the system. Will propagate down the system
-case class Register(mantisPath: String, actor: ActorRef)
+case class Register(parentMantisPath: String)
 
 //Add new node to actor. Will propagate down the system
-case class AddActor(mantisPath: String, actor: ActorRef)
+case class AddActor(actor: ActorRef)
 
 //Retrieve all registered nodes in the form of list of tuples (akkaPath, name, actor)
 case class GetRegisteredActors()
 
 //Answer to GetRegisteredNodes
-case class RegisteredActors(nodes: Seq[(String, ActorRef)])
+case class RegisteredActors(nodes: Seq[ActorRef])
 
-
-object MantisLiterals{
-    val ItemText = "text"
-    val ItemSummary = "summary"
-    val ItemTitle = "title"
-    val ItemUUID = "uuid"
-}
+//Every non-master node will receive this message
+case class SetMaster(master: ActorRef)

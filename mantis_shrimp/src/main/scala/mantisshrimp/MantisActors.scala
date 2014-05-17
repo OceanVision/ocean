@@ -1,55 +1,80 @@
+//TODO: add stacking traits
+
 package mantisshrimp
 
 import akka.actor.{ActorRef, Actor}
+import mantisshrimp.GetType
+import mantisshrimp.GetType
 
 
 /*
-* Basic job handler. Accepts registrations of sub jobs, and decides when to run on itself
+* Basic Node. Accepts addition of sub-nodes, and decides when to run on itsel
 */
-trait MantisJobHandler extends Actor{
+trait MantisNode extends Actor{
+  var master: ActorRef = null
+  val parentMantisPath: String
+  val addedActors: scala.collection.mutable.ListBuffer[ActorRef] =
+    new scala.collection.mutable.ListBuffer[ActorRef]
 
-  val myActors: scala.collection.mutable.ListBuffer[(String, ActorRef)] =
-    new scala.collection.mutable.ListBuffer[(String, ActorRef)]
+
+  //TODO: replace with some sensible logging
+  def logStdOut(msg: String){
+     println(context.self.path.name + "\t" + msg)
+  }
+
+  ///Return mantis path of Actor (simply stripped from unnecessary data for now)
+  def getMantisPath(): String = {
+    return context.self.path.name // TODO: Huge simplification
+  }
+
+
 
   ///How to act on registration of new actor to this node
-  def onAdd(mantisPath:String, actor:ActorRef){
-
+  def onAdd(actor:ActorRef){
+      println(context.self.path + ":: added actor "+actor.path)
   }
 
+  def onSetMaster(_master:ActorRef){
+     master = _master
+     master ! Register(parentMantisPath)
+  }
 
-
-
-  def receive = {
-    case AddActor(mantisPath, actor) => {
-      onAdd(mantisPath, actor)
+  def receiveMantisNode: Receive = {
+    case AddActor(actor) => {
+      onAdd(actor)
+    }
+    case SetMaster(actor) => {
+      onSetMaster(actor)
     }
   }
+
+  def receive = receiveMantisNode
 }
 
 trait MantisNewsFetcher extends Actor{
 
-  /*
-  * Override in inhertiting classes
-   */
+  ///Returns news to tag
   def getNews(): scala.collection.mutable.Map[String, AnyRef]
 
   def handleAlreadyTagged(uuid: String): Unit
 
-  /**
-   * Override in inheriting classes
-   */
+  ///Returns node type
   def getType(): String={
     return "NewsFetcher"
   }
 
-  def receive = {
+  def receiveMantisNewsFetcher : Receive = {
     case "get_news" => {
       sender ! ItemArrive(getNews())
     }
     case AlreadyTagged(uuid) => {
       handleAlreadyTagged(uuid)
     }
+    case GetType => sender ! getType()
   }
+
+
+  def receive = receiveMantisNewsFetcher
 }
 
 
@@ -58,22 +83,18 @@ trait MantisNewsFetcher extends Actor{
 */
 trait MantisTagger extends Actor{
 
-  /*
-  * Override in inhertiting classes
-   */
+  ///Tag news
   def tag(x: scala.collection.mutable.Map[String, AnyRef]): Tuple2[String, Seq[MantisTag]] = {
     return (x("uuid").asInstanceOf[String], Seq[MantisTag](MantisTag("ExampleWord1", "ExampleTag1"),
       MantisTag("ExampleWord2","ExampleTag2")))
   }
 
-  /**
-   * Override in inheriting classes
-   */
+  ///Returns type of the node
   def getType(): String={
     return "Tagger"
   }
 
-  def receive = {
+  def receiveMantisTagger: Receive = {
     case Tag(x) => {
       val tag_result = tag(x)
       sender ! Tagged(tag_result._1, tag_result._2)  //should be possible withut unpacking..
@@ -82,4 +103,6 @@ trait MantisTagger extends Actor{
     case GetType => sender ! getType()
 
   }
+
+  def receive = receiveMantisTagger
 }
