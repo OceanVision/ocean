@@ -38,6 +38,10 @@ object MantisLiterals{
   val ItemSummary = "summary"
   val ItemTitle = "title"
   val ItemUUID = "uuid"
+
+  val MantisNode = "MantisNode"
+  val MantisTagger = "MantisTagger"
+  val MantisNewsFetcher = "MantisNewsFetcher"
 }
 
 case class Config(host_master: String = "localhost",
@@ -167,20 +171,21 @@ object Main extends App{
 
     }
 
-//
-//    //Ensure validity of configuration (TODO: export to validate fnc)
-//    if(config.host_master == "localhost" || config.host_master == "127.0.0.1"){
-//
-//        assert(config.host == config.host_master && config.port == config.port_master,
-//          "Not matching host_master and host, or port_master and port")
-//    }else {
-//
-//    }
 
 
     //Run actors
     for(actorConfiguration:Map[String, String] <- conf){
-       try {
+
+        //TODO: add specific validation in each class
+        if(!actorConfiguration.contains(MantisLiterals.ParentMantisPath)){
+            println("ERROR: not correct configuration in .conf file passed as parameter config_path")
+            sys.exit(1)
+        }
+
+        try {
+
+
+
          runActor(actorConfiguration(MantisLiterals.Classname),
            actorConfiguration(MantisLiterals.UniqueName),
            actorConfiguration)
@@ -206,6 +211,25 @@ object Main extends App{
           //TODO:Apparently reflection for non-parameterless constructors is harder
           val sample_job = system.actorOf(Props(new MantisExampleJob(actor_config.toMap)), actor_name)
           sample_job ! SetMaster(master)
+        }
+        case "Mantis7ClassNERTagger" => {
+          //TODO:Apparently reflection for non-parameterless constructors is harder
+          val sample_job = system.actorOf(Props(new Mantis7ClassNERTagger(actor_config.toMap)), actor_name)
+          sample_job ! SetMaster(master)
+        }
+        case "MantisTaggerCoordinator" => {
+          //TODO:Apparently reflection for non-parameterless constructors is harder
+          val sample_job = system.actorOf(Props(new MantisTaggerCoordinator(actor_config.toMap)), actor_name)
+          sample_job ! SetMaster(master)
+        }
+        case "MantisNewsFetcherRabbitMQ" => {
+          //TODO:Apparently reflection for non-parameterless constructors is harder
+          val sample_job = system.actorOf(Props(new MantisNewsFetcherRabbitMQ(actor_config.toMap)), actor_name)
+          sample_job ! SetMaster(master)
+        }
+        case _ => {
+           println("ERROR not recognized class. Exiting")
+          sys.exit(1)
         }
     }
 

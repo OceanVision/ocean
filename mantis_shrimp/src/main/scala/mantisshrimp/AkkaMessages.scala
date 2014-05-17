@@ -17,7 +17,8 @@ case class Tagged(uuid: String, x:  Seq[MantisTag])
 case class AlreadyTagged(uuid: String)
 
 //Returns type of node
-case class GetType
+case class GetMantisType
+case class MantisType(mantisType: String)
 
 //
 case class ItemArrive(x: scala.collection.mutable.Map[String, AnyRef])
@@ -45,6 +46,10 @@ case class RegisteredActors(nodes: Seq[ActorRef])
 case class SetMaster(master: ActorRef)
 
 
-//For conversion of ActorSelection to ActorRef
+//Send to NewsFetcher to get news
+case class GetNews
+
+
+//Used for identification
 case class Identify
 case class ActorIdentity

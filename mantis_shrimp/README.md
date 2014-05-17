@@ -40,6 +40,15 @@ To run with parameters : `sbt "run --param 1 --param 2"`
 
 Example : `sbt "run --port 2553 --config_path mantis_slave.conf"`
 
+**Running tagging example**
+
+On machine 1 (master):
+
+`sbt "run --config_path mantis_tagging_cluster_master.conf"`
+
+On machine 2 (slave):
+
+`sbt "run --config_path mantis_tagging_cluster_master.slave --host_master <value> --port_master <value>"`
 
 **Note**
 

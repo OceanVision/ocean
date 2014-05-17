@@ -39,7 +39,9 @@ object RabbitMQConnection {
 /**
  * Fetching news from RabbitMQ
  */
-class MantisNewsFetcherRabbitMQ extends Actor with MantisNewsFetcher {
+class MantisNewsFetcherRabbitMQ(config: Map[String, String]) extends Actor with MantisNewsFetcher {
+  val parentMantisPath = config(MantisLiterals.ParentMantisPath)
+
   val queue: String = "mantis_totag"
   //Encoding for JSON parsing
   implicit val enc = Encodings.`UTF-8`
@@ -117,3 +119,5 @@ class MantisNewsFetcherRabbitMQ extends Actor with MantisNewsFetcher {
   }
 
 }
+
+

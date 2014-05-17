@@ -42,7 +42,11 @@ import java.lang.{Runnable, Thread}
  * We will create new topics for new big chunks of news. I do not want
  * to focus on implementing this one single actor.
  */
-class MantisNewsFetcherKafka extends Actor with MantisNewsFetcher {
+class MantisNewsFetcherKafka(config:Map[String, String]) extends Actor with MantisNewsFetcher {
+
+  val parentMantisPath = config(MantisLiterals.ParentMantisPath)
+
+
   val topic: String = "mantis_mock_1"
   val tagged_topic: String = topic + "_tagged"
 
@@ -159,6 +163,13 @@ class MantisNewsFetcherKafka extends Actor with MantisNewsFetcher {
 
 }
 
+
+//TODO: add validating config method
+//object MantisNewsFetcherKafka{
+//  def validateConfig(config: Map[String, String]): Boolean = {
+//    return config.contains(MantisLiterals.ParentMantisPath)
+//  }
+//}
 
 
 

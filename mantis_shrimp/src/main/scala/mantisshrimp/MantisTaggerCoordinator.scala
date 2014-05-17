@@ -1,10 +1,18 @@
 package mantisshrimp
 
 
-import akka.actor.{Props, ActorSystem, Actor}
+import akka.actor.{ActorRef, Props, ActorSystem, Actor}
 import scala.collection.mutable
+import akka.pattern.ask
+
+import scala.concurrent._
+import scala.concurrent.util._
+import scala.concurrent.duration._
+
+import java.util.concurrent.locks.{ReadWriteLock, ReentrantReadWriteLock}
 
 import monifu.concurrent._
+import akka.util.Timeout
 
 /**
  * Created by staszek on 4/21/14.
@@ -12,53 +20,88 @@ import monifu.concurrent._
 
 
 /*
-* Class that can own several different Taggers
+* Node that can own several different MantisTaggers and single MantisNewsFetcher
  */
-class MantisTaggerCoordinator extends Actor {
+class MantisTaggerCoordinator(config: Map[String, String]) extends Actor with MantisNode{
+
+
+
+  val parentMantisPath = config(MantisLiterals.ParentMantisPath)
 
   val taggersCount:Int =0
   val kafkaFetchersCounter: Int = 0
-  var taggers = List[akka.actor.ActorRef]()
+
+  val actorsLock: ReadWriteLock = new ReentrantReadWriteLock ()
+
   var currentTagger = monifu.concurrent.atomic.AtomicInt(0)
-  val system = ActorSystem("mantisshrimp")
 
-  //Creating child-actor
-  val kafkaFetcher: akka.actor.ActorRef =
-    context.actorOf(Props[MantisNewsFetcherRabbitMQ], name = ("kafkaFetcher0") )
+  var newsFetcher: ActorRef = null
+  var taggers = List[akka.actor.ActorRef]()
 
-  def start {
-    //Define number of Taggers
-    val taggersCount = 5
-    //Kakfa fetchers, only one possible
-    val kafkaFetchersCount = 1
-
-    // Construct taggers
-    for(i <- 0 to taggersCount)
-      taggers = context.actorOf(Props[Mantis7ClassNERTagger], name = ("taggerActor" + i.toString) ) :: taggers
-
-
-    // Run flow
-    kafkaFetcher ! "get_news"
+  override def getMantisType(): String = {
+      return "MantisNode.MantisTaggerCoordinator"
   }
 
-  def receive = {
+
+  def ready(): Boolean = {
+     return newsFetcher != null && taggers.length > 0
+  }
+
+  override def  onAdd(actor:ActorRef){
+
+        try {
+          actorsLock.writeLock().lock()
+          logMaster("adding "+actor.toString)
+          implicit val timeout = Timeout(5 seconds)
+          val mantisType = Await.result(actor ? GetMantisType, 5 seconds).
+            asInstanceOf[MantisType].mantisType
+            logStdOut("adding type resolved "+mantisType)
+
+            if(MantisNode.isOfType(mantisType, MantisLiterals.MantisTagger)){
+               logStdOut("Received MantisTagger")
+               taggers = actor :: taggers
+            }else if(MantisNode.isOfType(mantisType, MantisLiterals.MantisNewsFetcher)){
+               logStdOut("Received MantisNewsFetcher")
+               newsFetcher = actor
+            }else{
+              logMaster("ERROR not recognized actor.Shutting down!")
+              sys.exit(1)
+            }
+
+            if(ready()) {
+              logMaster("ready")
+              //TODO: improve flow
+              newsFetcher ! GetNews
+            }
+        }
+        catch{
+          case t: Exception => {
+              logMaster("ERROR::failed to retrieve type from "+actor.toString +" error "+t.toString)
+
+          }
+        }
+        finally{
+           actorsLock.writeLock().unlock()
+        }
+
+  }
+
+
+  override def receive = receiveMantisNode orElse {
     case Tagged(uuid, x) => {
       println(uuid + " tagged with " + x.mkString + " from "+sender.path)
-      kafkaFetcher ! AlreadyTagged(uuid)
+      newsFetcher ! AlreadyTagged(uuid)
     }
     case ItemArrive(x) => {
-      //Should tag it with all taggers types. For now just call one in queue
+      actorsLock.readLock().lock()
+        //Should tag it with all taggers types. For now just call one in queue
 
-      val currentTaggerLocal = currentTagger.getAndIncrement() % this.taggers.length
+        val currentTaggerLocal = currentTagger.getAndIncrement() % this.taggers.length
 
-      taggers(currentTaggerLocal) ! Tag(x)
+        taggers(currentTaggerLocal) ! Tag(x)
 
-
-
-      sender ! "get_news"
-    }
-    case "start" => {
-      start
+        sender ! GetNews
+      actorsLock.readLock().unlock()
     }
   }
 

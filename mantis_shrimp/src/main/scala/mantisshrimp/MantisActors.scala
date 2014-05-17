@@ -3,10 +3,18 @@
 package mantisshrimp
 
 import akka.actor.{ActorRef, Actor}
-import mantisshrimp.GetType
-import mantisshrimp.GetType
 
 
+object MantisNode{
+  ///Helper function checking if given node type has given subtype
+  def isOfType(mantisType: String, t: String): Boolean = {
+      return mantisType.split("""\.""").foldLeft(false) {
+        (z, i) => {
+          z || i==t
+        }
+      }
+  }
+}
 /*
 * Basic Node. Accepts addition of sub-nodes, and decides when to run on itsel
 */
@@ -25,6 +33,17 @@ trait MantisNode extends Actor{
   def logMaster(msg: String){
      master ! Log(msg)
   }
+
+  /*
+  * @return mantis type with each dot representing implementing interface/functionality. For instance
+  *
+  * MantisNode.MantisTagger.7NER - is a MantisTagger
+   */
+  def getMantisType(): String = {
+     return MantisLiterals.MantisNode
+  }
+
+  logStdOut("starting "+getMantisType())
 
   ///Return mantis path of Actor (simply stripped from unnecessary data for now)
   def getMantisPath(): String = {
@@ -50,12 +69,18 @@ trait MantisNode extends Actor{
     case SetMaster(actor) => {
       onSetMaster(actor)
     }
+    case GetMantisType => {
+      sender ! MantisType(getMantisType())
+    }
+    case MantisType(mantisType) => {
+      logMaster("not caught mantisType = "+mantisType)
+    }
   }
 
   def receive = receiveMantisNode
 }
 
-trait MantisNewsFetcher extends Actor{
+trait MantisNewsFetcher extends Actor with MantisNode{
 
   ///Returns news to tag
   def getNews(): scala.collection.mutable.Map[String, AnyRef]
@@ -63,29 +88,28 @@ trait MantisNewsFetcher extends Actor{
   def handleAlreadyTagged(uuid: String): Unit
 
   ///Returns node type
-  def getType(): String={
-    return "NewsFetcher"
+  override def getMantisType(): String={
+    return MantisLiterals.MantisNode+"."+MantisLiterals.MantisNewsFetcher
   }
 
-  def receiveMantisNewsFetcher : Receive = {
-    case "get_news" => {
+  def receiveMantisNewsFetcher : Receive = receiveMantisNode orElse {
+    case GetNews => {
       sender ! ItemArrive(getNews())
     }
     case AlreadyTagged(uuid) => {
       handleAlreadyTagged(uuid)
     }
-    case GetType => sender ! getType()
+
   }
 
-
-  def receive = receiveMantisNewsFetcher
+  override def receive =  receiveMantisNewsFetcher
 }
 
 
 /*
 * Basic class for tagger
 */
-trait MantisTagger extends Actor{
+trait MantisTagger extends Actor with MantisNode{
 
   ///Tag news
   def tag(x: scala.collection.mutable.Map[String, AnyRef]): Tuple2[String, Seq[MantisTag]] = {
@@ -93,20 +117,18 @@ trait MantisTagger extends Actor{
       MantisTag("ExampleWord2","ExampleTag2")))
   }
 
-  ///Returns type of the node
-  def getType(): String={
-    return "Tagger"
+  ///Returns node type
+  override def getMantisType(): String={
+    return MantisLiterals.MantisNode+"."+MantisLiterals.MantisTagger
   }
 
-  def receiveMantisTagger: Receive = {
+  def receiveMantisTagger: Receive = receiveMantisNode orElse  {
     case Tag(x) => {
       val tag_result = tag(x)
       sender ! Tagged(tag_result._1, tag_result._2)  //should be possible withut unpacking..
 
     }
-    case GetType => sender ! getType()
-
   }
 
-  def receive = receiveMantisTagger
+  override def receive = receiveMantisTagger
 }
