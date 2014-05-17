@@ -19,6 +19,7 @@ import akka.actor._
 import scala.concurrent.duration._
 import scala.concurrent.Await
 
+import com.lionfish.client
 
 object MantisLiterals{
   val ParentMantisPath:String = "parentMantisPath"
@@ -34,6 +35,8 @@ object MantisLiterals{
   val MantisNode = "MantisNode"
   val MantisTagger = "MantisTagger"
   val MantisNewsFetcher = "MantisNewsFetcher"
+  val MantisNewsDumper = "MantisNewsDumper"
+
 
   val MantisLoggerRabbitConf = "rabbitmq"
   val MantisLoggerStdErrConf = "stderr"
@@ -46,8 +49,9 @@ case class Config(
                   actor_system_name: String = "MantisShrimp",
                   mantis_master_name: String = "mantis_master",
                   config_path: String = "mantis.conf" ,
-                  logging_strategy: String = MantisLiterals.MantisLoggerStdErrConf
-
+                  logging_strategy: String = MantisLiterals.MantisLoggerStdErrConf,
+                  lionfish_host: String = "127.0.0.1",
+                  lionfish_port: Int = 7777
 
                    )
 
@@ -57,6 +61,12 @@ case class Config(
 
 
 object Main extends App{
+
+
+
+
+
+
 
   println("WARNING: hardcoded setup for RabbitMQ logger and RabbitMQ connection. " +
     "Modify mantishrimp.utils package. Will change soon enought")
@@ -89,7 +99,10 @@ object Main extends App{
     opt[String]('r', "logging_strategy") action { (x, c) =>
       c.copy(logging_strategy = x) } text("Logging strategy: " +
       MantisLiterals.MantisLoggerStdErrConf + "/" + MantisLiterals.MantisLoggerRabbitConf )
-
+    opt[String]('a', "lionfish_host") action { (x, c) =>
+      c.copy(lionfish_host = x) } text("Lionfish host. Default localhost")
+    opt[Int]('b', "lionfish_port")  action { (x, c) =>
+      c.copy(lionfish_port = x) } text("Lionfish port. Default 7777")
   }
   var config: Config = Config()
   parser.parse(args, Config()) map { _config =>

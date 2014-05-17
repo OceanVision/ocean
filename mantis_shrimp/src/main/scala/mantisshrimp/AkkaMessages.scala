@@ -10,7 +10,7 @@ case class MantisTag(words: String, tag: String)
 
 /* Messages used in the MantisShrimp system */
 
-//Sent by MantisTagger with tagged news
+//Sent by MantisTagger with tagged news , and to MantisNewsDumper
 case class Tagged(uuid: String, x:  Seq[MantisTag])
 
 //Sent to MantisNewsFetcher trait to inform that news is processed 100% sure
@@ -53,3 +53,6 @@ case class GetNews
 //Used for identification
 case class Identify
 case class ActorIdentity
+
+
+

@@ -2,7 +2,7 @@ name := "lionfish"
 
 version := "0.9.3"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.10.2"
 
 mainClass in (Compile, run) := Some("com.lionfish.server.Launcher")
 

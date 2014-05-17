@@ -105,6 +105,28 @@ trait MantisNewsFetcher extends Actor with MantisNode{
   override def receive =  receiveMantisNewsFetcher
 }
 
+///Dumps news somewhere (for instance Neo4j database)
+trait MantisNewsDumper extends Actor with MantisNode{
+
+  ///Returns news to tag
+  def dumpNews(uuid: String, tags: Seq[MantisTag])
+
+  ///Returns node type
+  override def getMantisType(): String={
+    return MantisLiterals.MantisNode+"."+MantisLiterals.MantisNewsFetcher
+  }
+
+  def receiveMantisNewsFetcher : Receive = receiveMantisNode orElse {
+    case Tagged(x, tags) => {
+       dumpNews(x, tags)
+    }
+
+  }
+
+  override def receive =  receiveMantisNewsFetcher
+}
+
+
 
 /*
 * Basic class for tagger

@@ -10,7 +10,7 @@ import org.neo4j.tooling.GlobalGraphOperations
 // TODO: logging, nicer way of handling errors
 
 object DatabaseManager {
-  private val databasePath = "/usr/lib/neo4j/data/graph.db" // TODO: consider SCALA_HOME in some way
+  private val databasePath = "/var/lib/neo4j/data/graph.db" // TODO: consider SCALA_HOME in some way
   private val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath)
 
   private val globalOperations = GlobalGraphOperations.at(graphDB)

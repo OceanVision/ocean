@@ -101,8 +101,12 @@ class Spidercrab(GraphWorker):
             export_stats_to=None,
             export_cs_to=None,
             no_corleone=False,
+            rabbit_mq_port=None,
+            rabbit_mq_host=None,
+            rabbit_mq_queue=None
     ):
         """
+        @param rabbit_mq_queue: Target queue where will be exported news as jsons
         @param master: master Spidercrab object
         @type master: Spidercrab
         """
@@ -259,7 +263,7 @@ class Spidercrab(GraphWorker):
         return self.stats
 
     def stub_for_mantis_kafka_push(self, node_dictionary):
-        pass
+        print node_dictionary
 
     def _init_run(self):
         self.odm_client.connect()

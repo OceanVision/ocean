@@ -12,11 +12,6 @@ Run
 And open project in IntelliJ (remember to see project structure if is correct -
 ctrl+alt+shift+s).
 
-You will need to add manually following libraries (sbt gen-idea plugin bug):
-
-com.typesafe.akka.akka_remote == 2.3.1
-com.typesafe.akka.akka_actor == 2.3.1
-com.typesafe.config == 2.2.1
 
 **Dependencies**
 
@@ -31,6 +26,14 @@ setup documentation on scala-sbt
 put stanford_classifiers (trained classifiers) folder in mantis_shrimp/ folder
 
 3. Run `sbt update`
+
+4. You will need to add manually following libraries - **only for development** (sbt gen-idea plugin bug):
+
+   com.typesafe.akka.akka_remote == 2.3.1
+   com.typesafe.akka.akka_actor == 2.3.1
+   com.typesafe.config == 2.2.1
+
+5. You will need **lionfish** client (great stuff!). Package lionfish using `sbt package` and move to lib folder
 
 **Running project**
 
