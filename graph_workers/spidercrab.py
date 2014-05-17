@@ -13,9 +13,9 @@ import threading
 import time
 import urllib2
 import uuid
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
-from don_utils import get_running_service, get_my_node_id
+### TODO: this line shouldn't be here (it worked on Konrad's laptop?) adding toquickly test
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from don_corleone import don_utils as du
 
 from graph_workers.graph_defines import *
 from graph_workers.graph_utils import *
@@ -106,6 +106,10 @@ class Spidercrab(GraphWorker):
         @param master: master Spidercrab object
         @type master: Spidercrab
         """
+
+        # Clean logs. TODO: do not use unix command
+        os.system("rm "+self.STANDARD_STATS_EXPORT_FILE)
+
         self.logger = logger
         # Config used to be stored inside the database (only values from file)
         self.given_config = dict()
@@ -279,7 +283,7 @@ class Spidercrab(GraphWorker):
             info_level,
             self.fullname + ' Finished!\nStats:\n' + str(self.stats))
         self._export_stats_to(self.STANDARD_STATS_EXPORT_FILE)
-        if not self.export_stats_to is None:
+        if not self.export_stats_to is None and self.export_stats_to != self.STANDARD_STATS_EXPORT_FILE:
             self._export_stats_to(self.export_stats_to)
 
     def _export_stats_to(self, file_name):
@@ -288,12 +292,14 @@ class Spidercrab(GraphWorker):
             'runtime_id': self.runtime_id,
             'stats': self.stats
         }
+        data = None
         if not os.path.isfile(file_name):
             with open(file_name, 'w') as json_file:
                 json_file.write(json.dumps({}))
         try:
-            with open(file_name, 'r') as json_file:
-                data = json.load(json_file)
+            with open(file_name, 'r') as json_file: 
+                x= json_file.read()
+                data = json.loads(x)
             try:
                 graph_worker_id = self.config[self.C_GRAPH_WORKER_ID]
                 if graph_worker_id not in data:
@@ -303,7 +309,7 @@ class Spidercrab(GraphWorker):
                 data[graph_worker_id][self.level].append(json_export)
             finally:
                 with open(file_name, 'w') as json_file:
-                    json_file.write(json.dumps(data, indent=4, sort_keys=True))
+                    json_file.write(json.dumps(data))
         except IOError as e:
             print e
             pass
@@ -321,7 +327,7 @@ class Spidercrab(GraphWorker):
                 'graph_worker_id = \''
                 + str(self.given_config['graph_worker_id']) + '\'!')
 
-        master_config = get_running_service(
+        master_config = du.get_running_service(
             service_config={
                 'graph_worker_id': self.given_config['graph_worker_id']
             },
@@ -424,9 +430,9 @@ class Spidercrab(GraphWorker):
             service_name = 'spidercrab_master'
         if config_file_name == '':
             # No config file - load from Don Corleone
-            don_config = get_running_service(
+            don_config = du.get_running_service(
                 service_name=service_name,
-                node_id=get_my_node_id(),
+                node_id=du.get_my_node_id(),
                 enforce_running=False
             )['service_config']
 
@@ -1027,9 +1033,7 @@ if __name__ == '__main__':
     print "Press Enter to create one master with 5 slaves."
     enter = raw_input()
 
-    master_sc = Spidercrab.create_master(
-        #master_sources_urls_file='../data/bad_contentsource'
-    )
+    master_sc = Spidercrab.create_master()
     thread = threading.Thread(target=master_sc.run)
     thread.start()
 

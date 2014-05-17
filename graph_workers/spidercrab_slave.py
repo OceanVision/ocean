@@ -7,16 +7,12 @@
     can be partially overwritten (merged) with parameters given from master.
 """
 
-import os
-import sys
-
 from optparse import OptionParser
 from threading import Thread
 
 from spidercrab import Spidercrab
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
-from don_utils import get_running_service, get_my_node_id
+from don_corleone import don_utils as du
 
 spidercrabs = []
 spidercrab_slave_threads = []
@@ -41,19 +37,9 @@ def get_spidercrab_graph_workers():
 
 if __name__ == '__main__':
 
-    don_config = dict()
-    try:
-        don_config = don_config = get_running_service(
-            service_name='spidercrab_slave',
-            node_id=get_my_node_id(),
-            enforce_running=False
-        )['service_config']
-    except Exception as error:
-        print str(error)
-
-    default_number = don_config.get('number', 1)
-    default_export_file_name = don_config.get('export_cs_to', None)
-    default_export_stats_file_name = don_config.get('export_stats_to', None)
+    default_number = 1
+    default_export_file_name = None
+    default_export_stats_file_name = None
 
     parser = OptionParser()
     parser.add_option(
