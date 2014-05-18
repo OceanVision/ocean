@@ -1,31 +1,59 @@
 Lionfish
 ===
 
-### Notes
+### Scala-based client
 
-The Lionfish server is inteded to work on a remote node. The client works as a normal class.
-
-Exemplary usage of the **Scala-based** client:
+The Lionfish client works as a normal package. In order to use the client, you might build a _.jar_
+package of the Lionfish project and import the client classes:
 
 ```scala
-// Initialisation
-val cl = new Client
-cl.connect()
-
-// Single method execution
-val rawSingleResult = cl.getByUuid("974eeacc-a07d-11e3-9f3a-2cd05ae1c39b").run()
-val singleResult = rawResult.asInstanceOf[List[Map[String, Any]]]
-
-// Using batch
-val bt = cl.getBatch
-bt += cl.getByLink("ContentSource", "http://www.gry-online.pl/")
-bt += cl.getByUuid("974eeacc-a07d-11e3-9f3a-2cd05ae1c39b")
-bt += cl.getChildren("970fc9d2-a07d-11e3-9f3a-2cd05ae1c39b", "<<INSTANCE>>")
-bt += cl.getByUuid("974ee946-a07d-11e3-9f3a-2cd05ae1c39b")
-val batchResult = bt.submit()
-
-cl.disconnect()
+import com.lionfish.client._
 ```
+
+As the Scala-based client has changed recently, it requires some description. Current implementation
+involves streams which are responsible for processing and sending requests. The client is now
+divided into three significant parts:
+
+* _Database_ - the object which contains Lionfish methods implemented as case classes
+* _SequenceStream_ - the class which is responsible for processing a sequence of Lionfish methods,
+it guarantees methods are executed in natural order
+* _BatchStream_ - the class whose job is to process a batch of Lionfish methods, it might be
+significantly faster than _SequenceStream_ in dealing with large requests, however it **does not**
+ensure methods are executed in natural order
+
+You can use a stream (both _SequenceStream_ and _BatchStream_) in this way:
+
+```scala
+val seqStream = Database.getSequenceStream
+seqStream << Database.getByUuid("97746a22-a07d-11e3-9f3a-2cd05ae1c39b")
+val result = seqStream.execute()
+```
+
+It is not the only possible usage. If you don't like writing an additional line of code in order to
+commit a request, you might do it as you wish:
+
+```scala
+val batchStream = Database.getBatchStream
+val result = batchStream !! Database.getByUuid("97746a22-a07d-11e3-9f3a-2cd05ae1c39b")
+```
+
+Moreover, you are able to chain different methods within one request:
+
+```scala
+val batchStream = Database.getBatchStream
+batchStream << (Database.getByUuid("97746a22-a07d-11e3-9f3a-2cd05ae1c39b")
+  << Database.getByLink("ContentSource", "http://www.gry-online.pl/"))
+val result = batchStream.execute()
+```
+
+```scala
+val seqStream = Database.getSequenceStream
+val result = (seqStream
+  !! (Database.getByUuid("97746a22-a07d-11e3-9f3a-2cd05ae1c39b")
+  << Database.getByLink("ContentSource", "http://www.gry-online.pl/")))
+```
+
+### Python-based client
 
 Exemplary usage of the **Python-based** client:
 
@@ -48,7 +76,7 @@ batch_result = bt.submit()
 cl.disconnect()
 ```
 
-### Code coverage (planned)
+### Code coverage
 
 Each test case of the set 1 examines one method.
 
@@ -76,8 +104,9 @@ The table below applies to read methods: **_getChildren_**, **_getInstances_**
 
 #### Set 1.3
 
-The table below applies to write methods: **_setProperties_**, **_createNode_**, **_deleteNode_**,
-**_deleteRelationship_**
+The table below applies to write methods: **_setProperties_**, **_deleteProperties_**,
+**_createNode_**, **_deleteNode_**, **_deleteRelationship_**, **_setRelationshipProperties_**,
+**_deleteRelationshipProperties_**
 
 | using batch | correct input |
 | :---------: | :-----------: |
