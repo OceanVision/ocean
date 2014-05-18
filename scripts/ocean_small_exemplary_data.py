@@ -75,25 +75,25 @@ if __name__ == '__main__':
     # ===================== MODELS =====================
     type_list = [
         node(
-            uuid=str(uuid.uuid1()),
+            uuid='2a48170c-de7e-11e3-ac4e-2cd05ae1c39b',
             app_label=APP_LABEL,
             name=APP_LABEL+':'+NEOUSER_TYPE_MODEL_NAME,
             model_name=NEOUSER_TYPE_MODEL_NAME
         ),
         node(
-            uuid=str(uuid.uuid1()),
+            uuid='3daaa954-de7e-11e3-ac4e-2cd05ae1c39b',
             app_label=APP_LABEL,
             name=APP_LABEL+':'+TAG_TYPE_MODEL_NAME,
             model_name=TAG_TYPE_MODEL_NAME
         ),
         node(
-            uuid=str(uuid.uuid1()),
+            uuid='62515fdc-de7e-11e3-ac4e-2cd05ae1c39b',
             app_label=APP_LABEL,
             name=APP_LABEL+':'+CONTENT_SOURCE_TYPE_MODEL_NAME,
             model_name=CONTENT_SOURCE_TYPE_MODEL_NAME
         ),
         node(
-            uuid=str(uuid.uuid1()),
+            uuid='69a2e71a-de7e-11e3-ac4e-2cd05ae1c39b',
             app_label=APP_LABEL,
             name=APP_LABEL+':'+CONTENT_TYPE_MODEL_NAME,
             model_name=CONTENT_TYPE_MODEL_NAME

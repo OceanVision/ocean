@@ -8,7 +8,7 @@ import socket
 # based on Scala).
 
 HOST = 'localhost'  # 'ocean-lionfish.no-ip.biz'
-PORT = 21
+PORT = 7777
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../graph_workers/graph_workers'))
 from graph_utils import *
@@ -48,11 +48,11 @@ class Client(object):
             """
             data = self._get_data_for_batch(func, args, params)
 
-            func_name = data['funcName']
-            if func_name not in self.tasks:
-                self.tasks[func_name] = [[data['args'], self.count]]
+            method_name = data['methodName']
+            if method_name not in self.tasks:
+                self.tasks[method_name] = [[data['args'], self.count]]
             else:
-                self.tasks[func_name].append([data['args'], self.count])
+                self.tasks[method_name].append([data['args'], self.count])
             self.count += 1
 
         def submit(self):
@@ -60,6 +60,7 @@ class Client(object):
             Executes tasks which are currently appended to the list
             """
             request = {
+                'type': 'batch',
                 'tasks': self.tasks,
                 'count': self.count
             }
@@ -119,15 +120,20 @@ class Client(object):
         @param uuid string
         """
         data = {
-            'funcName': 'getByUuid',
+            'methodName': 'getByUuid',
             'args': {
                 'uuid': uuid
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         return self.recv()
 
     def get_by_link(self, model_name, link, **params):
@@ -137,16 +143,21 @@ class Client(object):
         @param link string
         """
         data = {
-            'funcName': 'getByLink',
+            'methodName': 'getByLink',
             'args': {
                 'modelName': model_name,
                 'link': link
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         return self.recv()
 
     def get_model_nodes(self, **params):
@@ -154,16 +165,21 @@ class Client(object):
         Gets model nodes
         """
         data = {
-            'funcName': 'getModelNodes',
+            'methodName': 'getModelNodes',
             'args': {}
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
         }
 
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         return self.recv()
 
-    def get_children(self, parent_uuid, relationship_type, children_properties, relationship_properties,
+    def get_children(self, parent_uuid, relationship_type, children_properties, relationship_properties={},
     **params):
         """
         Gets children of node with parent_uuid uuid related by relation relationship_type
@@ -174,7 +190,7 @@ class Client(object):
         @param relationship_properties dictionary
         """
         data = {
-            'funcName': 'getChildren',
+            'methodName': 'getChildren',
             'args': {
                 'parentUuid': parent_uuid,
                 'relType': relationship_type,
@@ -183,12 +199,17 @@ class Client(object):
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         return self.recv()
 
-    def get_instances(self, model_name, children_properties, relationship_properties, **params):
+    def get_instances(self, model_name, children_properties={}, relationship_properties={}, **params):
         """
         Gets all instances of given model_name with children_properties and relationship_properties
         @param model_name string
@@ -196,7 +217,7 @@ class Client(object):
         @param relationship_properties dictionary
         """
         data = {
-            'funcName': 'getInstances',
+            'methodName': 'getInstances',
             'args': {
                 'modelName': model_name,
                 'childrenProps': children_properties,
@@ -204,9 +225,14 @@ class Client(object):
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         return self.recv()
 
     def set(self, uuid, **properties):
@@ -216,16 +242,21 @@ class Client(object):
         @param properties dictionary/keywords
         """
         data = {
-            'funcName': 'setProperties',
+            'methodName': 'setProperties',
             'args': {
                 'uuid': uuid,
                 'props': properties
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         self.recv()
 
     def set_properties(self, uuid, **properties):
@@ -235,16 +266,21 @@ class Client(object):
         @param properties dictionary/keywords
         """
         data = {
-            'funcName': 'setProperties',
+            'methodName': 'setProperties',
             'args': {
                 'uuid': uuid,
                 'props': properties
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         self.recv()
 
     def delete_properties(self, uuid, **property_keys):
@@ -254,16 +290,21 @@ class Client(object):
         @param property_keys dictionary/keywords
         """
         data = {
-            'funcName': 'deleteProperties',
+            'methodName': 'deleteProperties',
             'args': {
                 'uuid': uuid,
                 'propKeys': property_keys
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         self.recv()
 
     def create_node(self, model_name, relationship_type='<<INSTANCE>>', **properties):
@@ -274,7 +315,7 @@ class Client(object):
         @param properties dictionary/keywords
         """
         data = {
-            'funcName': 'createNodes',
+            'methodName': 'createNodes',
             'args': {
                 'modelName': model_name,
                 'relType': relationship_type,
@@ -282,9 +323,14 @@ class Client(object):
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         return self.recv()
 
     def delete_node(self, uuid, **params):
@@ -293,15 +339,20 @@ class Client(object):
         @param uuid string
         """
         data = {
-            'funcName': 'deleteNodes',
+            'methodName': 'deleteNodes',
             'args': {
                 'uuid': uuid
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         self.recv()
 
     def create_relationship(self, start_node_uuid, end_node_uuid, relationship_type, **properties):
@@ -314,7 +365,7 @@ class Client(object):
         @param properties dictionary/keywords
         """
         data = {
-            'funcName': 'createRelationships',
+            'methodName': 'createRelationships',
             'args': {
                 'startNodeUuid': start_node_uuid,
                 'endNodeUuid': end_node_uuid,
@@ -323,9 +374,14 @@ class Client(object):
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         return self.recv()
 
     def delete_relationship(self, start_node_uuid, end_node_uuid, **params):
@@ -335,16 +391,21 @@ class Client(object):
         @param end_node_uuid string
         """
         data = {
-            'funcName': 'deleteRelationships',
+            'methodName': 'deleteRelationships',
             'args': {
                 'startNodeUuid': start_node_uuid,
                 'endNodeUuid': end_node_uuid
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         self.recv()
 
     def set_relationship_properties(self, start_node_uuid, end_node_uuid, **properties):
@@ -356,7 +417,7 @@ class Client(object):
         @param properties dictionary/keywords
         """
         data = {
-            'funcName': 'setRelationshipProperties',
+            'methodName': 'setRelationshipProperties',
             'args': {
                 'startNodeUuid': start_node_uuid,
                 'endNodeUuid': end_node_uuid,
@@ -364,9 +425,14 @@ class Client(object):
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         self.recv()
 
     def delete_relationship_properties(self, start_node_uuid, end_node_uuid, **prop_keys):
@@ -378,7 +444,7 @@ class Client(object):
         @param property_keys dictionary/keywords
         """
         data = {
-            'funcName': 'deleteRelationshipProperties',
+            'methodName': 'deleteRelationshipProperties',
             'args': {
                 'startNodeUuid': start_node_uuid,
                 'endNodeUuid': end_node_uuid,
@@ -386,9 +452,14 @@ class Client(object):
             }
         }
 
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
-        self.send(data)
+        self.send(request)
         self.recv()
 
     # def execute_query(self, query_string, **params):
@@ -399,13 +470,18 @@ class Client(object):
     #     @param params dictionary/keywords
     #     """
     #     data = {
-    #         'funcName': 'execute_query',
+    #         'methodName': 'execute_query',
     #         'args': [query_string, params]
+    #     }
+    #
+    #     request = {
+    #         'type': 'sequence',
+    #         'tasks': [data]
     #     }
     #
     #     if inspect.stack()[1][3] == '_get_data_for_batch':
     #         return data
-    #     self.send(data)
+    #     self.send(request)
     #     return self.recv()
     #
     # def run_query(self, query_string, **params):
@@ -415,11 +491,16 @@ class Client(object):
     #     @param params dictionary/keywords
     #     """
     #     data = {
-    #         'funcName': 'run_query',
+    #         'methodName': 'run_query',
     #         'args': [query_string, params]
+    #     }
+    #
+    #     request = {
+    #         'type': 'sequence',
+    #         'tasks': [data]
     #     }
     #
     #     if inspect.stack()[1][3] == '_get_data_for_batch':
     #         return data
-    #     self.send(data)
+    #     self.send(request)
     #     self.recv()

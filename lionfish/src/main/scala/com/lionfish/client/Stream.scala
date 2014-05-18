@@ -1,28 +1,23 @@
 package com.lionfish.client
 
-import java.util.UUID
-import akka.actor._
-import akka.remote._
+import java.net.Socket
 
 trait Stream {
-  protected val streamSystem: ActorSystem
-  protected val proxyAddress: String
-  protected val proxyPort: Int
+  protected val serverAddress: String
+  protected val serverPort: Int
 
-  // Connects to proxy
-  protected val proxyPath = s"akka.tcp://proxySystem@$proxyAddress:$proxyPort/user/proxy"
-  protected implicit val proxy = streamSystem.actorSelection(proxyPath)
-
-  protected implicit val streamUuid = UUID.randomUUID().toString
+  // Connects to the server
+  protected implicit val socket: Socket = new Socket(serverAddress, serverPort)
 
   protected var macroMethod: Method = null
 
-  def <<(method: Method) = {
+  def <<(method: Method): Stream = {
     if (macroMethod == null) {
       macroMethod = method
     } else {
       macroMethod << method
     }
+    this
   }
 
   def !!(method: Method): Any

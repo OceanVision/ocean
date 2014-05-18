@@ -6,15 +6,15 @@ import com.typesafe.config.ConfigFactory
 import com.lionfish.utils.Config
 
 object Launcher {
-  private val proxyAddress = "localhost"
-  private var proxyPort = Config.defaultProxyPort
+  private val serverAddress = "localhost"
+  private var serverPort = Config.defaultServerPort
 
-  def getProxyAddress: String = {
-    proxyAddress
+  def getServerAddress: String = {
+    serverAddress
   }
 
-  def getProxyPort: Int = {
-    proxyPort
+  def getServerPort: Int = {
+    serverPort
   }
 
   private def parseParams(args: Array[String]): Map[String, Any] = {
@@ -44,19 +44,21 @@ object Launcher {
 
     // Sets params
     if (params.contains("debug")) {
-      proxyPort = 7777
+      serverPort = 7777
     }
 
     if (params.contains("port")) {
-      proxyPort = params("port").asInstanceOf[Int]
+      serverPort = params("port").asInstanceOf[Int]
     }
 
     println(DatabaseManager.databasePath)
 
     // Creates remote proxy worker
-    val config = ConfigFactory.load("proxySystem")
-    val portConfig = ConfigFactory.parseString(s"akka.remote.netty.tcp.port = $proxyPort")
-    val proxySystem = ActorSystem("proxySystem", portConfig.withFallback(config))
-    proxySystem.actorOf(Props(new Proxy), "proxy")
+//    val config = ConfigFactory.load("proxySystem")
+//    val portConfig = ConfigFactory.parseString(s"akka.remote.netty.tcp.port = $serverPort")
+//    val proxySystem = ActorSystem("proxySystem", portConfig.withFallback(config))
+//    proxySystem.actorOf(Props(new Server), "proxy")
+    Server.port = serverPort
+    new Thread(Server).start()
   }
 }

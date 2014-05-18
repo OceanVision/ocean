@@ -13,9 +13,8 @@ import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb._
 import org.neo4j.cypher.{ExecutionEngine, ExecutionResult}
 import org.neo4j.tooling.GlobalGraphOperations
-import org.neo4j.server.AbstractNeoServer
-
-
+import org.neo4j.server.WrappingNeoServerBootstrapper
+import org.neo4j.kernel.GraphDatabaseAPI
 
 // TODO: logging, nicer way of handling errors
 
@@ -44,6 +43,12 @@ object DatabaseManager {
 
   println(srv.getServer.baseUri())
 
+  val srv = new WrappingNeoServerBootstrapper(graphDB.asInstanceOf[GraphDatabaseAPI])
+  srv.start()
+
+  private val globalOperations = GlobalGraphOperations.at(graphDB)
+  private val cypherEngine = new ExecutionEngine(graphDB)
+  private var cypherResult: ExecutionResult = null
 
   // Simple cache of model nodes
   private var modelNodes: Map[String, Node] = Map()
