@@ -4,7 +4,7 @@ list=$(pgrep -f "odm_server.py")
 
 for proc in $list
 do
-    echo `cat ocean_password` | sudo -S kill -9 $proc
+    sudo -E kill -9 $proc
 done
 
 list=$(pgrep -f "odm_server.py")

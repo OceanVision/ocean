@@ -1,6 +1,9 @@
 /**
  * Main file running system
  */
+
+//TODO: localhost!=127.0.0.1? See to that and replace in config to localhost everything
+
 package mantisshrimp
 
 import com.typesafe.config.ConfigFactory
@@ -50,7 +53,7 @@ case class Config(
                   mantis_master_name: String = "mantis_master",
                   config_path: String = "mantis.conf" ,
                   logging_strategy: String = MantisLiterals.MantisLoggerStdErrConf,
-                  lionfish_host: String = "127.0.0.1",
+                  lionfish_host: String = "localhost",
                   lionfish_port: Int = 7777
 
                    )
@@ -265,8 +268,32 @@ object Main extends App{
 
 
   }
+  val port = config.port
+  val hostname = config.host
+
+  val config_string = s"""
+        akka {
+            actor {
+              provider = "akka.remote.RemoteActorRefProvider"
+            }
+            remote {
+                enabled-transports = ["akka.remote.netty.tcp"]
+                netty.tcp {
+                  hostname = $hostname
+                  port = $port
+               }
+            }
+            }
+    """
+
+  //Create system
+  system = ActorSystem(config.actor_system_name,
+    ConfigFactory.load(ConfigFactory.parseString(config_string)))
+
+
+  val config_local = Map[String, String](MantisLiterals.ParentMantisPath->"")
   val sample_job = system.actorOf(Props(new
-      MantisNewsDumperLionfish(Map[String, String]("parentMantisPath"->""))), "tmp")
+      MantisNewsDumperLionfish(config_local)), "tmp")
 
 
   //runMantisShrimp

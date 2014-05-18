@@ -351,14 +351,14 @@ def _run_service(service_id):
         for p in service_configs[m[SERVICE]][CONFIG_PARAMS]:
             if len(p) == 2:
                 #Non dependant
-                params += " --{0} {1}".format(p[0], m[SERVICE_PARAMETERS].get(p[0], p[1]))
+                params += " --{0}={1}".format(p[0], m[SERVICE_PARAMETERS].get(p[0], p[1]))
             elif len(p) == 3:
                 # Dependant
-                params += " --{0} {1}".format(p[0], _get_configuration(service_name=p[2].split(":")[0], service_id=None,\
+                params += " --{0}={1}".format(p[0], _get_configuration(service_name=p[2].split(":")[0], service_id=None,\
                                                                       node_id=m[NODE_ID], config_name=p[2].split(":")[1]))
             # No default value
             elif len(p) == 1 and p[0] in m[SERVICE_PARAMETERS]:
-                params += " --{0} {1}".format(p[0], m[SERVICE_PARAMETERS][p[0]])
+                params += " --{0}={1}".format(p[0], m[SERVICE_PARAMETERS][p[0]])
 
 
 
@@ -460,12 +460,16 @@ def get_service():
 @app.route('/register_service', methods=['POST'])
 def register_service():
     try:
+
+        run = json.loads(request.form['run'])
+        service_name = json.loads(request.form['service'])
+        public_url = json.loads(request.form['public_url'])
+        config = json.loads(request.form['config'])
+
+
         output = OK
         with services_lock:
-            run = json.loads(request.form['run'])
-            service_name = json.loads(request.form['service'])
-            public_url = json.loads(request.form['public_url'])
-            config = json.loads(request.form['config'])
+
 
             for node_resp in config[NODE_RESPONSIBILITIES]:
                 if node_resp[0] == service_name:
