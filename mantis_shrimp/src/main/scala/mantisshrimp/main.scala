@@ -19,7 +19,7 @@ import akka.actor._
 import scala.concurrent.duration._
 import scala.concurrent.Await
 
-import com.lionfish.client
+import com.lionfish.client._
 
 object MantisLiterals{
   val ParentMantisPath:String = "parentMantisPath"
@@ -71,6 +71,8 @@ object Main extends App{
   println("WARNING: hardcoded setup for RabbitMQ logger and RabbitMQ connection. " +
     "Modify mantishrimp.utils package. Will change soon enought")
 
+
+
   //Encoding for JSON parsing
   implicit val enc = Encodings.`UTF-8`
 
@@ -112,6 +114,13 @@ object Main extends App{
     sys.exit(1)
   }
 
+  //TODO: add checking master reachability and lionfish reachability
+
+
+  Database.setProxyAddress(config.lionfish_host)
+  Database.setProxyPort(config.lionfish_port)
+
+
 
   if(config.logging_strategy == MantisLiterals.MantisLoggerRabbitConf){
      mantisLogger = mantisshrimp.utils.LoggerRabbitMQ
@@ -121,6 +130,10 @@ object Main extends App{
      println("Not recognized logging_strategy")
      sys.exit(1)
   }
+
+
+
+
 
   ///Runs system specified in this mantis shrimp node
   def runMantisShrimp = {
@@ -252,7 +265,10 @@ object Main extends App{
 
 
   }
+  val sample_job = system.actorOf(Props(new
+      MantisNewsDumperLionfish(Map[String, String]("parentMantisPath"->""))), "tmp")
 
-  runMantisShrimp
+
+  //runMantisShrimp
 
 }

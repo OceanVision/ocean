@@ -111,8 +111,12 @@ class Spidercrab(GraphWorker):
         @type master: Spidercrab
         """
 
-        # Clean logs. TODO: do not use unix command
-        os.system("rm "+self.STANDARD_STATS_EXPORT_FILE)
+        
+        try:
+            stats = json.loads(open(self.STANDARD_STATS_EXPORT_FILE, "r").read())
+        except:
+            # Clean logs. TODO: do not use unix command
+            os.system("rm "+self.STANDARD_STATS_EXPORT_FILE)
 
         self.logger = logger
         # Config used to be stored inside the database (only values from file)
