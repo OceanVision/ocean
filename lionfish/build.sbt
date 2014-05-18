@@ -11,6 +11,12 @@ resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/release
 libraryDependencies += "org.neo4j" % "neo4j" % "2.0.2"
 
 libraryDependencies ++= Seq(
+  "org.neo4j.app" % "neo4j-server" % "2.0.2"
+)
+
+libraryDependencies ++= Seq("com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.3.3")
+
+libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.3.2",
   "com.typesafe.akka" %% "akka-remote" % "2.3.2"
 )

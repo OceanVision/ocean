@@ -193,9 +193,9 @@ class RequestHandler extends Actor {
   }
 
   def receive = {
-    case Request(clientUuid, request) => {
+    case Request(connectionUuid, request) => {
       val result = handle(request)
-      sender ! Response(clientUuid, result)
+      sender ! Response(connectionUuid, result)
     }
   }
 }

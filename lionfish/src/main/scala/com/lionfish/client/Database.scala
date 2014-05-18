@@ -5,32 +5,31 @@ import com.typesafe.config.ConfigFactory
 import com.lionfish.utils.Config
 
 object Database extends Factory {
-  private val streamSystem = ActorSystem("streamSystem", ConfigFactory.load("streamSystem"))
-  private var proxyAddress = Config.defaultProxyAddress
-  private var proxyPort = Config.defaultProxyPort
+  private var serverAddress = Config.defaultServerAddress
+  private var serverPort = Config.defaultServerPort
 
-  def getProxyAddress = {
-    proxyAddress
+  def getServerAddress = {
+    serverAddress
   }
 
-  def getProxyPort = {
-    proxyPort
+  def getServerPort = {
+    serverPort
   }
 
-  def setProxyAddress(address: String) = {
-    proxyAddress = address
+  def setServerAddress(address: String) = {
+    serverAddress = address
   }
 
-  def setProxyPort(port: Int) = {
-    proxyPort = port
+  def setServerPort(port: Int) = {
+    serverPort = port
   }
 
   def getBatchStream: Stream = {
-    new BatchStream(streamSystem, proxyAddress, proxyPort)
+    new BatchStream(serverAddress, serverPort)
   }
 
   def getSequenceStream: Stream = {
-    new SequenceStream(streamSystem, proxyAddress, proxyPort)
+    new SequenceStream(serverAddress, serverPort)
   }
 
   case class getByUuid(private val nodeUuid: String) extends Method {
