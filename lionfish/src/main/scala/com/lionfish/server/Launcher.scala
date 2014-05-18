@@ -51,6 +51,8 @@ object Launcher {
       proxyPort = params("port").asInstanceOf[Int]
     }
 
+    println(DatabaseManager.databasePath)
+
     // Creates remote proxy worker
     val config = ConfigFactory.load("proxySystem")
     val portConfig = ConfigFactory.parseString(s"akka.remote.netty.tcp.port = $proxyPort")

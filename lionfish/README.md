@@ -1,6 +1,19 @@
 Lionfish
 ===
 
+### Running
+
+Temporarily you will need to copy neo4j.app jars to lib folder.
+
+http://mvnrepository.com/artifact/org.neo4j.app/neo4j-server/2.0.2
+
+Then you can run 
+
+`./run.sh -p 7777`
+
+Later you will be able to configure GraphDB path, whether to run the REST
+console and REST console port
+
 ### Scala-based client
 
 The Lionfish client works as a normal package. In order to use the client, you might build a _.jar_
