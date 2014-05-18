@@ -7,7 +7,10 @@
 """
 import sys, os
 sys.path.append(os.path.abspath(".."))
-from graph_workers import odm_client
+sys.path.append(os.path.abspath("../lionfish/"))
+import python_lionfish
+from python_lionfish.client.client import Client
+
 from don_corleone import don_utils as du
 
 
@@ -38,7 +41,7 @@ def check_lionfish_communication():
     """
         Returns true if lionfish works OK
     """
-    lionfish_client = odm_client.ODMClient()
+    lionfish_client = Client()
     lionfish_client.connect()
     lionfish_client.create_model('spidercrab_integrity_test')
     found_instances = lionfish_client.get_model_nodes()
