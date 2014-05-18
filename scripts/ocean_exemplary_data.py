@@ -49,7 +49,11 @@ if __name__ == '__main__':
     print 'Press Enter to continue or Ctrl+C to abort.'
     enter = raw_input()
 
-    os.system('python2 ocean_init_graph.py')
+    retcode = os.system('python2 ocean_init_graph.py')
+
+    if retcode != 0:
+        print "FAILED ocean_init_graph.py. Exiting"
+        exit(1)
 
     # Create connection
     graph_db = neo4j.GraphDatabaseService(

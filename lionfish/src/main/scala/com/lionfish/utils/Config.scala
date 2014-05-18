@@ -1,6 +1,7 @@
 package com.lionfish.utils
 
 object Config {
+
   val defaultServerAddress = "ocean-lionfish.no-ip.biz"
   val defaultServerPort = 21
 

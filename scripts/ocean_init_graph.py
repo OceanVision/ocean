@@ -9,6 +9,8 @@
 
 import sys
 import os
+import uuid
+
 
 from py2neo import neo4j
 from py2neo import node, rel
@@ -24,119 +26,99 @@ from graph_workers.graph_defines import *
 
 APP_LABEL = 'rss'
 
-if __name__ == '__main__':
-    # Create connection
+
+
+def run_and_return_type_list():
+    # Create connection        
+    neo4j_port = None
+    neo4j_host = None
     graph_db = neo4j.GraphDatabaseService(
-        'http://{0}:{1}/db/data/'.format(
-            get_configuration("neo4j", "host"),
-            get_configuration("neo4j", "port"))
-    )
+            'http://{0}:{1}/db/data/'.format(neo4j_host if neo4j_host else
+        get_configuration("neo4j","host"), neo4j_port if  neo4j_port else get_configuration("neo4j", "port"))
+        )
+    # graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
 
     print 'Running', __file__
     print 'This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*'
+    print 'NOTE: The Root node is required to exist in database.'
     print 'Press enter to proceed...'
-
     enter = raw_input()
 
-    my_batch = neo4j.ReadBatch(graph_db)
-    my_batch.append_cypher('match (n) return count(n);')
-    nodes_count = my_batch.submit()
-    print 'Nodes in graph initially', nodes_count
+    read_batch = neo4j.ReadBatch(graph_db)
+    read_batch.append_cypher('MATCH n RETURN count(n)')
+    print 'Nodes in graph initially ', read_batch.submit()
     print 'Erasing nodes and relations'
+    read_batch.clear()
 
-    if nodes_count == [0]:
-        # Create root
-        graph_db.create(node())
+    # Erases database data without the Root node
+    write_batch = neo4j.WriteBatch(graph_db)
+    write_batch.append_cypher('MATCH ()-[r]-() DELETE r')
+    write_batch.append_cypher('MATCH n DELETE n')
+    write_batch.submit()
+    write_batch.clear()
 
-    my_batch = neo4j.WriteBatch(graph_db)
-    my_batch.append_cypher('match (a)-[r]-(b) delete r;')
-    # fix: do not delete the root
-    my_batch.append_cypher('match (n) where id(n) <> 0 delete n ;')
-    my_batch.submit()
-
-    my_batch = neo4j.ReadBatch(graph_db)
-    my_batch.append_cypher('match (n) return count(n);')
-    result = my_batch.submit()
+    # Sanity check
+    read_batch.append_cypher('MATCH (n) RETURN count(n)')
+    result = read_batch.submit()
     print 'Nodes in graph erased. Sanity check : ', result
+    read_batch.clear()
 
-    if result[0] != 1:
+    if result[0] > 0:
         raise Exception('Not erased graph properly')
 
-    # Clear root
-    my_batch.append_cypher(
-        'MATCH (r) WHERE id(r) = 0 SET r = {};'
-    )
-    my_batch.submit()
+    # Configures the Root node
+    write_batch.append_cypher('CREATE (n:Root {uuid: "root"}) RETURN id(n)')
+    root_result = write_batch.submit()
+    write_batch.clear()
 
-    my_batch = neo4j.WriteBatch(graph_db)
-    my_batch.append_cypher('match (e:Root) set e:Node;')
-    my_batch.append_cypher('match (e:Root) set e.uuid="root";')
-    my_batch.submit()
+    root = graph_db.node(root_result[0])
+    root.add_labels('Node')
 
-    ### Add webservice types ###
-    types = [
+    # ===================== MODELS =====================
+    type_list = [
         node(
-            uuid='970f37f6-a07d-11e3-9f3a-2cd05ae1c39b',
-            app_label=APP_LABEL,
-            name=APP_LABEL+':'+WEBSITE_TYPE_MODEL_NAME,
-            model_name=WEBSITE_TYPE_MODEL_NAME
-        ),
-        node(
-            uuid='970f6d5c-a07d-11e3-9f3a-2cd05ae1c39b',
+            uuid=str(uuid.uuid1()),
             app_label=APP_LABEL,
             name=APP_LABEL+':'+NEOUSER_TYPE_MODEL_NAME,
             model_name=NEOUSER_TYPE_MODEL_NAME
         ),
         node(
-            uuid='970f9b7e-a07d-11e3-9f3a-2cd05ae1c39b',
+            uuid=str(uuid.uuid1()),
             app_label=APP_LABEL,
-            name=APP_LABEL+':'+CONTENT_TYPE_MODEL_NAME,
-            model_name=CONTENT_TYPE_MODEL_NAME
+            name=APP_LABEL+':'+TAG_TYPE_MODEL_NAME,
+            model_name=TAG_TYPE_MODEL_NAME
         ),
         node(
-            uuid='970fc9d2-a07d-11e3-9f3a-2cd05ae1c39b',
+            uuid=str(uuid.uuid1()),
             app_label=APP_LABEL,
             name=APP_LABEL+':'+CONTENT_SOURCE_TYPE_MODEL_NAME,
             model_name=CONTENT_SOURCE_TYPE_MODEL_NAME
+        ),
+        node(
+            uuid=str(uuid.uuid1()),
+            app_label=APP_LABEL,
+            name=APP_LABEL+':'+CONTENT_TYPE_MODEL_NAME,
+            model_name=CONTENT_TYPE_MODEL_NAME
         )
     ]
 
-    types = graph_db.create(*types)
-    for item in types:
+    type_list = graph_db.create(*type_list)
+    for item in type_list:
         item.add_labels('Model', 'Node')
 
-    # Create type relations
-    write_batch = neo4j.WriteBatch(graph_db)
-
-    # Create instance relations
-    query = """
-            MATCH (r), (m:Model) WHERE id(r) = 0
-            CREATE (r)-[:`%s`]->(m)
-            RETURN r, m
-        """
-    query %= HAS_TYPE_RELATION
-    write_batch.append_cypher(query)
-    write_batch.submit()
-
-    ### Add users ###
-    # Create nodes
-    users = [
-        node(uuid='974ee6b2-a07d-11e3-9f3a-2cd05ae1c39b', username='kudkudak'),
-        node(uuid='974ee946-a07d-11e3-9f3a-2cd05ae1c39b', username='konrad'),
-        node(uuid='974eeacc-a07d-11e3-9f3a-2cd05ae1c39b', username='brunokam'),
-        node(uuid='974eec34-a07d-11e3-9f3a-2cd05ae1c39b', username='szymon')
-    ]
-    users = graph_db.create(*users)
-    for item in users:
-        item.add_labels('NeoUser', 'Node')
-
-    # Create instance relations
+    # Creates type relations
     graph_db.create(
-        rel(types[1], HAS_INSTANCE_RELATION, users[0]),
-        rel(types[1], HAS_INSTANCE_RELATION, users[1]),
-        rel(types[1], HAS_INSTANCE_RELATION, users[2]),
-        rel(types[1], HAS_INSTANCE_RELATION, users[3])
+        rel(root, HAS_TYPE_RELATION, type_list[0]),
+        rel(root, HAS_TYPE_RELATION, type_list[1]),
+        rel(root, HAS_TYPE_RELATION, type_list[2]),
+        rel(root, HAS_TYPE_RELATION, type_list[3])
     )
 
     print 'Graph populated successfully.'
     print 'NOTE: Remember to restart Lionfish ODM server.'
+
+    return type_list
+
+
+if __name__ == "__main__":
+    run_and_return_type_list()
