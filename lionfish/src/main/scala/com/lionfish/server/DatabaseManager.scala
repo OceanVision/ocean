@@ -1,12 +1,5 @@
 package com.lionfish.server
 
-import org.neo4j.kernel._
-import org.neo4j.server._
-import org.neo4j.server.configuration._
-import org.neo4j.server.database._
-import org.neo4j.server.preflight._
-
-
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
@@ -15,37 +8,48 @@ import org.neo4j.cypher.{ExecutionEngine, ExecutionResult}
 import org.neo4j.tooling.GlobalGraphOperations
 import org.neo4j.server.WrappingNeoServerBootstrapper
 import org.neo4j.kernel.GraphDatabaseAPI
+import org.neo4j.kernel._
+import org.neo4j.server._
+import org.neo4j.server.configuration._
+import org.neo4j.server.database._
+import org.neo4j.server.preflight._
+import com.lionfish.utils.Config
 
 // TODO: logging, nicer way of handling errors
 
 object DatabaseManager {
-  val databasePath = "/var/lib/neo4j/data/graph.db" // TODO: consider SCALA_HOME in some way
-  val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath)
+  private val databasePath = "/data/graph.db"
+  private var neo4jPath = Config.defaultNeo4jPath
+  private var neo4jConsolePort = Config.defaultNeo4jConsolePort
+  private val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(neo4jPath + databasePath)
 
-  val globalOperations = GlobalGraphOperations.at(graphDB)
-  val cypherEngine = new ExecutionEngine(graphDB)
-  var cypherResult: ExecutionResult = null
+  private val globalOperations = GlobalGraphOperations.at(graphDB)
+  private val cypherEngine = new ExecutionEngine(graphDB)
+  private var cypherResult: ExecutionResult = null
 
-  println("Running neo4j rest")
-
-  val config = new ServerConfigurator(graphDB.asInstanceOf[GraphDatabaseAPI]);
+  private val config = new ServerConfigurator(graphDB.asInstanceOf[GraphDatabaseAPI])
   config.configuration().setProperty(
-    Configurator.WEBSERVER_PORT_PROPERTY_KEY, 7478);
+    Configurator.WEBSERVER_PORT_PROPERTY_KEY, neo4jConsolePort
+  )
+
   config.configuration().setProperty(
-  Configurator.HTTP_LOGGING, Configurator.DEFAULT_HTTP_LOGGING
-  )                                                           ;
+    Configurator.HTTP_LOGGING, Configurator.DEFAULT_HTTP_LOGGING
+  )
 
-
-  val srv = new WrappingNeoServerBootstrapper(graphDB.asInstanceOf[GraphDatabaseAPI], config);
-
-
+  private val srv = new WrappingNeoServerBootstrapper(graphDB.asInstanceOf[GraphDatabaseAPI], config)
   srv.start()
-
-  println(srv.getServer.baseUri())
 
   // Simple cache of model nodes
   private var modelNodes: Map[String, Node] = Map()
   initCache()
+
+  def setNeo4jPath(path: String) = {
+    neo4jPath = path
+  }
+
+  def setNeo4jConsolePort(port: Int) = {
+    neo4jConsolePort = port
+  }
 
   private def parseMap(node: Node): Map[String, Any] = {
     try {
@@ -174,15 +178,14 @@ object DatabaseManager {
     val tx = graphDB.beginTx()
     try {
       val rawResult: ListBuffer[Any] = ListBuffer()
+      val label = DynamicLabel.label("Node")
 
       // Gets nodes by uuid
       for (item <- args) {
         // Extracts result
-        val rawNode = graphDB.findNodesByLabelAndProperty(
-          DynamicLabel.label("Node"),
-          "uuid",
-          item("uuid").asInstanceOf[String]
-        )
+        val uuid = item("uuid").asInstanceOf[String]
+        val rawNode = graphDB.findNodesByLabelAndProperty(label, "uuid", uuid)
+
         val it = rawNode.iterator()
         if (it.hasNext) {
           rawResult += parseMap(it.next())
@@ -217,11 +220,10 @@ object DatabaseManager {
       // Gets nodes by uuid
       for (item <- args) {
         // Extracts result
-        val rawNode = graphDB.findNodesByLabelAndProperty(
-          DynamicLabel.label(item("modelName").asInstanceOf[String]),
-          "link",
-          item("link").asInstanceOf[String]
-        )
+        val label = DynamicLabel.label(item("modelName").asInstanceOf[String])
+        val link = item("link").asInstanceOf[String]
+        val rawNode = graphDB.findNodesByLabelAndProperty(label, "link", link)
+
         val it = rawNode.iterator()
         if (it.hasNext) {
           rawResult += parseMap(it.next())
@@ -229,6 +231,83 @@ object DatabaseManager {
           rawResult += null
         }
         it.close()
+      }
+      tx.success()
+      result = rawResult.toList
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+        result = List()
+    } finally {
+      tx.close()
+    }
+
+    result
+  }
+
+  def getByTag(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[Any] = null
+
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[Any] = ListBuffer()
+      val label = DynamicLabel.label("Tag")
+
+      // Gets nodes by uuid
+      for (item <- args) {
+        // Extracts result
+        val tag = item("tag").asInstanceOf[String]
+        val rawNode = graphDB.findNodesByLabelAndProperty(label, "tag", tag)
+
+        val it = rawNode.iterator()
+        if (it.hasNext) {
+          rawResult += parseMap(it.next())
+        } else {
+          rawResult += null
+        }
+        it.close()
+      }
+      tx.success()
+      result = rawResult.toList
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+        result = List()
+    } finally {
+      tx.close()
+    }
+
+    result
+  }
+
+  def getByLabel(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[Any] = null
+
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[Any] = ListBuffer()
+
+      // Gets nodes by label
+      for (item <- args) {
+        val nodeWithOneLabel: ListBuffer[Map[String, Any]] = ListBuffer()
+
+        // Extracts result
+        val label = DynamicLabel.label(item("label").asInstanceOf[String])
+        val rawNode = globalOperations.getAllNodesWithLabel(label)
+
+        val it = rawNode.iterator()
+        while (it.hasNext) {
+          nodeWithOneLabel += parseMap(it.next())
+        }
+        it.close()
+
+        rawResult += nodeWithOneLabel.toList
       }
       tx.success()
       result = rawResult.toList

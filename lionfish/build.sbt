@@ -2,7 +2,7 @@ name := "lionfish"
 
 version := "0.9.3"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.4"
 
 javacOptions ++= Seq("-source", "1.7")
 

@@ -128,7 +128,8 @@ class Spidercrab(GraphWorker):
         self._init_config(master, config_file_name)
 
         self.required_privileges = construct_full_privilege()
-        self.odm_client = Client()
+        # TODO: use configuration!
+	self.odm_client = Client('localhost', 7777)
         self.terminate_event = threading.Event()
         self.runtime_id = runtime_id
         self.master_sources_urls_file = master_sources_urls_file

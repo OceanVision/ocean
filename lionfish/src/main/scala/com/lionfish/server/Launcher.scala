@@ -6,22 +6,14 @@ import com.typesafe.config.ConfigFactory
 import com.lionfish.utils.Config
 
 object Launcher {
-  private val serverAddress = "localhost"
-  private var serverPort = Config.defaultServerPort
-
-  def getServerAddress: String = {
-    serverAddress
-  }
-
-  def getServerPort: Int = {
-    serverPort
-  }
-
   private def parseParams(args: Array[String]): Map[String, Any] = {
     var result: Map[String, Any] = Map()
     for (item <- args) {
       val arg = item.split("=")
       arg(0) match {
+        case "--debug" => {
+          result += "debug" -> null
+        }
         case "--port" => {
           try {
             result += "port" -> arg(1).toInt
@@ -29,8 +21,19 @@ object Launcher {
             case e: Exception => println("Invalid parameter: port")
           }
         }
-        case "--debug" => {
-          result += "debug" -> null
+        case "--neo4j-path" => {
+          try {
+            result += "neo4j-path" -> arg(1)
+          } catch {
+            case e: Exception => println("Invalid parameter: neo4j-path")
+          }
+        }
+        case "--neo4j-console-port" => {
+          try {
+            result += "neo4j-console-port" -> arg(1).toInt
+          } catch {
+            case e: Exception => println("Invalid parameter: neo4j-console-port")
+          }
         }
       }
     }
@@ -44,21 +47,25 @@ object Launcher {
 
     // Sets params
     if (params.contains("debug")) {
-      serverPort = 7777
+      Server.port = 7777
+    } else if (params.contains("port")) {
+      Server.port = params("port").asInstanceOf[Int]
     }
 
-    if (params.contains("port")) {
-      serverPort = params("port").asInstanceOf[Int]
+    if (params.contains("neo4j-path")) {
+      var neo4jPath = params("neo4j-path").asInstanceOf[String]
+      if (neo4jPath(neo4jPath.length - 1) == '/') {
+        neo4jPath = neo4jPath.substring(0, neo4jPath.length - 1)
+      }
+
+      DatabaseManager.setNeo4jPath(neo4jPath)
     }
 
-    println(DatabaseManager.databasePath)
+    if (params.contains("neo4j-console-port")) {
+      DatabaseManager.setNeo4jConsolePort(params("neo4j-console-port").asInstanceOf[Int])
+    }
 
-    // Creates remote proxy worker
-//    val config = ConfigFactory.load("proxySystem")
-//    val portConfig = ConfigFactory.parseString(s"akka.remote.netty.tcp.port = $serverPort")
-//    val proxySystem = ActorSystem("proxySystem", portConfig.withFallback(config))
-//    proxySystem.actorOf(Props(new Server), "proxy")
-    Server.port = serverPort
+    DatabaseManager
     new Thread(Server).start()
   }
 }
