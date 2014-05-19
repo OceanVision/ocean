@@ -33,12 +33,14 @@ SERVICE_NEO4J = "neo4j"
 SERVICE_SPIDERCRAB_MASTER = "spidercrab_master"
 SERVICE_SPIDERCRAB_SLAVE = "spidercrab_slave"
 SERVICE_LIONFISH_SCALA = "lionfish_scala"
-
+SERVICE_MANTIS_SHRIMP_MASTER = "mantis_shrimp_master"
+SERVICE_MANTIS_SHRIMP = "mantis_shrimp"
 
 KNOWN_SERVICES = set([SERVICE_LIONFISH,  SERVICE_NEO4J,
                       SERVICE_KAFKA, SERVICE_ZOOKEEPER, SERVICE_SPIDERCRAB_MASTER,\
                       SERVICE_SPIDERCRAB_SLAVE, SERVICE_TEST_SERVICE,
-                      SERVICE_LIONFISH_SCALA
+                      SERVICE_LIONFISH_SCALA, SERVICE_MANTIS_SHRIMP_MASTER,
+                      SERVICE_MANTIS_SHRIMP
 
                       ])
 

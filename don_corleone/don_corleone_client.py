@@ -13,7 +13,7 @@ import sys
 
 
 from terminate_node import terminate_node
-from don_utils import get_don_corleone_url, has_succeded
+from don_utils import get_don_corleone_url, has_succeded, don_test_file
 
 from optparse import OptionParser
 import time
@@ -61,7 +61,7 @@ def install_node(node_config, run=True):
     global terminated
     """ Waits for webserver to start """
 
-    while node_config[MASTER_LOCAL] and os.system("./scripts/don_corleone_test.sh") != 0 and not terminated:
+    while node_config[MASTER_LOCAL] and os.system(don_test_file) != 0 and not terminated:
         logger.info("Still don corleone not running. Try running it yourself using ./scripts/don_corleone_run.sh")
         time.sleep(1)
 

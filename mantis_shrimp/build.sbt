@@ -1,6 +1,10 @@
+import com.github.retronym.SbtOneJar._
+
 lazy val stampleRootProject = Project(id = "mantis_shrimp",base = file("."))
 
 name := "mantis_shrimp"
+
+//oneJarSettings
 
 excludeFilter in unmanagedSources := HiddenFileFilter || "FourClassNERTagger.scala"
 
@@ -52,4 +56,4 @@ libraryDependencies ++= Seq("com.propensive" %% "rapture-fs" % "0.9.0")
 
 libraryDependencies ++= Seq("com.propensive" %% "rapture-fs" % "0.9.0" classifier "javadoc")
 
-
+libraryDependencies += "commons-lang" % "commons-lang" % "2.6"

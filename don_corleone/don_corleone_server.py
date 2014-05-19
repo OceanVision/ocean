@@ -377,7 +377,8 @@ def resolve_don_value(value, node_id):
             if s == "node":
                 if config == "host":
                     with synchronizer:
-                        return registered_nodes[node_id][NODE_ADDRESS]
+                        return "localhost" if registered_nodes[node_id][NODE_ADDRESS] == "127.0.0.1" \
+                            else registered_nodes[node_id][NODE_ADDRESS]
                 else:
                     raise ERROR_NOT_RECOGNIZED_CONFIGURATION
 
