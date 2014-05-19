@@ -15,9 +15,10 @@ CLIENT_CONFIG_SSH_USER = "ssh-user"
 CLIENT_CONFIG_SSH_HOST = "public_ssh_domain"
 CLIENT_CONFIG_SSH_PORT = "ssh-port"
 
-
+CONFIG_DEFAULT_SERVICE_CONFIG = "default_service_config"
+CONFIG_ADDS = "adds"
 CONFIG_DEPENDS = "depends"
-CONFIG_PARAMS = "params"
+CONFIG_ARGUMENTS = "arguments"
 CONFIG_UNARY = "unary"
 CONFIG_RUN_SCRIPT = "run_script"
 CONFIG_TERMINATE_SCRIPT = "terminate_script"
