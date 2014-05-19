@@ -51,6 +51,7 @@ import subprocess
 from don_corleone_constants import *
 from don_utils import logger
 from flask.ext.jsonpify import jsonify
+from flask import g
 
 
 #Configuration for services read from CONFIG_DIRECTORY
@@ -64,14 +65,36 @@ registered_nodes = {}
 services = []
 
 # Lock for synchronization
-services_lock = threading.RLock()
-registered_nodes_lock = threading.RLock()
+node_services_lock = threading.RLock()
 
 # Sttatus of checker daemon
 status_checker_job_status = "NotRunning"
 
 # Default configs for services
 default_service_params = {}
+
+
+class DummySynchronizer:
+    def __enter__(self):
+        pass
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+
+class Synchronizer:
+    def __enter__(self):
+        global services, registered_nodes
+        services = getattr(g, "_services", None)
+        registered_nodes = getattr(g, "_registered_nodes", None)
+
+
+    
+    def __exit__(self, type, value, traceback):
+        global services, registered_nodes
+        json.dumps(services, )
+
+synchronizer = DummySynchronizer()
 
 
 import socket
@@ -98,32 +121,32 @@ def get_bare_ip(address):
         return address
 
 def is_service_by_id(service_id):
-    return filter(lambda x: x[SERVICE_ID] == service_id, services)
+    with synchronizer:
+        return filter(lambda x: x[SERVICE_ID] == service_id, services)
 
 #TODO: package as a class
 def get_service_by_id(service_id):
     """ Returns service given service_id """
-    with services_lock:
-        if not filter(lambda x: x[SERVICE_ID] == service_id, services):
-            raise ERROR_NOT_REGISTERED_SERVICE
-        else:
-            if len(filter(lambda x: x[SERVICE_ID] == service_id, services)) > 1:
-                logger.error("Duplicated service_id")
-                exit(1)
+    if not filter(lambda x: x[SERVICE_ID] == service_id, services):
+        raise ERROR_NOT_REGISTERED_SERVICE
+    else:
+        if len(filter(lambda x: x[SERVICE_ID] == service_id, services)) > 1:
+            logger.error("Duplicated service_id")
+            exit(1)
 
-            result = filter(lambda x: x[SERVICE_ID] == service_id, services)[0]
+        result = filter(lambda x: x[SERVICE_ID] == service_id, services)[0]
     return result
 
 def get_node_services(node_id):
     """ Returns service of given node_id"""
-    with services_lock:
+    with synchronizer:
         # Return is fine in with clause
         return [s for s in services if s[NODE_ID] == node_id]
 
 #TODO: package as a class
 def add_service(service):
     """ Adds service """
-    with services_lock:
+    with synchronizer:
         # Check if no duplicate or duplicate and local
         if not is_service_by_id(service[SERVICE_ID]) or service[SERVICE_LOCAL]:
 
@@ -143,7 +166,7 @@ def add_service(service):
 #TODO: package as a class
 def remove_service(service_id):
     """ Removes service from registered services """
-    with services_lock:
+    with synchronizer:
         found_id = None
         found_service = None
         #TODO: more functional style
@@ -165,7 +188,7 @@ def remove_service(service_id):
             logger.error("Node not registered, fatal error")
             raise ERROR_NODE_NOT_REGISTERED
         else:
-            with registered_nodes_lock:
+            with synchronizer:
                 for id, m in enumerate(
                         registered_nodes[found_service[NODE_ID]][NODE_RESPONSIBILITIES]):
                     if m[SERVICE_ID] == service_id:
@@ -247,7 +270,7 @@ def update_status(m):
 
 
 
-    with services_lock:
+    with synchronizer:
 
         logger.info(("Checking server availability for ",m[SERVICE_ID], "result ", str(status)))
         logger.info(output)
@@ -268,7 +291,7 @@ def status_checker_job():
         for m in services:
                 update_status(m)
 
-        with registered_nodes_lock:
+        with synchronizer:
             for n in registered_nodes.itervalues():
                 ret = os.system("ping {0} -c 1".format(n[NODE_ADDRESS]))
                 if ret != 0:
@@ -310,7 +333,7 @@ def _terminate_service(service_id):
     """ Terminate service given service_id
         @returns OK or DonCorleoneExcpetion
     """
-    with services_lock:
+    with synchronizer:
         if not get_service_by_id(service_id):
             raise ERROR_NOT_REGISTERED_SERVICE
 
@@ -331,7 +354,7 @@ def _terminate_service(service_id):
     status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID],m)
 
 
-    with services_lock:
+    with synchronizer:
         logger.info(("Terminating service ",service_id, "output", output, "status ",status))
 
         if status == OK:
@@ -353,7 +376,7 @@ def resolve_don_value(value, node_id):
             print s, config
             if s == "node":
                 if config == "host":
-                    with registered_nodes_lock:
+                    with synchronizer:
                         return registered_nodes[node_id][NODE_ADDRESS]
                 else:
                     raise ERROR_NOT_RECOGNIZED_CONFIGURATION
@@ -370,7 +393,7 @@ def _run_service(service_id):
     """ Run service given service_id
         @returns OK or DonCorleone exception
     """
-    with services_lock:
+    with synchronizer:
         m = get_service_by_id(service_id)
 
         if m[SERVICE_STATUS] == STATUS_RUNNING:
@@ -411,10 +434,8 @@ def _run_service(service_id):
 
     status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID],m)
 
-    with services_lock:
+    with synchronizer:
         logger.info(("Running service ",service_id, "output", output, "status ",status))
-    
-    update_status(m)
 
     return status
 
@@ -422,7 +443,7 @@ def _deregister_service(service_id):
     """ Deregister service given service_id
         @returns OK or DonCorleone exception
     """
-    with services_lock:
+    with synchronizer:
 
         #TODO: add special handling for local
         if not get_service_by_id(service_id):
@@ -466,11 +487,11 @@ from flask import Response
 def register_node():
     try:
         output = OK
-        with services_lock:
+        with synchronizer:
             node_config = json.loads(request.form['node_config'])
             node_id = json.loads(request.form['node_id'])
 
-            with registered_nodes_lock:
+            with synchronizer:
                 if not node_id in registered_nodes:
                     node = {NODE_ID:node_id, NODE_ADDRESS:node_config[CLIENT_CONFIG_SSH_HOST],NODE_CONFIG:node_config, NODE_RESPONSIBILITIES:[], NODE_SSH_HOST:node_config[CLIENT_CONFIG_SSH_HOST],
                     NODE_SSH_PORT:node_config[CLIENT_CONFIG_SSH_PORT], NODE_SSH_USER:node_config[CLIENT_CONFIG_SSH_USER]
@@ -501,7 +522,7 @@ def get_service():
 def _register_service(run, service_name, public_url, node_config, local, node_id, forced_service_params):
     try:
 
-        with services_lock:
+        with synchronizer:
 
             # Read in service and copy **parameters**
             service_params = dict(default_service_params[service_name])
@@ -509,8 +530,6 @@ def _register_service(run, service_name, public_url, node_config, local, node_id
             for key in service_params.iterkeys():
                 service_params[key] = resolve_don_value(service_params[key], node_id)
 
-            logger.info(service_params)
-            logger.info(forced_service_params)
 
             service_id = None
 
@@ -519,9 +538,9 @@ def _register_service(run, service_name, public_url, node_config, local, node_id
                     service_id = node_resp[1].get('service_id', None)
 
 
-            logger.info("Registering "+str(service_id)+ " service_name="+str(service_name))
+            logger.info("Registering "+str(service_id)+ " service_name="+str(service_name) +" and run = "+str(run))
 
-            with registered_nodes_lock:
+            with synchronizer:
                 if not node_id in registered_nodes:
                     raise ERROR_NOT_REGISTERED_NODE
 
@@ -586,7 +605,7 @@ def _register_service(run, service_name, public_url, node_config, local, node_id
             logger.info(("Registering " if not run else "Running and registering ")+str(service_dict))
 
 
-            update_status(service_dict)
+            #update_status(service_dict)
 
 
             if run:
@@ -614,15 +633,13 @@ def _register_service(run, service_name, public_url, node_config, local, node_id
 
             return service_id
     except Exception ,e:
-        raise BaseException(pack_error(e))
+        raise DonCorleoneException(pack_error(e))
 
 @app.route('/register_service', methods=['POST'])
 def register_service():
     try:
 
 
-
-        print request.form
         run = json.loads(request.form['run'])
         service_name = json.loads(request.form['service'])
 
@@ -631,13 +648,13 @@ def register_service():
 
         public_url = json.loads(request.form['public_url'])
         node_config = json.loads(request.form['node_config'])
-        local = request.form['local'] if 'local' in request.form else False
+
         node_id = json.loads(request.form['node_id'])
         # Load default service additional config (like port configuration)
         additional_service_parameters = {}
         if 'additional_config' in request.form:
             additional_service_parameters.update(json.loads(request.form['additional_config']))
-
+        local = additional_service_parameters.get("local", False)
 
 
         service_id = \
@@ -700,13 +717,15 @@ import flask
 
 @app.route('/get_services')
 def get_services():
-    with services_lock:
+    running = request.args.get('running')
+    if running == "true":
+        return jsonify(result=[s for s in services if s[SERVICE_STATUS] == STATUS_RUNNING])
+    else:
         return jsonify(result=services)
 
 @app.route('/get_nodes')
 def get_nodes():
-    with registered_nodes_lock:
-        return jsonify(result=registered_nodes)
+    return jsonify(result=registered_nodes)
 
 
 
@@ -751,7 +770,7 @@ def _get_configuration(service_name, service_id, config_name, node_id):
             s = _get_service(service_name, service_id, node_id)
             return s[SERVICE_PARAMETERS][config_name]
         except Exception, e:
-            raise pack_error(e)
+            raise DonCorleoneException(pack_error(e))
 
 
 
@@ -764,6 +783,7 @@ def get_configuration():
         if not picks  the global one (always only one!!).
     """
     try:
+        logger.info("Getting configuration")
 
         # Get input parameters
         service_name = request.args.get('service_name')
@@ -806,7 +826,7 @@ def _terminate_node(node_id):
     logger.info("Terminating node "+node_id)
 
     try:
-        with services_lock:
+        with synchronizer:
             for m in get_node_services(node_id):
                 # Try deregistering the service and delegate errror checking to _run_service
                 try:
@@ -820,7 +840,7 @@ def _terminate_node(node_id):
                     logger.error("Failed deregistering service " + m[SERVICE_ID] + " with unexpected error "+str(e))
                     return jsonify(error=str(ERROR_FAILED_SERVICE_RUN))
 
-        with registered_nodes_lock:
+        with synchronizer:
             registered_nodes.pop(node_id)
 
     except Exception, e:
@@ -871,7 +891,7 @@ def register_reversed():
         while os.system("./scripts/test_port.sh "+str(port)) == 0:
             port += 1
 
-        with registered_nodes_lock:
+        with synchronizer:
             registered_nodes[node_id].update({NODE_SSH_HOST: "127.0.0.1", NODE_SSH_PORT: port})
 
         return jsonify(result={"ssh-user":ssh_user_don, "ssh-port":ssh_port_don, "ssh-host":ssh_host_don, "ssh-port-redirect":port})
@@ -957,4 +977,4 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 if __name__ == '__main__':
     read_configs()
     run_daemons()
-    app.run(port=8881)
+    app.run(port=8881, processes=3)

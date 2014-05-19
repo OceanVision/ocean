@@ -9,6 +9,7 @@ from don_corleone import don_utils as du
 neo4j_host = du.get_configuration('neo4j', 'host')
 neo4j_port = du.get_configuration('neo4j', 'port')
 
+print "Neo4j configured at ",neo4j_host, " ",neo4j_port
 
 try:
     import socket

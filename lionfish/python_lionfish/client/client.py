@@ -96,6 +96,7 @@ class Client(object):
         except Exception as e:
             logger.log(error_level, 'Connecting failed. {error}'
                        .format(error=str(e)))
+            raise e
 
     def disconnect(self):
         try:
@@ -104,6 +105,7 @@ class Client(object):
         except Exception as e:
             logger.log(error_level, 'Disconnecting failed. {error}'
                        .format(error=str(e)))
+            raise e
 
     def send(self, data):
         try:
@@ -112,6 +114,7 @@ class Client(object):
             logger.log(info_level, 'Not sent data {data}'.format(data=data))
             logger.log(error_level, 'Sending data failed. {error}'
                        .format(error=str(e)))
+            raise e
 
     def recv(self):
         data = None
@@ -120,6 +123,7 @@ class Client(object):
         except Exception as e:
             logger.log(error_level, 'Receiving data failed. {error}'
                        .format(error=str(e)))
+            raise e
         return data
 
     def get_batch(self):

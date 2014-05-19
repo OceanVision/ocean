@@ -114,8 +114,9 @@ def install_node(node_config, run=True):
 
 
         print get_don_corleone_url(node_config)
+        print "Registering and waiting for response..."
         response = urllib2.urlopen(get_don_corleone_url(node_config)+"/register_service", params).read()
-        print response
+        print "Response...", response
 
 	if has_succeded(response):
 	    service_ids.append(json.loads(response)['result'])
@@ -131,8 +132,10 @@ def install_node(node_config, run=True):
         for service_id in service_ids:
             print "Running ",service_id
             for i in xrange(20):
+                print "Calling run service"
                 response = urllib2.urlopen(get_don_corleone_url(node_config)+\
             "/run_service?service_id="+str(service_id)).read()
+                print "Response..."
                 if not has_succeded(response):
                     logger.error("SHOULDNT HAPPEN FAILED RUNNING")
                     logger.error(response)
@@ -203,15 +206,28 @@ def run_client(config, state_callback):
 
     #Run daemon - ONLY PROTOTYPED
     while True:
+        while os.path.exists("command_queue_lock"):
+            print "Locked.."
+            time.sleep(0.01)
+
         os.system("sudo -u {0} touch command_queue_lock".format(config[USER]))
-        commands = open("command_queue","r").readlines()
-        os.system("rm command_queue_lock && rm command_queue && sudo -u {0} touch command_queue".format(config[USER]))
+
+        commands = []
+
+        if os.path.exists("command_queue"):
+            commands = open("command_queue","r").readlines()
+            os.system("sudo rm command_queue")
+
+
+        os.system("sudo rm command_queue_lock".format(config[USER]))
+
         for cmd in commands:
             logger.info("Running remotedly requested command " + str(cmd))
             ret = os.system("sudo -u {0} sh -c \"{1}\"".format(config["ssh-user"], cmd))
             if ret != 0:
                 logger.info("Failed command")
             logger.info("Done")
+
         time.sleep(1)
 
 if __name__ == "__main__":

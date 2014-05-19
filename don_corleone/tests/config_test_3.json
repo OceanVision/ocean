@@ -3,8 +3,8 @@
 "master_local_url":"http://127.0.0.1:8881",
 "master_local":true,
 "node_responsibilities":[
-    ["neo4j",{"port":7474, "host":"192.168.0.15", "local":true}],
-    ["lionfish",{"port":7777, "host":"192.168.0.15", "local":true}]
+    ["neo4j",{"port":7474, "host":"localhost", "local":true}],
+    ["lionfish",{"port":7777, "host":"localhost", "local":true}]
 ],
 "node_id":"staszek",
 "home":"/home/moje/Projekty/ocean/ocean",

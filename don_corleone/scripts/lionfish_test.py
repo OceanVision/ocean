@@ -5,9 +5,6 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../../lionfish/")))
 sys.path.append(os.path.abspath(os.path.join(__file__, "..")))
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
 
-
-
-
 import python_lionfish
 from python_lionfish.client.client import Client
 from don_corleone import don_utils as du
