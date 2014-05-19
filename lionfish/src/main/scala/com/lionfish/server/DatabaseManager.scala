@@ -1,21 +1,47 @@
 package com.lionfish.server
 
+import org.neo4j.kernel._
+import org.neo4j.server._
+import org.neo4j.server.configuration._
+import org.neo4j.server.database._
+import org.neo4j.server.preflight._
+
+
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb._
 import org.neo4j.cypher.{ExecutionEngine, ExecutionResult}
 import org.neo4j.tooling.GlobalGraphOperations
+import org.neo4j.server.WrappingNeoServerBootstrapper
+import org.neo4j.kernel.GraphDatabaseAPI
 
 // TODO: logging, nicer way of handling errors
 
 object DatabaseManager {
-  private val databasePath = "/var/lib/neo4j/data/graph.db" // TODO: consider SCALA_HOME in some way
-  private val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath)
+  val databasePath = "/var/lib/neo4j/data/graph.db" // TODO: consider SCALA_HOME in some way
+  val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath)
 
-  private val globalOperations = GlobalGraphOperations.at(graphDB)
-  private val cypherEngine = new ExecutionEngine(graphDB)
-  private var cypherResult: ExecutionResult = null
+  val globalOperations = GlobalGraphOperations.at(graphDB)
+  val cypherEngine = new ExecutionEngine(graphDB)
+  var cypherResult: ExecutionResult = null
+
+  println("Running neo4j rest")
+
+  val config = new ServerConfigurator(graphDB.asInstanceOf[GraphDatabaseAPI]);
+  config.configuration().setProperty(
+    Configurator.WEBSERVER_PORT_PROPERTY_KEY, 7478);
+  config.configuration().setProperty(
+  Configurator.HTTP_LOGGING, Configurator.DEFAULT_HTTP_LOGGING
+  )                                                           ;
+
+
+  val srv = new WrappingNeoServerBootstrapper(graphDB.asInstanceOf[GraphDatabaseAPI], config);
+
+
+  srv.start()
+
+  println(srv.getServer.baseUri())
 
   // Simple cache of model nodes
   private var modelNodes: Map[String, Node] = Map()

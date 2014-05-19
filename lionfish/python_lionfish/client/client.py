@@ -8,7 +8,7 @@ import socket
 # based on Scala).
 
 HOST = 'localhost'  # 'ocean-lionfish.no-ip.biz'
-PORT = 21
+PORT = 7777
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../graph_workers'))
 from graph_utils import *
@@ -179,7 +179,7 @@ class Client(object):
         self.send(request)
         return self.recv()
 
-    def get_children(self, parent_uuid, relationship_type, children_properties, relationship_properties,
+    def get_children(self, parent_uuid, relationship_type, children_properties, relationship_properties={},
     **params):
         """
         Gets children of node with parent_uuid uuid related by relation relationship_type
@@ -209,7 +209,7 @@ class Client(object):
         self.send(request)
         return self.recv()
 
-    def get_instances(self, model_name, children_properties, relationship_properties, **params):
+    def get_instances(self, model_name, children_properties={}, relationship_properties={}, **params):
         """
         Gets all instances of given model_name with children_properties and relationship_properties
         @param model_name string

@@ -1,25 +1,19 @@
 package com.lionfish.client
 
+import java.net.Socket
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import akka.actor._
-import akka.pattern.ask
-import akka.util.Timeout
-import com.lionfish.messages.Request
+import com.lionfish.utils._
 
 // Abstract command
 trait Method {
-  private implicit val timeout = Timeout(600 seconds)
   var tasks: ListBuffer[Map[String, Any]] = ListBuffer(getRequest)
 
   // Template method
   protected def getRequest: Map[String, Any]
 
-  protected def execute(request: Map[String, Any])
-                       (implicit proxy: ActorSelection, streamUuid: String): Any = {
-    val future = proxy ? Request(streamUuid, request)
-    Await.result[Any](future, timeout.duration)
+  protected def execute(request: Map[String, Any])(implicit socket: Socket): Any = {
+    IO.send(request)
+    IO.receive[Any]()
   }
 
   def <<(method: Method): Method = {
@@ -27,7 +21,7 @@ trait Method {
     this
   }
 
-  def executeSequence()(implicit proxy: ActorSelection, streamUuid: String): Any = {
+  def executeSequence()(implicit socket: Socket): Any = {
     val finalRequest: Map[String, Any] = Map(
       "type" -> "sequence",
       "tasks" -> tasks.toList
@@ -36,7 +30,7 @@ trait Method {
     execute(finalRequest)
   }
 
-  def executeBatch()(implicit proxy: ActorSelection, streamUuid: String): List[Any] = {
+  def executeBatch()(implicit socket: Socket): List[Any] = {
     var groupedTasks: scala.collection.mutable.Map[String, List[List[Any]]] =
       scala.collection.mutable.Map()
     var count = 0

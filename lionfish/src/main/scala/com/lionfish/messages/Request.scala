@@ -1,3 +1,3 @@
 package com.lionfish.messages
 
-case class Request(clientUuid: String, request: Map[String, Any]) extends Message
+case class Request(connectionUuid: String, request: Map[String, Any]) extends Message

@@ -1,9 +1,10 @@
 package com.lionfish.utils
 
 object Config {
-  val defaultProxyAddress = "localhost"
-  val defaultProxyPort = 7777
 
-  val debugProxyAddress = "localhost"
-  val debugProxyPort = 7777
+  val defaultServerAddress = "ocean-lionfish.no-ip.biz"
+  val defaultServerPort = 21
+
+  val debugServerAddress = "localhost"
+  val debugServerPort = 7777
 }

@@ -15,13 +15,15 @@ import urllib2
 import uuid
 ### TODO: this line shouldn't be here (it worked on Konrad's laptop?) adding toquickly test
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../lionfish'))
 from don_corleone import don_utils as du
 
 from graph_workers.graph_defines import *
 from graph_workers.graph_utils import *
 from graph_workers.graph_worker import GraphWorker
 from graph_workers.privileges import construct_full_privilege
-from odm_client import ODMClient
+import python_lionfish
+from python_lionfish.client import Client 
 
 # Defining levels to get rid of other loggers
 info_level = 100
@@ -126,7 +128,7 @@ class Spidercrab(GraphWorker):
         self._init_config(master, config_file_name)
 
         self.required_privileges = construct_full_privilege()
-        self.odm_client = ODMClient()
+        self.odm_client = Client()
         self.terminate_event = threading.Event()
         self.runtime_id = runtime_id
         self.master_sources_urls_file = master_sources_urls_file

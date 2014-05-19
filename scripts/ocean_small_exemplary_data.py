@@ -35,8 +35,7 @@ if __name__ == '__main__':
             'http://{0}:{1}/db/data/'.format(neo4j_host if neo4j_host else
         get_configuration("neo4j","host"), neo4j_port if  neo4j_port else get_configuration("neo4j", "port"))
         )
- 
-   
+
     type_list = run_and_return_type_list() 
 
     # ===================== USERS =====================
