@@ -9,14 +9,14 @@ import socket
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../../../")))
 
-PORT, HOST = 0, ""
+PORT, ADDRESS = 0, ""
 
 try:
     import don_corleone.don_utils as du
-    HOST = du.get_configuration('lionfish', 'host')
+    ADDRESS = du.get_configuration('lionfish', 'host')
     PORT = du.get_configuration('lionfish', 'port')
 except Exception, e:
-    print "FAILED TO FETCH HOST AND PORT CONFIGURATION FROM DON CORLEONE"
+    print "FAILED TO FETCH ADDRESS AND PORT CONFIGURATION FROM DON CORLEONE"
     print str(e)
     exit(1)
 
@@ -83,8 +83,8 @@ class Client(object):
             self.count = 0
             return results
 
-    def __init__(self, host=HOST, port=PORT):
-        self._host = host
+    def __init__(self, address=ADDRESS, port=PORT):
+        self._address = address
         self._port = port
         self._conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 

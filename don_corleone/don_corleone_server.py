@@ -390,54 +390,57 @@ def resolve_don_value(value, node_id):
 
 
 def _run_service(service_id):
-    """ Run service given service_id
-        @returns OK or DonCorleone exception
-    """
-    with synchronizer:
-        m = get_service_by_id(service_id)
+    try:
+        """ Run service given service_id
+            @returns OK or DonCorleone exception
+        """
+        with synchronizer:
+            m = get_service_by_id(service_id)
 
-        if m[SERVICE_STATUS] == STATUS_RUNNING:
-            return ERROR_SERVICE_ALREADY_RUNNING
+            if m[SERVICE_STATUS] == STATUS_RUNNING:
+                raise ERROR_SERVICE_ALREADY_RUNNING
 
-        if m[SERVICE_STATUS] != STATUS_TERMINATED:
-            logger.error("Wrong service status")
-            exit(1)
+            if m[SERVICE_STATUS] != STATUS_TERMINATED:
+                logger.error("Wrong service status")
+                exit(1)
 
-        # Check dependencies
-        for d in service_config[m[SERVICE]][CONFIG_DEPENDS]:
-            try:
-                s = _get_service(d, None, m[NODE_ID])
-                if not s[SERVICE_STATUS] == STATUS_RUNNING:
-                    raise ERROR_NOT_SATISFIED_DEPENDENCIES_NOT_RUNNING
-            except Exception, e:
-                logger.error("Failed getting service in checking dependencies "+str(e))
-                raise e
+            # Check dependencies
+            for d in service_config[m[SERVICE]][CONFIG_DEPENDS]:
+                try:
+                    s = _get_service(d, None, m[NODE_ID])
+                    if not s[SERVICE_STATUS] == STATUS_RUNNING:
+                        raise ERROR_NOT_SATISFIED_DEPENDENCIES_NOT_RUNNING
+                except Exception, e:
+                    logger.error("Failed getting service in checking dependencies "+str(e))
+                    raise e
 
-        # Calculate params
-        params = ""
+            # Calculate params
+            params = ""
 
-        for p in service_config[m[SERVICE]][CONFIG_ARGUMENTS]:
-            if p[0] in m[SERVICE_PARAMETERS]:
-                params += " --{0}={1}".format(p[0], m[SERVICE_PARAMETERS][p[0]])
-            else:
-                params += " --{0}={1}".format(p[0], m[SERVICE_PARAMETERS].get(p[0], resolve_don_value(p[1], m[NODE_ID])))
-
-
-
+            for p in service_config[m[SERVICE]][CONFIG_ARGUMENTS]:
+                if p[0] in m[SERVICE_PARAMETERS]:
+                    params += " --{0}={1}".format(p[0], m[SERVICE_PARAMETERS][p[0]])
+                else:
+                    params += " --{0}={1}".format(p[0], m[SERVICE_PARAMETERS].get(p[0], resolve_don_value(p[1], m[NODE_ID])))
 
 
-        logger.info("Running {0} with params ".format(m[SERVICE_ID], params))
 
-        cmd = "(cd {0} && {1})".format(
-                                        os.path.join(m[SERVICE_HOME],"don_corleone"),
-                                        "./scripts/run.sh {1} ./scripts/{0} {2}".format(service_config[m[SERVICE]][CONFIG_RUN_SCRIPT], m[SERVICE_ID], params))
 
-    status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID],m)
 
-    with synchronizer:
-        logger.info(("Running service ",service_id, "output", output, "status ",status))
+            logger.info("Running {0} with params ".format(m[SERVICE_ID], params))
 
-    return status
+            cmd = "(cd {0} && {1})".format(
+                                            os.path.join(m[SERVICE_HOME],"don_corleone"),
+                                            "./scripts/run.sh {1} ./scripts/{0} {2}".format(service_config[m[SERVICE]][CONFIG_RUN_SCRIPT], m[SERVICE_ID], params))
+
+        status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID],m)
+
+        with synchronizer:
+            logger.info(("Running service ",service_id, "output", output, "status ",status))
+
+        return status
+    except Exception, e:
+        raise DonCorleoneException(pack_error(e))
 
 def _deregister_service(service_id):
     """ Deregister service given service_id
@@ -709,7 +712,7 @@ def run_service():
         return jsonify(error=pack_error(e))
     except Exception,e:
         logger.error("Failed running service " + service_id + " with non expected exception "+str(e))
-        return jsonify(result=str(ERROR_FAILED_SERVICE_RUN))
+        return jsonify(result=pack_error(e))
 
 
 

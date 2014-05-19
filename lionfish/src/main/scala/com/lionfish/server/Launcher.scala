@@ -17,6 +17,7 @@ object Launcher {
         case "--port" => {
           try {
             result += "port" -> arg(1).toInt
+            println("port")
           } catch {
             case e: Exception => println("Invalid parameter: port")
           }
@@ -24,6 +25,7 @@ object Launcher {
         case "--neo4j-path" => {
           try {
             result += "neo4j-path" -> arg(1)
+            println("neo4j-path")
           } catch {
             case e: Exception => println("Invalid parameter: neo4j-path")
           }
@@ -31,6 +33,7 @@ object Launcher {
         case "--neo4j-console-port" => {
           try {
             result += "neo4j-console-port" -> arg(1).toInt
+            println("neo4j-console-port")
           } catch {
             case e: Exception => println("Invalid parameter: neo4j-console-port")
           }
@@ -65,7 +68,9 @@ object Launcher {
       DatabaseManager.setNeo4jConsolePort(params("neo4j-console-port").asInstanceOf[Int])
     }
 
+
     DatabaseManager
+    DatabaseManager.initNeo4jConsole()
     new Thread(Server).start()
   }
 }

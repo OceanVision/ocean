@@ -18,26 +18,28 @@ import com.lionfish.utils.Config
 // TODO: logging, nicer way of handling errors
 
 object DatabaseManager {
-  private val databasePath = "/data/graph.db"
-  private var neo4jPath = Config.defaultNeo4jPath
-  private var neo4jConsolePort = Config.defaultNeo4jConsolePort
-  private val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(neo4jPath + databasePath)
+  val databasePath = "/data/graph.db"
+  var neo4jPath = Config.defaultNeo4jPath
+  var neo4jConsolePort = Config.defaultNeo4jConsolePort
+  val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(neo4jPath + databasePath)
 
-  private val globalOperations = GlobalGraphOperations.at(graphDB)
-  private val cypherEngine = new ExecutionEngine(graphDB)
-  private var cypherResult: ExecutionResult = null
+  val globalOperations = GlobalGraphOperations.at(graphDB)
+  val cypherEngine = new ExecutionEngine(graphDB)
+  var cypherResult: ExecutionResult = null
 
-  private val config = new ServerConfigurator(graphDB.asInstanceOf[GraphDatabaseAPI])
-  config.configuration().setProperty(
-    Configurator.WEBSERVER_PORT_PROPERTY_KEY, neo4jConsolePort
-  )
+  def initNeo4jConsole(){
+      val config = new ServerConfigurator(graphDB.asInstanceOf[GraphDatabaseAPI])
+      config.configuration().setProperty(
+        Configurator.WEBSERVER_PORT_PROPERTY_KEY, neo4jConsolePort
+      )
 
-  config.configuration().setProperty(
-    Configurator.HTTP_LOGGING, Configurator.DEFAULT_HTTP_LOGGING
-  )
+      config.configuration().setProperty(
+        Configurator.HTTP_LOGGING, Configurator.DEFAULT_HTTP_LOGGING
+      )
 
-  private val srv = new WrappingNeoServerBootstrapper(graphDB.asInstanceOf[GraphDatabaseAPI], config)
-  srv.start()
+      val srv = new WrappingNeoServerBootstrapper(graphDB.asInstanceOf[GraphDatabaseAPI], config)
+      srv.start()
+  }
 
   // Simple cache of model nodes
   private var modelNodes: Map[String, Node] = Map()

@@ -41,6 +41,9 @@ def check_lionfish_communication():
     """
         Returns true if lionfish works OK
     """
+    lionfish_host = du.get_configuration('lionfish', 'host')
+    lionfish_port = du.get_configuration('lionfish', 'port')
+
     lionfish_client = Client(lionfish_host, lionfish_port)
     lionfish_client.connect()
     lionfish_client.create_model('spidercrab_integrity_test')
