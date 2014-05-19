@@ -338,7 +338,7 @@ class Spidercrab(GraphWorker):
                 + str(self.given_config['graph_worker_id']) + '\'!')
 
         master_config = du.get_running_service(
-            service_config={
+            service_params={
                 'graph_worker_id': self.given_config['graph_worker_id']
             },
             enforce_running=False

@@ -1,4 +1,8 @@
+import com.github.retronym.SbtOneJar._
+
 name := "lionfish"
+
+oneJarSettings
 
 version := "0.9.3"
 
@@ -58,3 +62,5 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.1.4" % "test"
+
+libraryDependencies += "commons-lang" % "commons-lang" % "2.6"

@@ -4,7 +4,7 @@ File defines constants used by don corleone. Modify to reflect your needs.
 TODO: load from file
 """
 
-UPDATE_FREQ = 1
+UPDATE_FREQ = 10
 KILL_NODE_COUNTER = 1000*60 / (1000*UPDATE_FREQ) # Kill not answering server if doesn't answer for 60s
 CONFIG_DIRECTORY = "config"
 OK = "ok"
@@ -15,7 +15,7 @@ CLIENT_CONFIG_SSH_USER = "ssh-user"
 CLIENT_CONFIG_SSH_HOST = "public_ssh_domain"
 CLIENT_CONFIG_SSH_PORT = "ssh-port"
 
-CONFIG_DEFAULT_SERVICE_CONFIG = "default_service_config"
+CONFIG_DEFAULT_SERVICE_PARAMS = "default_service_params"
 CONFIG_ADDS = "adds"
 CONFIG_DEPENDS = "depends"
 CONFIG_ARGUMENTS = "arguments"
@@ -32,11 +32,13 @@ SERVICE_KAFKA = "kafka"
 SERVICE_NEO4J = "neo4j"
 SERVICE_SPIDERCRAB_MASTER = "spidercrab_master"
 SERVICE_SPIDERCRAB_SLAVE = "spidercrab_slave"
+SERVICE_LIONFISH_SCALA = "lionfish_scala"
 
 
 KNOWN_SERVICES = set([SERVICE_LIONFISH,  SERVICE_NEO4J,
                       SERVICE_KAFKA, SERVICE_ZOOKEEPER, SERVICE_SPIDERCRAB_MASTER,\
-                      SERVICE_SPIDERCRAB_SLAVE, SERVICE_TEST_SERVICE
+                      SERVICE_SPIDERCRAB_SLAVE, SERVICE_TEST_SERVICE,
+                      SERVICE_LIONFISH_SCALA
 
                       ])
 
@@ -63,7 +65,8 @@ SERVICE_HOME = "home"
 SERVICE_PORT = "port"
 SERVICE_RUN_CMD = "run_cmd"
 SERVICE_NAME = "service"
-SERVICE_PARAMETERS = "service_config" # Additional service config
+SERVICE_PARAMETERS = "service_params" # Additional service parameters
+SERVICE_CONFIG = "service_config" # Service config for given service, normally copied from config/* directory
 NODE_ID = "node_id" # Id for node
 SERVICE_LOCAL = "local"
 

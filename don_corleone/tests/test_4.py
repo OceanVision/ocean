@@ -57,8 +57,8 @@ class BasicTests(unittest.TestCase):
 
         print run_procedure(config, "get_services")
         
-        assert( get_running_service(service_name="neo4j", config=config) is not None )
-        assert( get_running_service(service_name="lionfish", config=config) is not None )
+        assert( get_running_service(service_name="neo4j", node_config=config) is not None )
+        assert( get_running_service(service_name="lionfish", node_config=config) is not None )
         
 #         response = json.loads(urllib2.urlopen(get_don_corleone_url(config)
 #                                +"/terminate_service?service_id=moj_neo4j").read())

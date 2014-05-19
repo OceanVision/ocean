@@ -7,9 +7,20 @@ import socket
 # The new Lionfish client (works properly only with the new server which is
 # based on Scala).
 
-HOST = 'localhost'  # 'ocean-lionfish.no-ip.biz'
-PORT = 7777
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../../")))
 
+PORT, HOST = 0, ""
+
+try:
+    import don_corleone.don_utils as du
+    HOST = du.get_configuration('lionfish', 'host')
+    PORT = du.get_configuration('lionfish', 'port')
+except Exception, e:
+    print "FAILED TO FETCH HOST AND PORT CONFIGURATION FROM DON CORLEONE"
+    print str(e)
+    exit(1)
+
+    
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../graph_workers'))
 from graph_utils import *
 
@@ -72,9 +83,9 @@ class Client(object):
             self.count = 0
             return results
 
-    def __init__(self):
-        self._host = HOST
-        self._port = PORT
+    def __init__(self, host=HOST, port=PORT):
+        self._host = host
+        self._port = port
         self._conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def connect(self):

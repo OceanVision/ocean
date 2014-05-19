@@ -1,28 +1,47 @@
-""" Server responsible for managing Ocean state.
-Ocean admin should be run on every node of our Ocean cluster.
+"""
+# Server responsible for managing Ocean state.
 
 
-Protocol: JSONP:
-if succeeded:
-    {
-        result: JSON(data)
-    }
-if error:
-     {
-        error: JSON(data)
-    }
+    State: prototype: everything is based on dictionaries. I should add classes to parse everything. It is very error prone
+
+    Note: it is not checking and asserting everything partially because of the design, partly because of the limited time resources ;)
+
+    TODO: repalce literals in request.form accessors
+
+    Ocean admin should be run on every node of our Ocean cluster.
+
+
+## Key concepts
+
+    configuration: node, or service config is a entity deifning its installtion, properties
+
+    params: can change from run to run, defines service parameters like host/port
+
+    arguments: these are arguments **pased** during running to the service, in most cases are derived from params
+
+
+## Protocol:
+
+    JSONP:
+    if succeeded:
+        {
+            result: JSON(data)
+        }
+    if error:
+         {
+            error: JSON(data)
+        }
 
 
 Services are added and not tested for accessibility first time. Services are added
 to service list which is periodically updated (terminated/running) status
-TODO: Testing server accessibiliy (ping) and terminating it if not accesible
+
 
 
 Assumptions:
 * SSH is non blocking (should timeout) NOTE: not timeouting right now
 ---------------
 * Every command can fail - it is ok if terminate/run fails
-
 
 """
 import json
@@ -35,7 +54,7 @@ from flask.ext.jsonpify import jsonify
 
 
 #Configuration for services read from CONFIG_DIRECTORY
-service_configs = {}
+service_config = {}
 
 #Nodes in the system
 #Each node is "config" + "services"
@@ -52,7 +71,7 @@ registered_nodes_lock = threading.RLock()
 status_checker_job_status = "NotRunning"
 
 # Default configs for services
-default_service_configs = {}
+default_service_params = {}
 
 
 import socket
@@ -219,7 +238,7 @@ def update_status(m):
 
     cmd = "(cd {0} && {1})".format(
                                     os.path.join(m[SERVICE_HOME],"don_corleone"),
-                                    "./scripts/{0}".format(service_configs[m[SERVICE]][CONFIG_TEST_SCRIPT]))
+                                    "./scripts/{0}".format(service_config[m[SERVICE]][CONFIG_TEST_SCRIPT]))
 
 
     logger.info("Running {0} to check if service is running ".format(cmd))
@@ -321,26 +340,27 @@ def _terminate_service(service_id):
 
         return status
 
-def resolve_don_value(value, service):
+def resolve_don_value(value, node_id):
     """
     @returns Resolved don value, for instance $node:host is service node's host (public_ssh_domain from config.json)
     """
 
-    if value is str:
+    if str(value) == value:
         if len(value) == 0: return value
 
         if value[0] == "$":
-            s, config = value.split("$")
-
+            s, config = value[1:].split(":")
+            print s, config
             if s == "node":
                 if config == "host":
                     with registered_nodes_lock:
-                        return registered_nodes[service[NODE_ID]][NODE_ADDRESS]
+                        return registered_nodes[node_id][NODE_ADDRESS]
                 else:
                     raise ERROR_NOT_RECOGNIZED_CONFIGURATION
 
-            return _get_configuration(service_name=s, service_id=None, node_id=service[NODE_ID], config_name=config)
-
+            return _get_configuration(service_name=s, service_id=None, node_id=node_id, config_name=config)
+        else:
+            return value
     else:
         return value
 
@@ -361,7 +381,7 @@ def _run_service(service_id):
             exit(1)
 
         # Check dependencies
-        for d in service_configs[m[SERVICE]][CONFIG_DEPENDS]:
+        for d in service_config[m[SERVICE]][CONFIG_DEPENDS]:
             try:
                 s = _get_service(d, None, m[NODE_ID])
                 if not s[SERVICE_STATUS] == STATUS_RUNNING:
@@ -373,11 +393,11 @@ def _run_service(service_id):
         # Calculate params
         params = ""
 
-        for p in service_configs[m[SERVICE]][CONFIG_ARGUMENTS]:
+        for p in service_config[m[SERVICE]][CONFIG_ARGUMENTS]:
             if p[0] in m[SERVICE_PARAMETERS]:
                 params += " --{0}={1}".format(p[0], m[SERVICE_PARAMETERS][p[0]])
             else:
-                params += " --{0}={1}".format(p[0], m[SERVICE_PARAMETERS].get(p[0], resolve_don_value(p[1], m)))
+                params += " --{0}={1}".format(p[0], m[SERVICE_PARAMETERS].get(p[0], resolve_don_value(p[1], m[NODE_ID])))
 
 
 
@@ -387,7 +407,7 @@ def _run_service(service_id):
 
         cmd = "(cd {0} && {1})".format(
                                         os.path.join(m[SERVICE_HOME],"don_corleone"),
-                                        "./scripts/run.sh {1} ./scripts/{0} {2}".format(service_configs[m[SERVICE]][CONFIG_RUN_SCRIPT], m[SERVICE_ID], params))
+                                        "./scripts/run.sh {1} ./scripts/{0} {2}".format(service_config[m[SERVICE]][CONFIG_RUN_SCRIPT], m[SERVICE_ID], params))
 
     status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID],m)
 
@@ -447,13 +467,13 @@ def register_node():
     try:
         output = OK
         with services_lock:
-            config = json.loads(request.form['config'])
+            node_config = json.loads(request.form['node_config'])
             node_id = json.loads(request.form['node_id'])
 
             with registered_nodes_lock:
                 if not node_id in registered_nodes:
-                    node = {NODE_ID:node_id, NODE_ADDRESS:config[CLIENT_CONFIG_SSH_HOST],NODE_CONFIG:config, NODE_RESPONSIBILITIES:[], NODE_SSH_HOST:config[CLIENT_CONFIG_SSH_HOST],
-                    NODE_SSH_PORT:config[CLIENT_CONFIG_SSH_PORT], NODE_SSH_USER:config[CLIENT_CONFIG_SSH_USER]
+                    node = {NODE_ID:node_id, NODE_ADDRESS:node_config[CLIENT_CONFIG_SSH_HOST],NODE_CONFIG:node_config, NODE_RESPONSIBILITIES:[], NODE_SSH_HOST:node_config[CLIENT_CONFIG_SSH_HOST],
+                    NODE_SSH_PORT:node_config[CLIENT_CONFIG_SSH_PORT], NODE_SSH_USER:node_config[CLIENT_CONFIG_SSH_USER]
                     }
                     registered_nodes[node_id] = node
             
@@ -478,130 +498,152 @@ def get_service():
         return pack_error(e)
 
 
-def _register_service(run, service_name, public_url, config):
+def _register_service(run, service_name, public_url, node_config, local, node_id, forced_service_params):
+    try:
 
-    output = OK
-    with services_lock:
+        with services_lock:
 
+            # Read in service and copy **parameters**
+            service_params = dict(default_service_params[service_name])
+            service_params.update(forced_service_params)
+            for key in service_params.iterkeys():
+                service_params[key] = resolve_don_value(service_params[key], node_id)
 
-        for node_resp in config[NODE_RESPONSIBILITIES]:
-            if node_resp[0] == service_name:
-                service_id = node_resp[1].get('service_id', None)
+            logger.info(service_params)
+            logger.info(forced_service_params)
 
+            service_id = None
 
-        logger.info("Registering "+str(service_id)+ " service_name="+str(service_name))
-
-        # Load default service additional config (like port configuration)
-        additional_service_parameters = default_service_configs.get(service_name, {})
-        try:
-            additional_service_parameters.update(json.loads(request.form['additional_config']))
-        except Exception, ex:
-            print request.form['additional_config']
-
-
-        node_id = json.loads(request.form['node_id'])
-
-        with registered_nodes_lock:
-            if not node_id in registered_nodes:
-                raise ERROR_NOT_REGISTERED_NODE
+            for node_resp in node_config[NODE_RESPONSIBILITIES]:
+                if node_resp[0] == service_name:
+                    service_id = node_resp[1].get('service_id', None)
 
 
-        # Check dependencies
-        for d in service_configs[service_name][CONFIG_DEPENDS]:
-            try:
-                s = _get_service(d, None, node_id)
-            except Exception, e:
-                raise ERROR_NOT_SATISFIED_DEPENDENCIES
+            logger.info("Registering "+str(service_id)+ " service_name="+str(service_name))
 
-        local = True if 'local' in request.form or additional_service_parameters.get('local', False)\
-            else False
+            with registered_nodes_lock:
+                if not node_id in registered_nodes:
+                    raise ERROR_NOT_REGISTERED_NODE
 
-        logger.info("Registering local="+str(local)+" service")
-
-
-        #Prepare service id
-        if service_id is None:
-            services_id_test = 0
-            service_list = [s[SERVICE_ID] for s in services if s[SERVICE] == service_name]
-            logger.info("Testing "+service_name+"_"+str(services_id_test))
-            while service_name+"_"+str(services_id_test) in service_list:
-                services_id_test += 1
-            service_id = service_name + "_" + str(services_id_test)
+            # Check dependencies
+            for d in service_config[service_name][CONFIG_DEPENDS]:
+                try:
+                    s = _get_service(d, None, node_id)
+                except Exception, e:
+                    raise ERROR_NOT_SATISFIED_DEPENDENCIES
 
 
-        # Not known service..
-        if service_name not in KNOWN_SERVICES:
-            raise ERROR_NOT_RECOGNIZED_SERVICE
-
-        if not service_name or not service_id or len(service_name)==0 or len(service_id)==0:
-            raise ERROR_WRONG_METHOD_PARAMETERS
-
-        # No duplicated service id
-        if filter(lambda x: x[SERVICE_ID] == service_id, services):
-            raise ERROR_SERVICE_ID_REGISTERED
-
-        # Only one global service
-        if filter(lambda x: x[SERVICE] == service_name and x[SERVICE_LOCAL]==False, services) and (service_name in UNARY_SERVICES) and (local is False):
-            raise ERROR_ALREADY_REGISTERED_SERVICE
-
-        logger.info("Proceeding to registering {0} {1}".format(service_name, service_id))
+            logger.info("Registering local="+str(local)+" service")
 
 
-        #Prepare service
-        service_dict = {SERVICE:service_name,
-                   SERVICE_ID:service_id,
-                   SERVICE_STATUS:STATUS_TERMINATED,
-                   NODE_ID: node_id,
-                   NODE_ADDRESS: public_url,
-                   SERVICE_LOCAL: local,
-                   SERVICE_RUN_CMD:DEFAULT_COMMAND,
-                   SERVICE_HOME:config[CLIENT_CONFIG_HOME],
-                   SERVICE_PARAMETERS: additional_service_parameters
-                   }
+            #Prepare service id
+            if service_id is None:
+                services_id_test = 0
+                service_list = [s[SERVICE_ID] for s in services if s[SERVICE] == service_name]
+                logger.info("Testing "+service_name+"_"+str(services_id_test))
+                while service_name+"_"+str(services_id_test) in service_list:
+                    services_id_test += 1
+                service_id = service_name + "_" + str(services_id_test)
 
 
-        #Modify service_id to make it unique
+            # Not known service..
+            if service_name not in KNOWN_SERVICES:
+                raise ERROR_NOT_RECOGNIZED_SERVICE
+
+            if not service_name or not service_id or len(service_name)==0 or len(service_id)==0:
+                raise ERROR_WRONG_METHOD_PARAMETERS
+
+            # No duplicated service id
+            if filter(lambda x: x[SERVICE_ID] == service_id, services):
+                raise ERROR_SERVICE_ID_REGISTERED
+
+            # Only one global service
+            if filter(lambda x: x[SERVICE] == service_name and x[SERVICE_LOCAL]==False, services) and (service_name in UNARY_SERVICES) and (local is False):
+                raise ERROR_ALREADY_REGISTERED_SERVICE
+
+            logger.info("Proceeding to registering {0} {1}".format(service_name, service_id))
 
 
-        add_service(service_dict)
-
-        logger.info(("Registering " if not run else "Running and registering ")+str(service_dict))
-
-
-        update_status(service_dict)
-
-
-        if run:
-            logger.info("Running service "+service_id)
-            service_id = service_dict[SERVICE_ID]
-            try:
-                output_run_service = _run_service(service_dict[SERVICE_ID])
-                logger.info("Running service "+service_dict[SERVICE_ID]+" result "+output_run_service)
-            except DonCorleoneException,e:
-                logger.error("Failed deregistering service " + service_id + " with DonCorleoneException "+str(e))
-                raise e
-            except Exception,e:
-                logger.error("Failed deregistering service " + service_id + " with non expected exception "+str(e))
-                raise ERROR_FAILED_SERVICE_RUN
-
-            if service_dict[SERVICE_STATUS] != STATUS_RUNNING:
-                raise ERROR_FAILED_SERVICE_RUN
-            else:
-                raise service_id
+            #Prepare service
+            service_dict = {
+                       SERVICE:service_name,
+                       SERVICE_ID:service_id,
+                       SERVICE_STATUS:STATUS_TERMINATED,
+                       NODE_ID: node_id,
+                       NODE_ADDRESS: public_url,
+                       SERVICE_LOCAL: local,
+                       SERVICE_RUN_CMD:DEFAULT_COMMAND,
+                       SERVICE_HOME:node_config[CLIENT_CONFIG_HOME],
+                       SERVICE_PARAMETERS: service_params
+            }
 
 
-        return service_dict[SERVICE_ID]
+            #Modify service_id to make it unique
+
+
+            add_service(service_dict)
+
+            logger.info(("Registering " if not run else "Running and registering ")+str(service_dict))
+
+
+            update_status(service_dict)
+
+
+            if run:
+                logger.info("Running service "+service_id)
+                service_id = service_dict[SERVICE_ID]
+                try:
+                    output_run_service = _run_service(service_dict[SERVICE_ID])
+                    logger.info("Running service "+service_dict[SERVICE_ID]+" result "+output_run_service)
+                except DonCorleoneException,e:
+                    logger.error("Failed deregistering service " + service_id + " with DonCorleoneException "+str(e))
+                    raise e
+                except Exception,e:
+                    logger.error("Failed deregistering service " + service_id + " with non expected exception "+str(e))
+                    raise ERROR_FAILED_SERVICE_RUN
+
+                if service_dict[SERVICE_STATUS] != STATUS_RUNNING:
+                    raise ERROR_FAILED_SERVICE_RUN
+
+
+            # Registers (without running!) "adds" services
+            for service_to_add in service_config[service_name][CONFIG_ADDS]:
+                logger.info("Adding child service "+str(service_to_add))
+                service_to_add_name, service_to_add_params = service_to_add
+                _register_service(False, service_to_add_name, public_url, node_config, local, node_id, service_to_add_params)
+
+            return service_id
+    except Exception ,e:
+        raise BaseException(pack_error(e))
 
 @app.route('/register_service', methods=['POST'])
 def register_service():
     try:
 
+
+
+        print request.form
         run = json.loads(request.form['run'])
         service_name = json.loads(request.form['service'])
-        public_url = json.loads(request.form['public_url'])
-        config = json.loads(request.form['config'])
 
-        service_id = _register_service(run, service_name, public_url, config)
+        if service_name not in KNOWN_SERVICES:
+            raise ERROR_NOT_RECOGNIZED_SERVICE
+
+        public_url = json.loads(request.form['public_url'])
+        node_config = json.loads(request.form['node_config'])
+        local = request.form['local'] if 'local' in request.form else False
+        node_id = json.loads(request.form['node_id'])
+        # Load default service additional config (like port configuration)
+        additional_service_parameters = {}
+        if 'additional_config' in request.form:
+            additional_service_parameters.update(json.loads(request.form['additional_config']))
+
+
+
+        service_id = \
+            _register_service(run, service_name, public_url, node_config, local, node_id, additional_service_parameters)
+
+
 
         return jsonify(result=service_id)
 
@@ -861,19 +903,19 @@ def read_configs():
 
     ### Read in configuration files and setup default parameters ###
     for s in KNOWN_SERVICES:
-        default_service_configs[s] = {}
+        default_service_params[s] = {}
         config_file = os.path.join(CONFIG_DIRECTORY, s+".config")
         if os.path.exists(config_file):
 
 
 
-            service_configs[s] = {CONFIG_DEPENDS: [], CONFIG_ARGUMENTS: [], CONFIG_ADDS: [], CONFIG_DEFAULT_SERVICE_CONFIG: {}}
+            service_config[s] = {CONFIG_DEPENDS: [], CONFIG_ARGUMENTS: [], CONFIG_ADDS: [], CONFIG_DEFAULT_SERVICE_PARAMS: {}}
 
             logger.info("Reading "+s+" configuration")
 
-            service_configs[s].update(json.loads(open(config_file,"r").read()))
+            service_config[s].update(json.loads(open(config_file,"r").read()))
 
-            if service_configs[s][CONFIG_UNARY]:
+            if service_config[s][CONFIG_UNARY]:
                 UNARY_SERVICES.add(s)
                 if s in NONUNARY_SERVICES: NONUNARY_SERVICES.remove(s)
             else:
@@ -881,20 +923,20 @@ def read_configs():
                 NONUNARY_SERVICES.add(s)
 
             # Read in configuration
-            default_service_configs[s] = service_configs[s][CONFIG_DEFAULT_SERVICE_CONFIG]
+            default_service_params[s] = service_config[s][CONFIG_DEFAULT_SERVICE_PARAMS]
 
-            # Resolve anchors
-            for key in default_service_configs[s].iterkeys():
-                default_service_configs[s][key] = resolve_don_value(default_service_configs[s][key], None)
+            ## Resolve anchors
+            #for key in default_service_configs[s].iterkeys():
+            #    default_service_configs[s][key] = resolve_don_value(default_service_configs[s][key], None)
 
             logger.info("Read service configuration")
             logger.info(s)
-            logger.info(default_service_configs[s])
-            logger.info(service_configs[s])
+            logger.info(default_service_params[s])
+            logger.info(service_config[s])
 
         else:
             logger.warn("No configuration for {0}, writing empty config (default)".format(s))
-            service_configs[s] = {}
+            service_config[s] = {}
 
 @app.before_first_request
 def run_daemons_flask():
