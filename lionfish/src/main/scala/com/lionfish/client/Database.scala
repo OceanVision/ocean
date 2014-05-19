@@ -204,6 +204,19 @@ object Database extends Factory {
     }
   }
 
+  case class createModelNode(private val modelName: String) extends Method {
+    override def getRequest: Map[String, Any] = {
+      val request = Map(
+        "methodName" -> "createModelNodes",
+        "args" -> Map(
+          "modelName" -> modelName
+        )
+      )
+
+      request
+    }
+  }
+
   case class createNode(private val modelName: String, relationshipType: String,
                         properties: Map[String, Any]) extends Method {
     override def getRequest: Map[String, Any] = {

@@ -372,6 +372,31 @@ class Client(object):
         self.send(request)
         self.recv()
 
+    def create_model_node(self, model_name, **properties):
+        """
+        Creates a node with properties to the model given by model_name
+        @param model_name string
+        @param relationship_type string
+        @param properties dictionary/keywords
+        """
+        data = {
+            'methodName': 'createModelNodes',
+            'args': {
+                'modelName': model_name
+            }
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(request)
+        result = self.recv()
+        return result[0]
+
     def create_node(self, model_name, relationship_type='<<INSTANCE>>', **properties):
         """
         Creates a node with properties to the model given by model_name

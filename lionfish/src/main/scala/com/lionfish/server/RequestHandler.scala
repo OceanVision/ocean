@@ -60,6 +60,9 @@ class RequestHandler extends Actor {
           case "deleteProperties" => {
             rawResult = DatabaseManager.deleteProperties(fullArgs.toList)
           }
+          case "createModelNodes" => {
+            rawResult = DatabaseManager.createModelNodes(fullArgs.toList)
+          }
           case "createNodes" => {
             rawResult = DatabaseManager.createNodes(fullArgs.toList)
           }
@@ -146,6 +149,9 @@ class RequestHandler extends Actor {
           }
           case "deleteProperties" => {
             rawResult = DatabaseManager.deleteProperties(args)
+          }
+          case "createModelNodes" => {
+            rawResult = DatabaseManager.createModelNodes(args)
           }
           case "createNodes" => {
             rawResult = DatabaseManager.createNodes(args)
