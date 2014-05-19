@@ -30,6 +30,12 @@ class RequestHandler extends Actor {
           case "getByLink" => {
             rawResult = DatabaseManager.getByLink(fullArgs.toList)
           }
+          case "getByTag" => {
+            rawResult = DatabaseManager.getByTag(fullArgs.toList)
+          }
+          case "getByLabel" => {
+            rawResult = DatabaseManager.getByLabel(fullArgs.toList)
+          }
           case "getModelNodes" => {
             rawResult = DatabaseManager.getModelNodes(fullArgs.toList)
           }
@@ -110,6 +116,12 @@ class RequestHandler extends Actor {
           }
           case "getByLink" => {
             rawResult = DatabaseManager.getByLink(args)
+          }
+          case "getByTag" => {
+            rawResult = DatabaseManager.getByTag(args)
+          }
+          case "getByLabel" => {
+            rawResult = DatabaseManager.getByLabel(args)
           }
           case "getModelNodes" => {
             rawResult = DatabaseManager.getModelNodes(args)

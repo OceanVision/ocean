@@ -59,6 +59,32 @@ object Database extends Factory {
     }
   }
 
+  case class getByTag(private val tag: String) extends Method {
+    override def getRequest: Map[String, Any] = {
+      val request = Map(
+        "methodName" -> "getByTag",
+        "args" -> Map(
+          "tag" -> tag
+        )
+      )
+
+      request
+    }
+  }
+
+  case class getByLabel(private val label: String) extends Method {
+    override def getRequest: Map[String, Any] = {
+      val request = Map(
+        "methodName" -> "getByLabel",
+        "args" -> Map(
+          "label" -> label
+        )
+      )
+
+      request
+    }
+  }
+
   case class getModelNodes() extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(

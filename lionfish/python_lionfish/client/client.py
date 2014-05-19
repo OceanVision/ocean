@@ -88,15 +88,13 @@ class Client(object):
         self._port = port
         self._conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def connect(self):
         try:
-            self._conn.connect((self._host, self._port))
-            logger.log(error_level, 'The client has connected to {host}:{port}.'
-                       .format(host=self._host, port=self._port))
+            self._conn.connect((self._address, self._port))
         except Exception as e:
-            logger.log(error_level, 'Connecting failed. {error}'
-                       .format(error=str(e)))
-            raise e
+            raise Exception('Connecting failed. {error}'.format(error=str(e)))
+
+    def connect(self):
+        pass
 
     def disconnect(self):
         try:
@@ -149,7 +147,8 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(request)
-        return self.recv()
+        result = self.recv()
+        return result[0]
 
     def get_by_link(self, model_name, link, **params):
         """
@@ -173,7 +172,55 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(request)
-        return self.recv()
+        result = self.recv()
+        return result[0]
+
+    def get_by_tag(self, tag, **params):
+        """
+        Gets a node of given uuid
+        @param uuid string
+        """
+        data = {
+            'methodName': 'getByTag',
+            'args': {
+                'tag': tag
+            }
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(request)
+        result = self.recv()
+        return result[0]
+
+    def get_by_label(self, label, **params):
+        """
+        Gets a node by given model_name and link
+        @param model_name string
+        @param link string
+        """
+        data = {
+            'methodName': 'getByLabel',
+            'args': {
+                'label': label
+            }
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(request)
+        result = self.recv()
+        return result[0]
 
     def get_model_nodes(self, **params):
         """
@@ -192,10 +239,11 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(request)
-        return self.recv()
+        result = self.recv()
+        return result[0]
 
-    def get_children(self, parent_uuid, relationship_type, children_properties, relationship_properties={},
-    **params):
+    def get_children(self, parent_uuid, relationship_type, children_properties={},
+                     relationship_properties={}, **params):
         """
         Gets children of node with parent_uuid uuid related by relation relationship_type
         with children_properties and relationship_properties
@@ -222,7 +270,8 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(request)
-        return self.recv()
+        result = self.recv()
+        return result[0]
 
     def get_instances(self, model_name, children_properties={}, relationship_properties={}, **params):
         """
@@ -248,7 +297,8 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(request)
-        return self.recv()
+        result = self.recv()
+        return result[0]
 
     def set(self, uuid, **properties):
         """
@@ -346,7 +396,8 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(request)
-        return self.recv()
+        result = self.recv()
+        return result[0]
 
     def delete_node(self, uuid, **params):
         """
@@ -397,7 +448,8 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(request)
-        return self.recv()
+        result = self.recv()
+        return result[0]
 
     def delete_relationship(self, start_node_uuid, end_node_uuid, **params):
         """
