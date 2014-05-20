@@ -30,6 +30,7 @@ resolvers ++= Seq(
 //
 //libraryDependencies += "org.apache.tomcat" % "tomcat-servlet-api" % "7.0.47"
 
+
 libraryDependencies += "com.sun.jersey" % "jersey-server" % "1.18.1"
 
 libraryDependencies += "com.sun.jersey" % "jersey-core" % "1.18.1"
@@ -38,6 +39,7 @@ libraryDependencies += "com.sun.jersey" % "jersey-json" % "1.18.1"
 
 libraryDependencies += "com.sun.jersey" % "jersey-servlet" % "1.18.1"
 
+
 //libraryDependencies += "org.eclipse.jetty" % "jetty-server" % "9.2.0.M1"
 
 libraryDependencies += "org.neo4j" % "neo4j" % "2.0.3"
@@ -45,6 +47,8 @@ libraryDependencies += "org.neo4j" % "neo4j" % "2.0.3"
 libraryDependencies += "org.neo4j" % "neo4j-kernel" % "2.0.3"
 
 libraryDependencies += "org.neo4j.app" % "neo4j-server" % "2.0.3" classifier "static-web"
+
+libraryDependencies += "org.neo4j.app" % "neo4j-server" % "2.0.3"
 
 //libraryDependencies += "commons-beanutils" % "commons-beanutils" % "1.8.2"
 //
