@@ -3,11 +3,8 @@ package vision.ocean.fragments;
 import android.app.Activity;
 import android.app.ActionBar;
 import android.app.Fragment;
-import android.content.Context;
-import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.support.v4.app.ActionBarDrawerToggle;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.content.SharedPreferences;
@@ -24,7 +21,6 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.json.JSONArray;
@@ -36,7 +32,6 @@ import vision.ocean.helpers.MyHttpClient;
 import vision.ocean.objects.Feed;
 
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 
 /**
  * Fragment used for managing interactions for and presentation of a navigation drawer.
@@ -231,7 +226,7 @@ public class NavigationDrawerFragment extends Fragment {
             }
             if (mCallbacks != null) {
                 Feed selectedFeed = mAdapter.getItem(position);
-                mCallbacks.onNavigationDrawerItemSelected(selectedFeed.id, selectedFeed.title);
+                mCallbacks.onNavigationDrawerItemSelected(selectedFeed.id, selectedFeed.name);
             }
         }
     }
@@ -363,10 +358,7 @@ public class NavigationDrawerFragment extends Fragment {
                 // Populate array from json
                 for (int i = 0; i < len; i++) {
                     JSONObject jsonObject = feeds.getJSONObject(i);
-                    mAdapter.addItem(new Feed(jsonObject.getString("link"),
-                            jsonObject.getString("title"),
-                            // TODO; feed id
-                            "id"));
+                    mAdapter.addItem(new Feed(jsonObject.getString("name"), jsonObject.getString("id")));
                 }
             } catch (JSONException e) {
                 Log.e("JSONException", e.toString());
@@ -374,8 +366,6 @@ public class NavigationDrawerFragment extends Fragment {
             } catch (NullPointerException e) {
                 Log.e("NullPointerException", e.toString());
                 e.printStackTrace();
-
-                Toast.makeText(getActivity(), getResources().getText(R.string.server_error), Toast.LENGTH_LONG).show();
             }
         }
     }

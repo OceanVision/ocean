@@ -174,6 +174,8 @@ public final class MyHttpClient {
             stream.close();
         } catch (IOException e1) {
             e1.printStackTrace();
+        } catch (NullPointerException e2) {
+            e2.printStackTrace();
         }
 
         return bitmap;

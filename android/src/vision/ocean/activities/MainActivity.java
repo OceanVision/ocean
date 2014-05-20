@@ -13,6 +13,7 @@ import android.view.MenuItem;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
+import android.view.View;
 import android.widget.Toast;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -24,6 +25,8 @@ import vision.ocean.fragments.NewsListFragment;
 import vision.ocean.R;
 import vision.ocean.helpers.MyHttpClient;
 import vision.ocean.objects.News;
+
+import static vision.ocean.helpers.StaticFunctions.isNetworkOnline;
 
 import java.io.UnsupportedEncodingException;
 
@@ -47,25 +50,29 @@ public class MainActivity extends FragmentActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Check for handshake
-        SharedPreferences sharedPreferences = PreferenceManager
-                .getDefaultSharedPreferences(getApplicationContext());
+        if (!isNetworkOnline(getApplicationContext()))
+            setContentView(R.layout.layout_no_internet_connection);
+        else {
+            // Check for handshake
+            SharedPreferences sharedPreferences = PreferenceManager
+                    .getDefaultSharedPreferences(getApplicationContext());
 
-        if (!sharedPreferences.contains(getString(R.string.client_id))) {
-            // TODO: handshake
-            sharedPreferences.edit().putString(getString(R.string.client_id), "1").commit();
+            if (!sharedPreferences.contains(getString(R.string.client_id))) {
+                // TODO: handshake
+                sharedPreferences.edit().putString(getString(R.string.client_id), "1").commit();
+            }
+
+            setContentView(R.layout.activity_main);
+
+            mNavigationDrawerFragment = (NavigationDrawerFragment)
+                    getFragmentManager().findFragmentById(R.id.navigation_drawer);
+            mTitle = getTitle();
+
+            // Set up the drawer.
+            mNavigationDrawerFragment.setUp(
+                    R.id.navigation_drawer,
+                    (DrawerLayout) findViewById(R.id.drawer_layout));
         }
-
-        setContentView(R.layout.activity_main);
-
-        mNavigationDrawerFragment = (NavigationDrawerFragment)
-                getFragmentManager().findFragmentById(R.id.navigation_drawer);
-        mTitle = getTitle();
-
-        // Set up the drawer.
-        mNavigationDrawerFragment.setUp(
-                R.id.navigation_drawer,
-                (DrawerLayout) findViewById(R.id.drawer_layout));
     }
 
     @Override
@@ -92,7 +99,7 @@ public class MainActivity extends FragmentActivity
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        if (!mNavigationDrawerFragment.isDrawerOpen()) {
+        if (mNavigationDrawerFragment != null && !mNavigationDrawerFragment.isDrawerOpen()) {
             // Only show items in the action bar relevant to this screen
             // if the drawer is not showing. Otherwise, let the drawer
             // decide what to show in the action bar.
@@ -144,6 +151,11 @@ public class MainActivity extends FragmentActivity
         intent.putExtra(NewsDetailsActivity.NEWS_TITLE, news.title);
         intent.putExtra(NewsDetailsActivity.NEWS_LINK, news.link);
         startActivity(intent);
+    }
+
+    public void refreshActivity(View v) {
+        finish();
+        startActivity(getIntent());
     }
 
     /**
@@ -205,7 +217,7 @@ public class MainActivity extends FragmentActivity
                 Log.e("NullPointerException", e.toString());
                 e.printStackTrace();
 
-                Toast.makeText(context, getResources().getText(R.string.server_error), Toast.LENGTH_LONG).show();
+                Toast.makeText(context, getResources().getText(R.string.no_server_connection), Toast.LENGTH_LONG).show();
             }
 
         }

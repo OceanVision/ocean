@@ -201,7 +201,7 @@ public class NewsListFragment extends Fragment implements EndlessScrollListener.
                 Log.e("NullPointerException", e.toString());
                 e.printStackTrace();
 
-                Toast.makeText(getActivity(), getResources().getText(R.string.server_error), Toast.LENGTH_LONG).show();
+                getActivity().setContentView(R.layout.layout_no_server_connection);
             }
         }
     }

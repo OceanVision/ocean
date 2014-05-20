@@ -1,6 +1,5 @@
 package vision.ocean.activities;
 
-import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -9,25 +8,21 @@ import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.webkit.WebView;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import vision.ocean.R;
 import vision.ocean.helpers.MyHttpClient;
-import vision.ocean.objects.News;
 
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import static vision.ocean.helpers.StaticFunctions.isNetworkOnline;
 
 public class NewsDetailsActivity extends Activity {
 
@@ -45,19 +40,30 @@ public class NewsDetailsActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Intent intent = getIntent();
-        getActionBar().setTitle(intent.getStringExtra(NEWS_AUTHOR));
+        if (!isNetworkOnline(getApplicationContext()))
+            setContentView(R.layout.layout_no_internet_connection);
+        else {
+            Intent intent = getIntent();
+            getActionBar().setTitle(intent.getStringExtra(NEWS_AUTHOR));
 
-        setContentView(R.layout.activity_news_details);
+            setContentView(R.layout.activity_news_details);
 
-        ((TextView) findViewById(R.id.textNewsTime)).setText(String.valueOf(intent.getIntExtra(NEWS_TIME, 0)));
-        ((TextView) findViewById(R.id.textNewsAuthor)).setText(intent.getStringExtra(NEWS_AUTHOR));
-        ((TextView) findViewById(R.id.textNewsTitle)).setText(intent.getStringExtra(NEWS_TITLE));
-        ((TextView) findViewById(R.id.textNewsDescription)).setText(intent.getStringExtra(NEWS_DESCRIPTION));
+            String date = new SimpleDateFormat("dd-MM-yyyy HH:mm").format(new Date(intent.getIntExtra(NEWS_TIME, 0) * 1000L));
 
-        new GetNewsDetailsTask(this).execute();
+            ((TextView) findViewById(R.id.textNewsTime)).setText(date);
+            ((TextView) findViewById(R.id.textNewsAuthor)).setText(intent.getStringExtra(NEWS_AUTHOR));
+            ((TextView) findViewById(R.id.textNewsTitle)).setText(intent.getStringExtra(NEWS_TITLE));
+            ((TextView) findViewById(R.id.textNewsDescription)).setText(intent.getStringExtra(NEWS_DESCRIPTION));
 
-        new DownloadImageTask((ImageView) findViewById(R.id.image), intent.getStringExtra(NEWS_IMAGE_SOURCE)).execute();
+            new GetNewsDetailsTask(this).execute();
+
+            new DownloadImageTask((ImageView) findViewById(R.id.image), intent.getStringExtra(NEWS_IMAGE_SOURCE)).execute();
+        }
+    }
+
+    public void refreshActivity(View v) {
+        finish();
+        startActivity(getIntent());
     }
 
     /**
@@ -98,7 +104,7 @@ public class NewsDetailsActivity extends Activity {
         @Override
         protected void onPostExecute(final JSONObject newsDetails) {
 //            try {
-                // TODO: uncomment after webservice fix
+            // TODO: uncomment after webservice fix
 //                ((TextView) findViewById(R.id.textNewsDescription))
 //                        .setText(((JSONObject) newsDetails.get("article_details")).getString("body"));
 //            } catch (JSONException e) {
@@ -127,7 +133,10 @@ public class NewsDetailsActivity extends Activity {
 
         @Override
         protected void onPostExecute(final Bitmap image) {
-            newsImageView.setImageBitmap(image);
+            if (image == null)
+                setContentView(R.layout.layout_no_server_connection);
+            else
+                newsImageView.setImageBitmap(image);
         }
     }
 }

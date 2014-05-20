@@ -252,7 +252,7 @@ public class LoginFragment extends Fragment {
                 Log.e("NullPointerException", e.toString());
                 e.printStackTrace();
 
-                Toast.makeText(getActivity(), getResources().getText(R.string.server_error), Toast.LENGTH_LONG).show();
+                Toast.makeText(getActivity(), getResources().getText(R.string.no_server_connection), Toast.LENGTH_LONG).show();
             }
 
 
