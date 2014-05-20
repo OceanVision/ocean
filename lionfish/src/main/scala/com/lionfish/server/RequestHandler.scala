@@ -19,11 +19,14 @@ class RequestHandler extends Actor {
           fullArgs += item(0).asInstanceOf[Map[String, Any]]
         }
 
-        println(s"Executing $methodName in batch.")
+        println(s"Executing $methodName in a batch.")
 
         // TODO: Solve this with reflection
         var rawResult: List[Any] = null
         methodName match {
+          case "executeQuery" => {
+            rawResult = DatabaseManager.executeQuery(fullArgs.toList)
+          }
           case "getByUuid" => {
             rawResult = DatabaseManager.getByUuid(fullArgs.toList)
           }
@@ -109,11 +112,14 @@ class RequestHandler extends Actor {
         val methodName = item("methodName").asInstanceOf[String]
         val args = List(item("args").asInstanceOf[Map[String, Any]])
 
-        println(s"Executing $methodName in sequence.")
+        println(s"Executing $methodName in a sequence.")
 
         // TODO: Solve this with reflection
         var rawResult: List[Any] = null
         methodName match {
+          case "executeQuery" => {
+            rawResult = DatabaseManager.executeQuery(args)
+          }
           case "getByUuid" => {
             rawResult = DatabaseManager.getByUuid(args)
           }
@@ -186,7 +192,7 @@ class RequestHandler extends Actor {
       case e: Exception => {
         log.error(s"Failed to execute a sequence. Error message: $e")
       }
-        null
+        List()
     }
   }
 

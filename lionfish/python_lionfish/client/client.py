@@ -127,6 +127,31 @@ class Client(object):
     def get_batch(self):
         return self.Batch(self)
 
+    def execute_query(self, query, **params):
+        """
+        Executes query with given params
+        @param query string
+        @param params dictionary/keywords
+        """
+        data = {
+            'methodName': 'executeQuery',
+            'args': {
+                'query': query,
+                'parameters': params
+            }
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(request)
+        result = self.recv()
+        return result[0]
+
     def get_by_uuid(self, uuid, **params):
         """
         Gets a node of given uuid
@@ -553,46 +578,3 @@ class Client(object):
             return data
         self.send(request)
         self.recv()
-
-    # def execute_query(self, query_string, **params):
-    #     """
-    #     Executes query_string with given query_params
-    #         and returns results as python dictionaries
-    #     @param query_string string
-    #     @param params dictionary/keywords
-    #     """
-    #     data = {
-    #         'methodName': 'execute_query',
-    #         'args': [query_string, params]
-    #     }
-    #
-    #     request = {
-    #         'type': 'sequence',
-    #         'tasks': [data]
-    #     }
-    #
-    #     if inspect.stack()[1][3] == '_get_data_for_batch':
-    #         return data
-    #     self.send(request)
-    #     return self.recv()
-    #
-    # def run_query(self, query_string, **params):
-    #     """
-    #     Runs query_string with given query_params
-    #     @param query_string string
-    #     @param params dictionary/keywords
-    #     """
-    #     data = {
-    #         'methodName': 'run_query',
-    #         'args': [query_string, params]
-    #     }
-    #
-    #     request = {
-    #         'type': 'sequence',
-    #         'tasks': [data]
-    #     }
-    #
-    #     if inspect.stack()[1][3] == '_get_data_for_batch':
-    #         return data
-    #     self.send(request)
-    #     self.recv()

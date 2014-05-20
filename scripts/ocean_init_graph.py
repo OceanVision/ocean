@@ -115,7 +115,6 @@ def run_and_return_type_list():
     )
 
     print 'Graph populated successfully.'
-    print 'NOTE: Remember to restart Lionfish ODM server.'
 
     return type_list
 

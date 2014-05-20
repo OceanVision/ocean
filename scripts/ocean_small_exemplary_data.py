@@ -267,5 +267,4 @@ relacje na zywo i wiele wiecej.',
     batch.submit()
 
     print 'Graph populated successfully!'
-    print 'Remember to (RE)START Lionfish server!'
 

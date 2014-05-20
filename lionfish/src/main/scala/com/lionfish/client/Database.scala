@@ -32,6 +32,25 @@ object Database extends Factory {
     new SequenceStream(serverAddress, serverPort)
   }
 
+  /**
+   * Executes Cypher query
+   * @return list of lists of data
+   */
+  case class executeQuery(private val query: String,
+                          private val parameters: Map[String, Any]) extends Method {
+    override def getRequest: Map[String, Any] = {
+      val request = Map(
+        "methodName" -> "executeQuery",
+        "args" -> Map(
+          "query" -> query,
+          "parameters" -> parameters
+        )
+      )
+
+      request
+    }
+  }
+
   case class getByUuid(private val nodeUuid: String) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
@@ -45,7 +64,8 @@ object Database extends Factory {
     }
   }
 
-  case class getByLink(private val modelName: String, link: String) extends Method {
+  case class getByLink(private val modelName: String,
+                       private val link: String) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "getByLink",
@@ -96,9 +116,10 @@ object Database extends Factory {
     }
   }
 
-  case class getChildren(private val parentUuid: String, relationshipType: String,
-                         childrenProperties: Map[String, Any] = Map(),
-                         relationshipProperties: Map[String, Any] = Map()) extends Method {
+  case class getChildren(private val parentUuid: String,
+                         private val relationshipType: String,
+                         private val childrenProperties: Map[String, Any] = Map(),
+                         private val relationshipProperties: Map[String, Any] = Map()) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "getChildren",
@@ -115,8 +136,8 @@ object Database extends Factory {
   }
 
   case class getInstances(private val modelName: String,
-                          childrenProperties: Map[String, Any] = Map(),
-                          relationshipProperties: Map[String, Any] = Map()) extends Method {
+                          private val childrenProperties: Map[String, Any] = Map(),
+                          private val relationshipProperties: Map[String, Any] = Map()) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "getInstances",
@@ -174,7 +195,8 @@ object Database extends Factory {
     }
   }
 
-  case class setProperties(private val uuid: String, properties: Map[String, Any])
+  case class setProperties(private val uuid: String,
+                           private val properties: Map[String, Any])
     extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
@@ -189,7 +211,8 @@ object Database extends Factory {
     }
   }
 
-  case class deleteProperties(private val uuid: String, propertyKeys: List[String])
+  case class deleteProperties(private val uuid: String,
+                              private val propertyKeys: List[String])
     extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
@@ -217,8 +240,9 @@ object Database extends Factory {
     }
   }
 
-  case class createNode(private val modelName: String, relationshipType: String,
-                        properties: Map[String, Any]) extends Method {
+  case class createNode(private val modelName: String,
+                        private val relationshipType: String,
+                        private val properties: Map[String, Any]) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "createNodes",
@@ -246,9 +270,10 @@ object Database extends Factory {
     }
   }
 
-  case class createRelationship(private val startNodeUuid: String, endNodeUuid: String,
-                                relationshipType: String, properties: Map[String, Any] = Map())
-    extends Method {
+  case class createRelationship(private val startNodeUuid: String,
+                                private val endNodeUuid: String,
+                                private val relationshipType: String,
+                                private val properties: Map[String, Any] = Map()) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "createRelationships",
@@ -264,8 +289,8 @@ object Database extends Factory {
     }
   }
 
-  case class deleteRelationship(private val startNodeUuid: String, endNodeUuid: String)
-    extends Method {
+  case class deleteRelationship(private val startNodeUuid: String,
+                                private val endNodeUuid: String) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "deleteRelationships",
@@ -279,9 +304,9 @@ object Database extends Factory {
     }
   }
 
-  case class setRelationshipProperties(private val startNodeUuid: String, endNodeUuid: String,
-                                       properties: Map[String, Any])
-    extends Method {
+  case class setRelationshipProperties(private val startNodeUuid: String,
+                                       private val endNodeUuid: String,
+                                       private val properties: Map[String, Any]) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "setRelationshipProperties",
@@ -296,9 +321,9 @@ object Database extends Factory {
     }
   }
 
-  case class deleteRelationshipProperties(private val startNodeUuid: String, endNodeUuid: String,
-                                          propertyKeys: List[String])
-    extends Method {
+  case class deleteRelationshipProperties(private val startNodeUuid: String,
+                                          private val endNodeUuid: String,
+                                          private val propertyKeys: List[String]) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "deleteRelationshipProperties",

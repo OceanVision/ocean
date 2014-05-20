@@ -41,10 +41,6 @@ object DatabaseManager {
       srv.start()
   }
 
-  // Simple cache of model nodes
-  //private var modelNodes: Map[String, Node] = Map()
-  //initCache()
-
   def setNeo4jPath(path: String) = {
     neo4jPath = path
   }
@@ -136,8 +132,17 @@ object DatabaseManager {
       for (row: Map[String, Any] <- cypherResult) {
         var rowItems: ListBuffer[Any] = ListBuffer()
         for (column <- row) {
-          // TODO: Do not assume that every value is Node
-          rowItems += parseMap(column._2.asInstanceOf[Node])
+          column._2 match {
+            case node: Node => {
+              rowItems += parseMap(node)
+            }
+            case rel: Relationship => {
+              rowItems += parseMap(rel)
+            }
+            case sth: Any => {
+              rowItems += sth
+            }
+          }
         }
         parsedResult += rowItems.toList
       }
@@ -152,27 +157,36 @@ object DatabaseManager {
     }
   }
 
-  /*private def initCache() = {
-    try {
-      // Simply gets model nodes
-      val tx = graphDB.beginTx()
-      val rawResult = globalOperations.getAllNodesWithLabel(DynamicLabel.label("Model"))
-      tx.success()
+  def executeQuery(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[Any] = null
 
-      // Saves result
-      val it = rawResult.iterator()
-      while (it.hasNext) {
-        val node = it.next()
-        modelNodes += node.getProperty("model_name").asInstanceOf[String] -> node
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[Any] = ListBuffer()
+
+      for (item <- args) {
+        val query = item("query").asInstanceOf[String]
+        val params = item("parameters").asInstanceOf[Map[String, Any]]
+
+        // Executes query
+        val returnedData = executeCypher(query, params)
+        rawResult += returnedData
       }
-      it.close()
+      tx.success()
+      result = rawResult.toList
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Initialising cache failed at line $line. Error message: $e")
+        println(s"Failed to execute the function at line $line. Error message: $e")
       }
+        tx.failure()
+        result = List()
+    } finally {
+      tx.close()
     }
-  }*/
+
+    result
+  }
 
   def getByUuid(args: List[Map[String, Any]]): List[Any] = {
     var result: List[Any] = null
@@ -793,7 +807,7 @@ object DatabaseManager {
       val modelLabel = DynamicLabel.label("Model")
       val rawModelResult = globalOperations.getAllNodesWithLabel(modelLabel)
 
-      // Saves result
+      // Saves model nodes
       val it = rawModelResult.iterator()
       while (it.hasNext) {
         val node = it.next()

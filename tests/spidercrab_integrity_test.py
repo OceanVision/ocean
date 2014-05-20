@@ -46,7 +46,7 @@ def check_lionfish_communication():
 
     lionfish_client = Client(lionfish_host, lionfish_port)
     lionfish_client.connect()
-    lionfish_client.create_model('spidercrab_integrity_test')
+    lionfish_client.create_model_node('spidercrab_integrity_test')
     found_instances = lionfish_client.get_model_nodes()
     model_instance = None
     model_uuid = ''
