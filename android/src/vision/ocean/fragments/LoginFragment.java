@@ -10,10 +10,12 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.*;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.json.JSONException;
@@ -221,30 +223,39 @@ public class LoginFragment extends Fragment {
             boolean status = false;
             try {
                 status = result.getBoolean("status");
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
 
-            if (!status) {
-                // Show error if something went wrong
-                mPasswordView
-                        .setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
+                if (!status) {
+                    // Show error if something went wrong
+                    mPasswordView
+                            .setError(getString(R.string.error_incorrect_password));
+                    mPasswordView.requestFocus();
 
-            } else {
-                // User is logged in, update this information in sharedPreferences
-                sharedPreferences.edit().putBoolean(getString(R.string.is_user_authenticated), true).commit();
+                } else {
+                    // User is logged in, update this information in sharedPreferences
+                    sharedPreferences.edit().putBoolean(getString(R.string.is_user_authenticated), true).commit();
 
-                // Refresh mainActivity for logged in user.
-                ((NavigationDrawerFragment) ((FragmentActivity) context).getFragmentManager()
-                        .findFragmentById(R.id.navigation_drawer)).setUpDataAdapter();
-                ((FragmentActivity) context).invalidateOptionsMenu();
+                    // Refresh mainActivity for logged in user.
+                    ((NavigationDrawerFragment) ((FragmentActivity) context).getFragmentManager()
+                            .findFragmentById(R.id.navigation_drawer)).setUpDataAdapter();
+                    ((FragmentActivity) context).invalidateOptionsMenu();
 
-                // Go back to refreshed mainActivity
+                    // Go back to refreshed mainActivity
 //                ((FragmentActivity) context).getSupportFragmentManager().beginTransaction()
 //                        .replace(R.id.container, new Fragment()).commit();
 //                ((FragmentActivity) context).getSupportFragmentManager().popBackStack();
+                }
+
+            } catch (JSONException e) {
+                Log.e("JSONException", e.toString());
+                e.printStackTrace();
+            } catch (NullPointerException e) {
+                Log.e("NullPointerException", e.toString());
+                e.printStackTrace();
+
+                Toast.makeText(getActivity(), getResources().getText(R.string.server_error), Toast.LENGTH_LONG).show();
             }
+
+
         }
 
         @Override

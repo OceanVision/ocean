@@ -11,5 +11,6 @@
     <string name="error_field_required">This field is required</string>
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_incorrect_username">This user does not exist</string>
+    <string name="login_error">Something went wrong, please try again</string>
 
 </resources>

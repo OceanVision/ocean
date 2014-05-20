@@ -16,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.Toast;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.json.JSONArray;
@@ -179,22 +180,28 @@ public class NewsListFragment extends Fragment implements EndlessScrollListener.
                             jsonObject.getString("title"),
                             jsonObject.getInt("time"),
                             jsonObject.getString("description"),
-                            jsonObject.getString("image_source")));
+                            jsonObject.getString("image_source"),
+                            jsonObject.getString("link")));
+                }
+
+                // If there is no adapter (activity created) create new one.
+                if (mGridView.getAdapter() == null) {
+                    mAdapter = new NewsAdapter(getActivity(), R.layout.item_news, data);
+                    mGridView.setAdapter(mAdapter);
+                }
+                // Adapter already exists, we only need to add data.
+                else {
+                    mAdapter.addAll(data);
                 }
 
             } catch (JSONException e) {
                 Log.e("JSONException", e.toString());
                 e.printStackTrace();
-            }
+            } catch (NullPointerException e) {
+                Log.e("NullPointerException", e.toString());
+                e.printStackTrace();
 
-            // If there is no adapter (activity created) create new one.
-            if (mGridView.getAdapter() == null) {
-                mAdapter = new NewsAdapter(getActivity(), R.layout.item_news, data);
-                mGridView.setAdapter(mAdapter);
-            }
-            // Adapter already exists, we only need to add data.
-            else {
-                mAdapter.addAll(data);
+                Toast.makeText(getActivity(), getResources().getText(R.string.server_error), Toast.LENGTH_LONG).show();
             }
         }
     }

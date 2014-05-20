@@ -120,6 +120,9 @@ public final class MyHttpClient {
         } catch (JSONException e) {
             Log.e("JSONException", e.toString());
             e.printStackTrace();
+        } catch (NullPointerException e) {
+            Log.e("NullPointer", e.toString());
+            e.printStackTrace();
         }
 
         return jsonArray;
@@ -133,6 +136,9 @@ public final class MyHttpClient {
         } catch (JSONException e) {
             Log.e("JSONException", e.toString());
             e.printStackTrace();
+        } catch (NullPointerException e) {
+            Log.e("NullPointer", e.toString());
+            e.printStackTrace();
         }
 
         return jsonObject;
@@ -145,6 +151,9 @@ public final class MyHttpClient {
             jsonObject = new JSONObject(runJsonRequest(request));
         } catch (JSONException e) {
             Log.e("JSONException", e.toString());
+            e.printStackTrace();
+        } catch (NullPointerException e) {
+            Log.e("NullPointer", e.toString());
             e.printStackTrace();
         }
 
@@ -166,6 +175,7 @@ public final class MyHttpClient {
         } catch (IOException e1) {
             e1.printStackTrace();
         }
+
         return bitmap;
     }
 

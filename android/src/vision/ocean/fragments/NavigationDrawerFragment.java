@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.FragmentActivity;
@@ -370,6 +371,11 @@ public class NavigationDrawerFragment extends Fragment {
             } catch (JSONException e) {
                 Log.e("JSONException", e.toString());
                 e.printStackTrace();
+            } catch (NullPointerException e) {
+                Log.e("NullPointerException", e.toString());
+                e.printStackTrace();
+
+                Toast.makeText(getActivity(), getResources().getText(R.string.server_error), Toast.LENGTH_LONG).show();
             }
         }
     }

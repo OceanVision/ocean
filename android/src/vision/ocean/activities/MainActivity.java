@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.support.v4.widget.DrawerLayout;
@@ -138,9 +139,10 @@ public class MainActivity extends FragmentActivity
         intent.putExtra(NewsDetailsActivity.NEWS_ID, news.id);
         intent.putExtra(NewsDetailsActivity.NEWS_AUTHOR, news.author);
         intent.putExtra(NewsDetailsActivity.NEWS_DESCRIPTION, news.description);
-        intent.putExtra(NewsDetailsActivity.NEWS_IMAGE, news.image);
+        intent.putExtra(NewsDetailsActivity.NEWS_IMAGE_SOURCE, news.imageSource);
         intent.putExtra(NewsDetailsActivity.NEWS_TIME, news.time);
         intent.putExtra(NewsDetailsActivity.NEWS_TITLE, news.title);
+        intent.putExtra(NewsDetailsActivity.NEWS_LINK, news.link);
         startActivity(intent);
     }
 
@@ -182,23 +184,30 @@ public class MainActivity extends FragmentActivity
             boolean status = false;
             try {
                 status = result.getBoolean("status");
+
+                if (!status) {
+                    // User is still logged in
+                    Toast.makeText(context, getResources().getText(R.string.login_error), Toast.LENGTH_LONG).show();
+                } else {
+                    // User is logged out, update this information in sharedPreferences
+                    sharedPreferences.edit().putBoolean(getString(R.string.is_user_authenticated), false).commit();
+
+                    // Refresh mainActivity for logged out user.
+                    ((NavigationDrawerFragment) ((FragmentActivity) context).getFragmentManager()
+                            .findFragmentById(R.id.navigation_drawer)).setUpDataAdapter();
+                    ((FragmentActivity) context).invalidateOptionsMenu();
+                }
+
             } catch (JSONException e) {
+                Log.e("JSONException", e.toString());
                 e.printStackTrace();
+            } catch (NullPointerException e) {
+                Log.e("NullPointerException", e.toString());
+                e.printStackTrace();
+
+                Toast.makeText(context, getResources().getText(R.string.server_error), Toast.LENGTH_LONG).show();
             }
 
-
-            if (!status) {
-                // User is still logged in
-                Toast.makeText(context, "Something went wrong, please try again", Toast.LENGTH_SHORT).show();
-            } else {
-                // User is logged out, update this information in sharedPreferences
-                sharedPreferences.edit().putBoolean(getString(R.string.is_user_authenticated), false).commit();
-
-                // Refresh mainActivity for logged out user.
-                ((NavigationDrawerFragment) ((FragmentActivity) context).getFragmentManager()
-                        .findFragmentById(R.id.navigation_drawer)).setUpDataAdapter();
-                ((FragmentActivity) context).invalidateOptionsMenu();
-            }
         }
     }
 }
