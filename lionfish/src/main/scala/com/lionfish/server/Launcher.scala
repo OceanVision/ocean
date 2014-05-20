@@ -69,7 +69,6 @@ object Launcher {
     }
 
 
-    DatabaseManager
     DatabaseManager.initNeo4jConsole()
     new Thread(Server).start()
   }

@@ -42,8 +42,8 @@ object DatabaseManager {
   }
 
   // Simple cache of model nodes
-  private var modelNodes: Map[String, Node] = Map()
-  initCache()
+  //private var modelNodes: Map[String, Node] = Map()
+  //initCache()
 
   def setNeo4jPath(path: String) = {
     neo4jPath = path
@@ -152,7 +152,7 @@ object DatabaseManager {
     }
   }
 
-  private def initCache() = {
+  /*private def initCache() = {
     try {
       // Simply gets model nodes
       val tx = graphDB.beginTx()
@@ -172,7 +172,7 @@ object DatabaseManager {
         println(s"Initialising cache failed at line $line. Error message: $e")
       }
     }
-  }
+  }*/
 
   def getByUuid(args: List[Map[String, Any]]): List[Any] = {
     var result: List[Any] = null
@@ -719,6 +719,67 @@ object DatabaseManager {
     null
   }
 
+  def createModelNodes(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[Map[String, Any]] = null
+
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[Map[String, Any]] = ListBuffer()
+      val rootLabel = DynamicLabel.label("Root")
+
+      // Gets raw root
+      val rawRoot = globalOperations.getAllNodesWithLabel(rootLabel)
+
+      // Extracts root
+      var root: Node = null
+      val it = rawRoot.iterator()
+      if (it.hasNext) {
+        root = it.next()
+      }
+      it.close()
+
+      for (item <- args) {
+        val modelName = item("modelName").asInstanceOf[String]
+        val modelProps: Map[String, Any] = Map(
+          "uuid" -> UUID.randomUUID().toString,
+          "app_label" -> "rss",
+          "name" -> ("rss:" + modelName),
+          "model_name" -> modelName
+        )
+
+        val nodeLabel = DynamicLabel.label("Node")
+        val modelLabel = DynamicLabel.label("Model")
+        val modelNode = graphDB.createNode()
+        modelNode.addLabel(nodeLabel)
+        modelNode.addLabel(modelLabel)
+
+        // Sets properties
+        for ((key, value) <- modelProps) {
+          modelNode.setProperty(key, value)
+        }
+
+        // Creates relationship from root
+        val rel = DynamicRelationshipType.withName("<<TYPE>>")
+        root.createRelationshipTo(modelNode, rel)
+
+        rawResult += Map("uuid" -> modelProps("uuid"))
+      }
+      tx.success()
+      result = rawResult.toList
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+        result = List()
+    } finally {
+      tx.close()
+    }
+
+    result
+  }
+
   // TODO: Add defaults
   def createNodes(args: List[Map[String, Any]]): List[Any] = {
     var result: List[Map[String, Any]] = null
@@ -726,6 +787,19 @@ object DatabaseManager {
     val tx = graphDB.beginTx()
     try {
       val rawResult: ListBuffer[Map[String, Any]] = ListBuffer()
+      var modelNodes: Map[String, Node] = Map()
+
+      // Simply gets model nodes
+      val modelLabel = DynamicLabel.label("Model")
+      val rawModelResult = globalOperations.getAllNodesWithLabel(modelLabel)
+
+      // Saves result
+      val it = rawModelResult.iterator()
+      while (it.hasNext) {
+        val node = it.next()
+        modelNodes += node.getProperty("model_name").asInstanceOf[String] -> node
+      }
+      it.close()
 
       // Creates nodes by given properties
       for (params <- args) {
