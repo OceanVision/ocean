@@ -221,7 +221,7 @@ def run_client(config, state_callback):
 
         for cmd in commands:
             logger.info("Running remotedly requested command " + str(cmd))
-            ret = os.system("sudo -u {0} sh -c \"{1}\"".format(config["ssh-user"], cmd))
+            ret = os.system("sudo -E -u {0} sh -c \"{1}\"".format(config["ssh-user"], cmd))
             if ret != 0:
                 logger.info("Failed command")
             logger.info("Done")
