@@ -1,10 +1,13 @@
 import com.github.retronym.SbtOneJar._
 
-lazy val stampleRootProject = Project(id = "mantis_shrimp",base = file("."))
-
 name := "mantis_shrimp"
 
-//oneJarSettings
+oneJarSettings
+
+net.virtualvoid.sbt.graph.Plugin.graphSettings
+
+lazy val stampleRootProject = Project(id = "mantis_shrimp",base = file("."))
+
 
 excludeFilter in unmanagedSources := HiddenFileFilter || "FourClassNERTagger.scala"
 
@@ -24,7 +27,7 @@ libraryDependencies += "org.apache.kafka" % "kafka_2.10" % "0.8.1"
 
 libraryDependencies += "org.monifu" %% "monifu-core" % "0.5"
 
-libraryDependencies += "org.scala-sbt" % "sbt" % "0.13.1"
+//libraryDependencies += "org.scala-sbt" % "sbt" % "0.13.1"
 
 libraryDependencies += "log4j" % "log4j" % "1.2.17"
 

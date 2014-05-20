@@ -128,16 +128,16 @@ def install_node(node_config, run=True):
         print "Succeded = ", has_succeded(response)
 
     if run:
-        trails = 20
+        trails = 2000
         for service_id in service_ids:
             print "Running ",service_id
-            for i in xrange(20):
+            for i in xrange(trails):
                 print "Calling run service"
                 response = urllib2.urlopen(get_don_corleone_url(node_config)+\
             "/run_service?service_id="+str(service_id)).read()
                 print "Response..."
                 if not has_succeded(response):
-                    logger.error("SHOULDNT HAPPEN FAILED RUNNING")
+                    logger.error("SHOULDNT HAPPEN FAILED RUNNING "+service_id)
                     logger.error(response)
                 else:
                     logger.info(response)
@@ -198,9 +198,7 @@ def run_client(config, state_callback):
     t.daemon = True
     t.start()
 
-    # Init command queue
 
-    os.system("touch command_queue")
 
 
 

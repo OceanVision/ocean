@@ -22,7 +22,7 @@ import akka.actor._
 import scala.concurrent.duration._
 import scala.concurrent.Await
 
-import com.lionfish.client._
+
 
 object MantisLiterals{
   val ParentMantisPath:String = "parentMantisPath"
@@ -57,6 +57,8 @@ case class Config(
                   lionfish_port: Int = 7777
 
                    )
+
+
 
 
 
@@ -120,8 +122,6 @@ object Main extends App{
   //TODO: add checking master reachability and lionfish reachability
 
 
-  Database.setProxyAddress(config.lionfish_host)
-  Database.setProxyPort(config.lionfish_port)
 
 
 
@@ -140,6 +140,7 @@ object Main extends App{
 
   ///Runs system specified in this mantis shrimp node
   def runMantisShrimp = {
+    println("Running Mantis Shrimp")
     //Run system as configured
     val port = config.port
     val hostname = config.host
@@ -268,34 +269,34 @@ object Main extends App{
 
 
   }
-  val port = config.port
-  val hostname = config.host
-
-  val config_string = s"""
-        akka {
-            actor {
-              provider = "akka.remote.RemoteActorRefProvider"
-            }
-            remote {
-                enabled-transports = ["akka.remote.netty.tcp"]
-                netty.tcp {
-                  hostname = $hostname
-                  port = $port
-               }
-            }
-            }
-    """
+//  val port = config.port
+//  val hostname = config.host
+//
+//  val config_string = s"""
+//        akka {
+//            actor {
+//              provider = "akka.remote.RemoteActorRefProvider"
+//            }
+//            remote {
+//                enabled-transports = ["akka.remote.netty.tcp"]
+//                netty.tcp {
+//                  hostname = $hostname
+//                  port = $port
+//               }
+//            }
+//            }
+//    """
 
   //Create system
-  system = ActorSystem(config.actor_system_name,
-    ConfigFactory.load(ConfigFactory.parseString(config_string)))
+//  system = ActorSystem(config.actor_system_name,
+//    ConfigFactory.load(ConfigFactory.parseString(config_string)))
+//
+//
+//  val config_local = Map[String, String](MantisLiterals.ParentMantisPath->"")
+//  val sample_job = system.actorOf(Props(new
+//      MantisNewsDumperLionfish(config_local)), "tmp")
 
 
-  val config_local = Map[String, String](MantisLiterals.ParentMantisPath->"")
-  val sample_job = system.actorOf(Props(new
-      MantisNewsDumperLionfish(config_local)), "tmp")
-
-
-  //runMantisShrimp
+  runMantisShrimp
 
 }

@@ -15,6 +15,7 @@ def check_lionfish_communication():
     """
     lionfish_host = du.get_configuration('lionfish', 'host')
     lionfish_port = du.get_configuration('lionfish', 'port')
+    print "Connecting to ", lionfish_host, lionfish_port
     lionfish_client = Client(lionfish_host, lionfish_port)
     lionfish_client.connect()
     found_instances = lionfish_client.get_by_uuid("xwdjwdwjw")

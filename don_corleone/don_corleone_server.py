@@ -371,7 +371,7 @@ def resolve_don_value(value, node_id):
     if str(value) == value:
         if len(value) == 0: return value
 
-        if value[0] == "$":
+        if value[0] == "$" or value[0] == "%":
             s, config = value[1:].split(":")
             print s, config
             if s == "node":
@@ -418,11 +418,13 @@ def _run_service(service_id):
             # Calculate params
             params = ""
 
+            sign = " " if (m[SERVICE] == SERVICE_MANTIS_SHRIMP or m[SERVICE] == SERVICE_MANTIS_SHRIMP_MASTER) else "="
+
             for p in service_config[m[SERVICE]][CONFIG_ARGUMENTS]:
                 if p[0] in m[SERVICE_PARAMETERS]:
-                    params += " --{0}={1}".format(p[0], m[SERVICE_PARAMETERS][p[0]])
+                    params += " --{0}{2}{1}".format(p[0], m[SERVICE_PARAMETERS][p[0]], sign)
                 else:
-                    params += " --{0}={1}".format(p[0], m[SERVICE_PARAMETERS].get(p[0], resolve_don_value(p[1], m[NODE_ID])))
+                    params += " --{0}{2}{1}".format(p[0], m[SERVICE_PARAMETERS].get(p[0], resolve_don_value(p[1], m[NODE_ID])), sign)
 
 
 
