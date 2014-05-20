@@ -91,7 +91,7 @@ class Client(object):
         try:
             self._conn.connect((self._address, self._port))
         except Exception as e:
-            raise Exception('Connecting failed. {error}'.format(error=str(e)))
+            raise Exception('Failed to connect with server. {error}'.format(error=str(e)))
 
     def connect(self):
         pass
@@ -99,9 +99,8 @@ class Client(object):
     def disconnect(self):
         try:
             self._conn.close()
-            logger.log(info_level, 'The client has disconnected.')
         except Exception as e:
-            logger.log(error_level, 'Disconnecting failed. {error}'
+            logger.log(error_level, 'Failed to disconnect from server. {error}'
                        .format(error=str(e)))
             raise e
 
@@ -110,7 +109,7 @@ class Client(object):
             send_message(self._conn, data)
         except Exception, e:
             logger.log(info_level, 'Not sent data {data}'.format(data=data))
-            logger.log(error_level, 'Sending data failed. {error}'
+            logger.log(error_level, 'Failed to send data. {error}'
                        .format(error=str(e)))
             raise e
 
@@ -119,7 +118,7 @@ class Client(object):
         try:
             data = get_message(self._conn)
         except Exception as e:
-            logger.log(error_level, 'Receiving data failed. {error}'
+            logger.log(error_level, 'Failed to receive data. {error}'
                        .format(error=str(e)))
             raise e
         return data
@@ -149,7 +148,12 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(request)
-        result = self.recv()
+        result = None
+        try:
+            result = self.recv()
+        except:
+            logger.log(error_level, 'Failed to execute query. {error}'
+                       .format(error=str(e)))
         return result[0]
 
     def get_by_uuid(self, uuid, **params):

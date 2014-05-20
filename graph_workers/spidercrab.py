@@ -15,15 +15,14 @@ import urllib2
 import uuid
 ### TODO: this line shouldn't be here (it worked on Konrad's laptop?) adding toquickly test
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(os.path.join(os.path.dirname(__file__), '../lionfish'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../lionfish/python_lionfish/client/'))
 from don_corleone import don_utils as du
 
 from graph_workers.graph_defines import *
 from graph_workers.graph_utils import *
 from graph_workers.graph_worker import GraphWorker
 from graph_workers.privileges import construct_full_privilege
-import python_lionfish
-from python_lionfish.client import Client 
+from client import Client
 
 # Defining levels to get rid of other loggers
 info_level = 100
@@ -129,7 +128,7 @@ class Spidercrab(GraphWorker):
 
         self.required_privileges = construct_full_privilege()
         # TODO: use configuration!
-	self.odm_client = Client('localhost', 7777)
+        self.odm_client = Client('localhost', 7777)
         self.terminate_event = threading.Event()
         self.runtime_id = runtime_id
         self.master_sources_urls_file = master_sources_urls_file
@@ -387,7 +386,7 @@ class Spidercrab(GraphWorker):
                 info_level,
                 'Spidercrab model not found in the database. Creating...'
             )
-            self.odm_client.create_model('Spidercrab')
+            self.odm_client.create_model_node('Spidercrab')
             self.logger.log(
                 info_level,
                 'Spidercrab model created.'

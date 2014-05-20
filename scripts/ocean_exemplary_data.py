@@ -14,13 +14,14 @@ from optparse import OptionParser
 from py2neo import neo4j
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../lionfish/python_lionfish/client/'))
 from don_utils import get_configuration
 
 sys.path.append('../graph_workers/')
 lib_path = os.path.abspath('./graph_workers')
 sys.path.append(lib_path)
 from graph_workers.graph_defines import *
-from odm_client import ODMClient
+from client import Client
 
 SOURCE_FILE = '../data/contentsource_nodes_exemplary'
 
@@ -67,7 +68,7 @@ if __name__ == '__main__':
     print '(You are permitted to run whole system too during this process)'
     enter = raw_input()
 
-    odm_client = ODMClient()
+    odm_client = Client('localhost', 7777)
     odm_client.connect()
     odm_batch = odm_client.get_batch()
 

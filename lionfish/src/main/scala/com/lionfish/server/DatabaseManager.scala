@@ -749,6 +749,11 @@ object DatabaseManager {
       val it = rawRoot.iterator()
       if (it.hasNext) {
         root = it.next()
+      } else {
+        // TODO: for development purposes
+        val nodeLabel = DynamicLabel.label("Node")
+        root = graphDB.createNode(rootLabel, nodeLabel)
+        root.setProperty("uuid", "root")
       }
       it.close()
 
