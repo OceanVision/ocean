@@ -372,7 +372,7 @@ class Client(object):
         self.send(request)
         self.recv()
 
-    def create_model_node(self, model_name, **properties):
+    def create_model(self, model_name, **properties):
         """
         Creates a node with properties to the model given by model_name
         @param model_name string

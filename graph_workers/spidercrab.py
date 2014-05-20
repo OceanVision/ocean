@@ -22,8 +22,11 @@ from graph_workers.graph_defines import *
 from graph_workers.graph_utils import *
 from graph_workers.graph_worker import GraphWorker
 from graph_workers.privileges import construct_full_privilege
+
+
+sys.path.append(os.path.join(__file__, '../lionfish'))
 import python_lionfish
-from python_lionfish.client import Client 
+from python_lionfish.client.client import Client
 
 # Defining levels to get rid of other loggers
 info_level = 100
@@ -128,8 +131,9 @@ class Spidercrab(GraphWorker):
         self._init_config(master, config_file_name)
 
         self.required_privileges = construct_full_privilege()
-        # TODO: use configuration!
-	self.odm_client = Client('localhost', 7777)
+	    
+        self.odm_client = Client()
+        
         self.terminate_event = threading.Event()
         self.runtime_id = runtime_id
         self.master_sources_urls_file = master_sources_urls_file
