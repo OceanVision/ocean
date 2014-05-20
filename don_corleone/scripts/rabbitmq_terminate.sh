@@ -1,4 +1,4 @@
 #!/bin/bash
 source ./init.sh
 
-sudo rabbimqctl stop
+sudo rabbitmqctl stop

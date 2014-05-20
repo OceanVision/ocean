@@ -349,7 +349,7 @@ def _terminate_service(service_id):
 
         cmd = "(cd {0} && {1})".format(
                                         os.path.join(m[SERVICE_HOME],"don_corleone"),
-                                        "./scripts/run.sh terminating_job ./scripts/{0}_terminate.sh".format(m[SERVICE]))
+                                        "./scripts/run.sh terminating_job ./scripts/{0}".format(service_config[m[SERVICE]][CONFIG_TERMINATE_SCRIPT]))
 
     status, output = cautious_run_cmd_over_ssh(cmd, m[NODE_ID],m)
 

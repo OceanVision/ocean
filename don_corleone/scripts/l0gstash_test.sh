@@ -1,8 +1,9 @@
 #!/bin/bash
 source ./init.sh
 
-list=$(pgrep -f "logstash")
+list=$(pgrep -f logstash)
 
+echo $list
 
 if [ -n "$list" ]
 then
