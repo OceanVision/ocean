@@ -78,17 +78,16 @@ if __name__ == "__main__":
     )
     (options, args) = parser.parse_args()
 
-    print "Connecting to ","{0}:{1}".format(get_configuration("kafka","host"),get_configuration("kafka","port"))
 
     credentials = pika.PlainCredentials('admin', 'password')
     connection = pika.BlockingConnection(pika.ConnectionParameters(
-                'localhost', credentials=credentials))
+                'localhost', 5672, credentials=credentials))
 
 
 
     channel = connection.channel()
 
-    channel.queue_declare(queue='mantis_totag')
+    channel.queue_declare(queue='mantis_to_tag', durable=True)
 
 
     for id, d in enumerate(get_documents(options.root_dir, options.file_encoding)):
