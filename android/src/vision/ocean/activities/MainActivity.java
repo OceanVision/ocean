@@ -137,6 +137,12 @@ public class MainActivity extends FragmentActivity
             return true;
         }
 
+        else if (id == R.id.action_create_feed) {
+            Intent intent = new Intent(this, CreateFeedActivity.class);
+            startActivity(intent);
+            return true;
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
