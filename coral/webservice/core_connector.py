@@ -5,7 +5,7 @@ from socket_io import IO
 class CoreConnector(object):
     def __init__(self):
         self._host = 'localhost'
-        self._port = 7777
+        self._port = 7778
         self._conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         try:

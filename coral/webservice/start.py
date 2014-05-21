@@ -5,8 +5,6 @@ from flask import request, redirect, Response, url_for
 from cryptography import Cryptography
 from core_connector import CoreConnector
 app = Flask(__name__)
-crypto = None
-
 
 @app.route('/')
 def index():
@@ -29,24 +27,32 @@ def about():
 
 @app.route('/handshake', methods=['POST'])
 def handshake():
-    final_response = {
-        'client_id': crypto.register_client_key('582ec7ba-bcf7-45f0-ac1e-ca7c5be136e3')
+    final_request = {
+        'coralMethodName': 'handshake',
+        'data': {}
     }
+
+    final_response = CoreConnector().process_request(final_request)
     return Response(json.dumps(final_response), mimetype='application/json')
 
 
 @app.route('/sign_in', methods=['POST'])
 def sign_in():
     request_data = request.get_json()
+    client_id = request_data['client_id']
     username = request_data['username']
     password = request_data['password']
-    client_id = request_data['client_id']
 
-    # TODO: implementation
+    final_request = {
+        'coralMethodName': 'signIn',
+        'data': {
+            'clientUuid': client_id,
+            'username': username,
+            'password': password
+        }
+    }
 
-    response_data = True
-
-    final_response = {'status': response_data}
+    final_response = CoreConnector().process_request(final_request)
     return Response(json.dumps(final_response), mimetype='application/json')
 
 
@@ -55,11 +61,14 @@ def sign_out():
     request_data = request.get_json()
     client_id = request_data['client_id']
 
-    # TODO: implementation
+    final_request = {
+        'coralMethodName': 'signOut',
+        'data': {
+            'clientUuid': client_id
+        }
+    }
 
-    response_data = True
-
-    final_response = {'status': response_data}
+    final_response = CoreConnector().process_request(final_request)
     return Response(json.dumps(final_response), mimetype='application/json')
 
 
@@ -77,6 +86,8 @@ def get_article_list():
     for i in range(0, count):
         response_data.append({
             'article_id': '974eeacc-87{0}a-11e3-9f3a-2cd05ae1c39b'.format(i % 10),
+            'link': 'http://www.deon.pl/inteligentne-zycie/firma-praca-i-kariera/'
+                    'art,206,wiara-nie-przeszkadza-byc-bogatym.html',
             'author': 'Autor {0}'.format(i),
             'title': 'Naglowek {0}'.format(i),
             'time': 1397664087,
@@ -114,13 +125,11 @@ def get_feed_list():
     final_request = {
         'coralMethodName': 'getFeedList',
         'data': {
-            'clientId': client_id
+            'clientUuid': client_id
         }
     }
 
-    response_data = CoreConnector().process_request(final_request)
-
-    final_response = {'feed_list': response_data}
+    final_response = CoreConnector().process_request(final_request)
     return Response(json.dumps(final_response), mimetype='application/json')
 
 
@@ -139,8 +148,5 @@ def create_feed():
 
 
 if __name__ == '__main__':
-    # if not crypto:
-    #     crypto = Cryptography()
-
     app.debug = True
     app.run(host='0.0.0.0', port=14)

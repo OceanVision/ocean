@@ -10,19 +10,18 @@ class RequestHandler(private val master: ActorRef) extends Actor {
   private val uuid = UUID.randomUUID().toString
   private implicit var socket: Socket = null
 
-  def handle(id: Int) = {
-    // Process request
-    println(s"Processing request $id.")
+  def handle() = {
+    // Processes request
     val request = IO.receive[Map[String, Any]]()
     master ! Request(uuid, request)
   }
 
   def receive = {
-    case Connection(id, newSocket) => {
+    case Connection(newSocket) => {
       socket = newSocket
-      handle(id)
+      handle()
     }
-    case Result(_, result) => {
+    case Response(_, result) => {
       IO.send(result)
     }
   }
