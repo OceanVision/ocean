@@ -12,6 +12,8 @@ import sys
 import uuid
 import os
 
+from ocean_init_graph import run_and_return_type_list
+
 from py2neo import neo4j, node, rel
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
@@ -26,92 +28,15 @@ from graph_workers.graph_defines import *
 APP_LABEL = 'rss'
 
 if __name__ == '__main__':
-    # Creates connection
+    # Create connection        
+    neo4j_port = None
+    neo4j_host = None
     graph_db = neo4j.GraphDatabaseService(
-        'http://{0}:{1}/db/data/'.format(
-            get_configuration("neo4j", "host"),
-            get_configuration("neo4j", "port")
+            'http://{0}:{1}/db/data/'.format(neo4j_host if neo4j_host else
+        get_configuration("neo4j","host"), neo4j_port if  neo4j_port else get_configuration("neo4j", "port"))
         )
-    )
-    # graph_db = neo4j.GraphDatabaseService('http://ocean-lionfish.no-ip.biz:16/db/data/')
-    # graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
 
-    print 'Running', __file__
-    print 'This script will *ERASE ALL NODES AND RELATIONS IN NEO4J DATABASE*'
-    print 'NOTE: The Root node is required to exist in database.'
-    print 'Press enter to proceed...'
-    enter = raw_input()
-
-    batch = neo4j.ReadBatch(graph_db)
-    batch.append_cypher('MATCH n RETURN count(n)')
-    print 'Nodes in graph initially ', batch.submit()
-    print 'Erasing nodes and relations'
-
-    # Erases database data without the Root node
-    batch = neo4j.WriteBatch(graph_db)
-    batch.append_cypher('MATCH ()-[r]-() DELETE r')
-    batch.append_cypher('MATCH n WHERE id(n) <> 0 DELETE n')
-    batch.submit()
-
-    # Sanity check
-    batch = neo4j.ReadBatch(graph_db)
-    batch.append_cypher('MATCH (n) RETURN count(n)')
-    result = batch.submit()
-    print 'Nodes in graph erased. Sanity check : ', result
-
-    if result[0] != 1:
-        raise Exception('Not erased graph properly')
-
-    root = graph_db.node(0)
-
-    # Configures the Root node
-    batch = neo4j.WriteBatch(graph_db)
-    batch.append_cypher('MATCH (n:Root) SET n:Node')
-    batch.append_cypher('MATCH (n:Root) SET n.uuid="root"')
-    batch.submit()
-
-    read_batch = neo4j.ReadBatch(graph_db)
-    write_batch = neo4j.WriteBatch(graph_db)
-
-    # ===================== MODELS =====================
-    type_list = [
-        node(
-            uuid=str(uuid.uuid1()),
-            app_label=APP_LABEL,
-            name=APP_LABEL+':'+NEOUSER_TYPE_MODEL_NAME,
-            model_name=NEOUSER_TYPE_MODEL_NAME
-        ),
-        node(
-            uuid=str(uuid.uuid1()),
-            app_label=APP_LABEL,
-            name=APP_LABEL+':'+TAG_TYPE_MODEL_NAME,
-            model_name=TAG_TYPE_MODEL_NAME
-        ),
-        node(
-            uuid=str(uuid.uuid1()),
-            app_label=APP_LABEL,
-            name=APP_LABEL+':'+CONTENT_SOURCE_TYPE_MODEL_NAME,
-            model_name=CONTENT_SOURCE_TYPE_MODEL_NAME
-        ),
-        node(
-            uuid=str(uuid.uuid1()),
-            app_label=APP_LABEL,
-            name=APP_LABEL+':'+CONTENT_TYPE_MODEL_NAME,
-            model_name=CONTENT_TYPE_MODEL_NAME
-        )
-    ]
-
-    type_list = graph_db.create(*type_list)
-    for item in type_list:
-        item.add_labels('Model', 'Node')
-
-    # Creates type relations
-    graph_db.create(
-        rel(root, HAS_TYPE_RELATION, type_list[0]),
-        rel(root, HAS_TYPE_RELATION, type_list[1]),
-        rel(root, HAS_TYPE_RELATION, type_list[2]),
-        rel(root, HAS_TYPE_RELATION, type_list[3])
-    )
+    type_list = run_and_return_type_list() 
 
     # ===================== USERS =====================
     # Creates nodes
@@ -257,36 +182,36 @@ relacje na zywo i wiele wiecej.',
             uuid=str(uuid.uuid1()),
             link='http://www.gry-online.pl/S013.asp?ID=85249',
             time=int(time.time() - 100000),
-            title='Assassin\'s Creed IV i Far Cry 3 - wyniki sprzedaży gier Ubisoftu',
-            image_link='http://www.gry-online.pl/galeria/html/wiadomosci/bigphotos/preview/82726815.jpg',
+            title='Assassins Creed IV i Far Cry 3 - wyniki sprzedazy gier Ubisoftu'.encode('utf-8'),
+            image_link='http://www.gry-online.pl/galeria/html/wiadomosci/bigphotos/preview/82726815.jpg'.encode('utf-8'),
         ),
         node(
             uuid=str(uuid.uuid1()),
             link='http://www.tvnmeteo.pl/informacje/polska,28/na-wisle-tworzy-sie-fala-wezbraniowa,'
                  '123095,1,0.html',
             time=int(time.time() - 100000),
-            title='Na Wiśle tworzy się fala wezbraniowa',
+            title='Na Wisle tworzy sie fala wezbraniowa'.encode('utf-8'),
             image_link='http://r-scale-ca.dcs.redcdn.pl/scale/o2/tvn/web-content/m/p5/i/90db9da4fc'
                        '5414ab55a9fe495d555c06/6685b2b6-dce8-11e3-9205-0025b511226e.jpg?type=1&amp;'
-                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50',
+                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50'.encode('utf-8'),
         ),
         node(
             uuid=str(uuid.uuid1()),
             link='http://www.tvn24.pl/w-lodzi-jak-w-bombaju-totalny-chaos-na-skrzyzowaniach,429020,s.html',
             time=int(time.time() - 100000),
-            title='W Łodzi jak w Bombaju. "Totalny chaos na skrzyżowaniach"',
+            title='W Lodzi jak w Bombaju. "Totalny chaos na skrzyzowaniach"'.encode('utf-8'),
             image_link='http://r-scale-3f.dcs.redcdn.pl/scale/o2/tvn/web-content/m/p1/i/90db9da4fc5'
                        '414ab55a9fe495d555c06/84fe9534-dcf0-11e3-9d17-0025b511229e.jpg?type=1&amp;'
-                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50',
+                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50'.encode('utf-8'),
         ),
         node(
             uuid=str(uuid.uuid1()),
             link='http://www.tvn24.pl/krakow,50/w-krakowie-ogloszono-pogotowie-przeciwpowodziowe,428917.html',
             time=int(time.time() - 100000),
-            title='W Krakowie ogłoszono pogotowie przeciwpowodziowe',
+            title='W Krakowie ogloszono pogotowie przeciwpowodziowe'.encode('utf-8'),
             image_link='http://r-scale-8d.dcs.redcdn.pl/scale/o2/tvn/web-content/m/p1/i/90db9da4fc5'
                        '414ab55a9fe495d555c06/eeba57b0-dccd-11e3-8531-0025b511226e.jpg?type=1&amp;'
-                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50',
+                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50'.encode('utf-8'),
         )
     ]
 
@@ -342,5 +267,4 @@ relacje na zywo i wiele wiecej.',
     batch.submit()
 
     print 'Graph populated successfully!'
-    print 'Remember to (RE)START Lionfish server!'
 

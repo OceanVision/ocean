@@ -10,7 +10,9 @@ import json
 import os
 import threading
 import time
-
+import sys
+sys.path.append(os.path.abspath(".."))
+from don_corleone import don_utils as du
 
 def run_master():
     print '\nRunning two masters with option to enqueue above sources.'
@@ -31,22 +33,32 @@ def run_slave():
 
 if __name__ == '__main__':
 
-    DATA_FILE = '../data/contentsource_nodes_1000'
+    #TODO: use os.path.join not + - it is bug prone
+    OCEAN_ROOT = du.get_ocean_root_dir()
 
-    TEMP_SPIDERCRAB_CONFIG = '../data/spidercrab_1000_test_config'
+    DATA_FILE = OCEAN_ROOT + '/data/contentsource_nodes_1000'
+
+    if not os.path.exists(DATA_FILE):
+        #TODO: add logger
+        print "Please download contentsource_nodes_1000 for Ocean Don Corleone"
+        print "You can use this command: scp root@ocean-don.no-ip.biz:/webapps/ocean/data/contentsource_nodes_1000 . "
+        exit(1)
+    
+
+    TEMP_SPIDERCRAB_CONFIG = OCEAN_ROOT + '/data/spidercrab_1000_test_config'
     TEMP_SPIDERCRAB_STATS_EXPORT = \
-        '../data/spidercrab_1000_test_stats'
+        OCEAN_ROOT + '/data/spidercrab_1000_test_stats'
     files = [
         TEMP_SPIDERCRAB_CONFIG,
         TEMP_SPIDERCRAB_STATS_EXPORT,
     ]
 
     NUMBER_OF_SLAVES = 10
-    NEWS_TO_BE_FETCHED = 25  # for each slave
+    NEWS_TO_BE_FETCHED = 50  # for each slave
 
     print 'Running', __file__
     print '\nNOTE: You need following file to run this test ' \
-        '(Ocean Don Corleone Server):'
+        '(from Ocean Don Corleone Server):'
     print DATA_FILE
 
     # Security stuff
@@ -59,14 +71,17 @@ if __name__ == '__main__':
     if error:
         exit(1)
 
-    os.chdir('../scripts/')
+    print '\nTesting spidercrab<->system integrity...'
+    os.system(OCEAN_ROOT + '/tests/spidercrab_integrity_test.py')
+
+    os.chdir(OCEAN_ROOT + '/scripts/')
 
     print '\nWiping and filling database with 1000 nodes...'
-    command = '../scripts/ocean_exemplary_data.py -s %s'
+    command = OCEAN_ROOT + '/scripts/ocean_exemplary_data.py -s %s'
     command %= DATA_FILE
     os.system(command)
 
-    os.chdir('../tests/')
+    os.chdir(OCEAN_ROOT + '/tests/')
 
     print '\nCreating Spidercrab config file...'
     command = 'echo "%s" > %s'
@@ -94,7 +109,8 @@ if __name__ == '__main__':
     time.sleep(1)
 
     print '\nRunning 10 slaves...'
-    command = '../graph_workers/spidercrab_slave.py -o -n %s -c %s -t %s'
+    command = OCEAN_ROOT \
+        + '/graph_workers/spidercrab_slave.py -o -n %s -c %s -t %s'
     command %= (
         NUMBER_OF_SLAVES,
         TEMP_SPIDERCRAB_CONFIG,
@@ -104,11 +120,12 @@ if __name__ == '__main__':
     time.sleep(1)
     os.system(command)
 
-    print '\nStats:'
+    print '\nStats - JSON file:'
     os.system('cat ' + TEMP_SPIDERCRAB_STATS_EXPORT)
 
     stats = json.load(open(TEMP_SPIDERCRAB_STATS_EXPORT))
-    print '\n', stats
+    print '\nStats - Python dict:'
+    print stats
 
     print '\nChecking results...'
     slaves = stats['1000_test_spidercrab']['slave']
@@ -131,4 +148,7 @@ if __name__ == '__main__':
     # Security stuff
     for temp_file in files:
         print 'Removing', temp_file
-        os.remove(temp_file)
+        if not os.path.isfile(temp_file):
+            print '... no such a file or file.'
+        else:
+            os.remove(temp_file)

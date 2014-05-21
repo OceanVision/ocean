@@ -9,12 +9,12 @@ if __name__=="__main__":
     print get_running_service(service_name="spidercrab_master")
 
 
-    print get_running_service(service_id="neo4j_0",service_config={"port":7777})
+    print get_running_service(service_id="neo4j_0", service_params={"port":7777})
     
 
     services=[ {"service":"x", "service_id":"y", "service_config":{"a":1,"b":2}}]
 
-    print get_service(services, service_id="y", service_config={"a":1}) 
+    print get_service(services, service_id="y", service_params={"a":1})
 
     print "GET CONFIGURATION TESTS"
     print get_configuration_query("port", service_name="neo4j")

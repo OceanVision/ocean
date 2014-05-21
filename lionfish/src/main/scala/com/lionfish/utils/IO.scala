@@ -18,7 +18,7 @@ object IO {
       val msgLength = byteBuffer.array()
 
       // Prepares a certain message
-      val msg: Array[Byte] = msgLength ++ serialisedMsg.getBytes
+      val msg: Array[Byte] = msgLength ++ serialisedMsg.getBytes("UTF-8")
       outputStream.write(msg)
     } catch {
       case e: Exception => {
@@ -50,7 +50,7 @@ object IO {
       while (totalCount < dataLength) {
         count = inputStream.read(readBuffer, 0, dataLength)
         totalCount += count
-        msg += new String(readBuffer, 0, count)
+        msg += new String(readBuffer, 0, count, "UTF-8")
       }
 
       // Parses msg to data

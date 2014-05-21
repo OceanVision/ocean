@@ -64,6 +64,22 @@
 
 
           //Call to don corleone webservice functionality
+          function info_service(service_id){
+
+                    jQuery.ajax({
+                         async:false,
+                          data: {"service_id": service_id},
+                         url:    "{{server_url}}/get_service",
+                         success: function(data, status) {
+                                       display_alert_text(JSON.stringify(data));
+                                  },
+                            type:'GET',
+                            crossDomain:true,
+                            dataType:'jsonp'
+
+                    });
+          }
+          //Call to don corleone webservice functionality
           function terminate_service(service_id){
 
                     jQuery.ajax({
@@ -152,7 +168,7 @@
                         start_button_cpy.click(function(){ run_service(current_service_id);});
                         remove_button_cpy.click(function(){ deregister_service(current_service_id);});
                         pause_button_cpy.click(function(){ terminate_service(current_service_id);});
-
+                        info_button_cpy.click(function(){ info_service(current_service_id);});
 
                         $(this).append(start_button_cpy);
                         $(this).append(remove_button_cpy);

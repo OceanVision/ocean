@@ -14,13 +14,14 @@ from optparse import OptionParser
 from py2neo import neo4j
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../lionfish/python_lionfish/client/'))
 from don_utils import get_configuration
 
 sys.path.append('../graph_workers/')
 lib_path = os.path.abspath('./graph_workers')
 sys.path.append(lib_path)
 from graph_workers.graph_defines import *
-from odm_client import ODMClient
+from client import Client
 
 SOURCE_FILE = '../data/contentsource_nodes_exemplary'
 
@@ -49,7 +50,11 @@ if __name__ == '__main__':
     print 'Press Enter to continue or Ctrl+C to abort.'
     enter = raw_input()
 
-    os.system('python2 ocean_init_graph.py')
+    retcode = os.system('python2 ocean_init_graph.py')
+
+    if retcode != 0:
+        print "FAILED ocean_init_graph.py. Exiting"
+        exit(1)
 
     # Create connection
     graph_db = neo4j.GraphDatabaseService(
@@ -63,7 +68,7 @@ if __name__ == '__main__':
     print '(You are permitted to run whole system too during this process)'
     enter = raw_input()
 
-    odm_client = ODMClient()
+    odm_client = Client('localhost', 7777)
     odm_client.connect()
     odm_batch = odm_client.get_batch()
 
@@ -93,6 +98,7 @@ if __name__ == '__main__':
         try:
             cs_node = eval(unicode(cs))
             cs_node['last_updated'] = 0
+            cs_node['description'] = cs_node['description'].encode('utf-8')
 
             odm_batch.append(
                 odm_client.create_node,
