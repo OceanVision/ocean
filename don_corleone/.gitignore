@@ -1,4 +1,4 @@
 config.json
-server.log
+*.log
 command_queue
 ocean_password

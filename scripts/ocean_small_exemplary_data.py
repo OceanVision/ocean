@@ -21,9 +21,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
 from don_utils import get_configuration
 
 sys.path.append('../graph_workers/')
-lib_path = os.path.abspath('./graph_workers')
-sys.path.append(lib_path)
-from graph_workers.graph_defines import *
+from graph_defines import *
 
 APP_LABEL = 'rss'
 
