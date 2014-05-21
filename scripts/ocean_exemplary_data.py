@@ -18,9 +18,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../lionfish/python_lion
 from don_utils import get_configuration
 
 sys.path.append('../graph_workers/')
-lib_path = os.path.abspath('./graph_workers')
-sys.path.append(lib_path)
-from graph_workers.graph_defines import *
+from graph_defines import *
 from client import Client
 
 SOURCE_FILE = '../data/contentsource_nodes_exemplary'

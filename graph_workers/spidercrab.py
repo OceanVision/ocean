@@ -128,7 +128,10 @@ class Spidercrab(GraphWorker):
 
         self.required_privileges = construct_full_privilege()
         # TODO: use configuration!
-        self.odm_client = Client('localhost', 7777)
+        self.odm_client = Client(
+            du.get_configuration('lionfish', 'host'),
+            du.get_configuration('lionfish', 'port')
+        )
         self.terminate_event = threading.Event()
         self.runtime_id = runtime_id
         self.master_sources_urls_file = master_sources_urls_file
@@ -293,7 +296,7 @@ class Spidercrab(GraphWorker):
             info_level,
             self.fullname + ' Finished!\nStats:\n' + str(self.stats))
         self._export_stats_to(self.STANDARD_STATS_EXPORT_FILE)
-        if not self.export_stats_to is None and self.export_stats_to != self.STANDARD_STATS_EXPORT_FILE:
+        if not self.export_stats_to is None:
             self._export_stats_to(self.export_stats_to)
 
     def _export_stats_to(self, file_name):
