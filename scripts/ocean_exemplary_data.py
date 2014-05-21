@@ -98,6 +98,7 @@ if __name__ == '__main__':
         try:
             cs_node = eval(unicode(cs))
             cs_node['last_updated'] = 0
+            cs_node['description'] = cs_node['description'].encode('utf-8')
 
             odm_batch.append(
                 odm_client.create_node,
