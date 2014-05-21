@@ -14,6 +14,7 @@
                  android:layout_height="wrap_content"
                  android:contentDescription="@string/refresh_button_content_description"
                  android:src="@drawable/refresh"
-                 android:layout_marginTop="10dp"/>
+                 android:layout_marginTop="10dp"
+                 android:onClick="refreshActivity"/>
 
 </LinearLayout>
