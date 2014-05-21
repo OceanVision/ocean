@@ -28,6 +28,7 @@ The whole communication begins when the client requests a handshake. It may be p
 Returned value: **object**
 
 Returned value contains keys:
+* _status_ `bool`
 * _client_id_ `string`
 
 ***
@@ -67,6 +68,7 @@ Parameter contains keys:
 Returned value: **object**
 
 Returned value contains keys:
+* _status_ `bool`
 * _article_list_ `list[object]`
 
 Each element of _article_list_ contains keys:
@@ -87,6 +89,7 @@ Parameter contains keys:
 Returned value: **object**
 
 Returned value contains keys:
+* _status_ `bool`
 * _article_id_ `string`
 * _body_ `string`
 
@@ -98,6 +101,7 @@ Parameter contains keys:
 Returned value: **object**
 
 Returned value contains keys:
+* _status_ `bool`
 * _feed_list_ `list[object]`
 
 Each element of _feed_list_ contains keys:
@@ -110,10 +114,13 @@ Each element of _feed_list_ contains keys:
 
 Parameter contains keys:
 * _client_id_ `string`
-* _feed_tags_ `list[string]`
+* _name_ `string`
+* _included_tag_list_ `list[string]`
+* _excluded_tag_list_ `list[string]`
 
 Returned value: **object**
 
 Returned value contains keys:
 * _status_ `bool`
+* _non_existing_tag_list_ `list[string]`
 

@@ -32,6 +32,7 @@ HAS_RELATION = "__has__"
 #root = graph_db.node(0)
 
 TAG_TYPE_MODEL_NAME = 'Tag'
+FEED_TYPE_MODEL_NAME = 'Feed'
 CONTENT_TYPE_MODEL_NAME = "Content"
 NEOUSER_TYPE_MODEL_NAME = "NeoUser"
 NEWS_WEBSITE_TYPE_MODEL_NAME = "NewsWebsite"

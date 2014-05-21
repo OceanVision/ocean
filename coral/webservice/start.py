@@ -136,14 +136,22 @@ def get_feed_list():
 @app.route('/create_feed', methods=['POST'])
 def create_feed():
     request_data = request.get_json()
-    feed_tags = request_data['feed_tags']
     client_id = request_data['client_id']
+    name = request_data['name']
+    included_tag_list = request_data['included_tag_list']
+    excluded_tag_list = request_data['excluded_tag_list']
 
-    # TODO: implementation
+    final_request = {
+        'coralMethodName': 'createFeed',
+        'data': {
+            'clientUuid': client_id,
+            'name': name,
+            'includedTagList': included_tag_list,
+            'excludedTagList': excluded_tag_list
+        }
+    }
 
-    response_data = True
-
-    final_response = {'status': response_data}
+    final_response = CoreConnector().process_request(final_request)
     return Response(json.dumps(final_response), mimetype='application/json')
 
 

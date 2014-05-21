@@ -109,6 +109,7 @@ if __name__ == '__main__':
 
     # Creates instance relations
     graph_db.create(
+        rel(type_list[4], HAS_INSTANCE_RELATION, feed_list[0]),
         rel(user_list[2], HAS_FEED_RELATION, feed_list[0])
     )
 

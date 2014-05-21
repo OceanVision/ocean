@@ -99,6 +99,12 @@ def run_and_return_type_list():
             app_label=APP_LABEL,
             name=APP_LABEL+':'+CONTENT_TYPE_MODEL_NAME,
             model_name=CONTENT_TYPE_MODEL_NAME
+        ),
+        node(
+            uuid=str(uuid.uuid1()),
+            app_label=APP_LABEL,
+            name=APP_LABEL+':'+FEED_TYPE_MODEL_NAME,
+            model_name=FEED_TYPE_MODEL_NAME
         )
     ]
 
@@ -111,7 +117,8 @@ def run_and_return_type_list():
         rel(root, HAS_TYPE_RELATION, type_list[0]),
         rel(root, HAS_TYPE_RELATION, type_list[1]),
         rel(root, HAS_TYPE_RELATION, type_list[2]),
-        rel(root, HAS_TYPE_RELATION, type_list[3])
+        rel(root, HAS_TYPE_RELATION, type_list[3]),
+        rel(root, HAS_TYPE_RELATION, type_list[4])
     )
 
     print 'Graph populated successfully.'
