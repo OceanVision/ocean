@@ -10,7 +10,8 @@ import json
 import os
 import threading
 import time
-
+import sys
+sys.path.append(os.path.abspath(".."))
 from don_corleone import don_utils as du
 
 def run_master():
@@ -32,9 +33,17 @@ def run_slave():
 
 if __name__ == '__main__':
 
+    #TODO: use os.path.join not + - it is bug prone
     OCEAN_ROOT = du.get_ocean_root_dir()
 
     DATA_FILE = OCEAN_ROOT + '/data/contentsource_nodes_1000'
+
+    if not os.path.exists(DATA_FILE):
+        #TODO: add logger
+        print "Please download contentsource_nodes_1000 for Ocean Don Corleone"
+        print "You can use this command: scp root@ocean-don.no-ip.biz:/webapps/ocean/data/contentsource_nodes_1000 . "
+        exit(1)
+    
 
     TEMP_SPIDERCRAB_CONFIG = OCEAN_ROOT + '/data/spidercrab_1000_test_config'
     TEMP_SPIDERCRAB_STATS_EXPORT = \
@@ -45,7 +54,7 @@ if __name__ == '__main__':
     ]
 
     NUMBER_OF_SLAVES = 10
-    NEWS_TO_BE_FETCHED = 25  # for each slave
+    NEWS_TO_BE_FETCHED = 50  # for each slave
 
     print 'Running', __file__
     print '\nNOTE: You need following file to run this test ' \

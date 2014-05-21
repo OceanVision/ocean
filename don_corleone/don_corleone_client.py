@@ -16,7 +16,7 @@ from terminate_node import terminate_node
 from don_utils import get_don_corleone_url, has_succeded
 
 from optparse import OptionParser
-
+import time
 def create_parser():
     """ Configure options and return parser object """
     parser = OptionParser()
@@ -57,11 +57,11 @@ SSH_PORT = "ssh-port"
 run_node_owner = False
 terminated = False
 
-def install_node(config, run=True):
+def install_node(node_config, run=True):
     global terminated
     """ Waits for webserver to start """
 
-    while config[MASTER_LOCAL] and os.system("./scripts/don_corleone_test.sh") != 0 and not terminated:
+    while node_config[MASTER_LOCAL] and os.system("./scripts/don_corleone_test.sh") != 0 and not terminated:
         logger.info("Still don corleone not running. Try running it yourself using ./scripts/don_corleone_run.sh")
         time.sleep(1)
 
@@ -70,24 +70,24 @@ def install_node(config, run=True):
 
     # Terminating node
     logger.info("Terminating old responsibilities")
-    response = urllib2.urlopen(get_don_corleone_url(config)+"/terminate_node?node_id="+config[NODE_ID]).read()
+    response = urllib2.urlopen(get_don_corleone_url(node_config)+"/terminate_node?node_id="+node_config[NODE_ID]).read()
     print response
 
    
     logger.info("Registering the node")
     # Register node
-    params = urllib.urlencode({"config":json.dumps(config), "node_id":json.dumps(config[NODE_ID]) })
-    response = urllib2.urlopen(get_don_corleone_url(config)+"/register_node", params).read()
+    params = urllib.urlencode({"node_config":json.dumps(node_config), "node_id":json.dumps(node_config[NODE_ID]) })
+    response = urllib2.urlopen(get_don_corleone_url(node_config)+"/register_node", params).read()
     logger.info(response)
 
 
     # Reversed ssh support
-    if config.get(REVERSED_SSH, False):
+    if node_config.get(REVERSED_SSH, False):
         logger.info("Reversed ssh")
-        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/register_reversed?node_id="+str(config[NODE_ID])).read())
+        response = json.loads(urllib2.urlopen(get_don_corleone_url(node_config)+"/register_reversed?node_id="+str(node_config[NODE_ID])).read())
         print response
         cmd = "./scripts/run_reversed_ssh.sh {0} {1} {2} {3} {4}".format(response["result"]["ssh-user"], response["result"]["ssh-host"], \
-        response["result"]["ssh-port-redirect"], config[SSH_PORT], response['result']['ssh-port'])
+        response["result"]["ssh-port-redirect"], node_config[SSH_PORT], response['result']['ssh-port'])
         logger.info("Running "+cmd)
         os.system(cmd)
 
@@ -95,43 +95,58 @@ def install_node(config, run=True):
     time.sleep(1)
  
     logger.info("Installing the node")
-    print config[RESPONSIBILITIES]
+    print node_config[RESPONSIBILITIES]
 
     if not run:
         logger.info("WARNING: Only installing not running services")
 
 
     service_ids = []
-    for id, responsibility in enumerate(config[RESPONSIBILITIES]):
+    for id, responsibility in enumerate(node_config[RESPONSIBILITIES]):
         logger.info("Registering "+str(id)+" responsibility "+str(responsibility))
         service = responsibility[0]
-        additional_config = responsibility[1]
+        service_parameters = responsibility[1]
         params = urllib.urlencode\
-                ({"service":json.dumps(service),"run":json.dumps(False) , "config":json.dumps(config),
-                  "additional_config":json.dumps(additional_config), "node_id":json.dumps(config[NODE_ID]), "public_url":json.dumps(config[PUBLIC_URL])
+                ({"service":json.dumps(service),"run":json.dumps(False) , "node_config":json.dumps(node_config),
+                  "additional_config":json.dumps(service_parameters), "node_id":json.dumps(node_config[NODE_ID]),
+                  "public_url":json.dumps(node_config[PUBLIC_URL])
                   })
 
 
-        print get_don_corleone_url(config)
-        response = urllib2.urlopen(get_don_corleone_url(config)+"/register_service", params).read()
-        print response
+        print get_don_corleone_url(node_config)
+        print "Registering and waiting for response..."
+        response = urllib2.urlopen(get_don_corleone_url(node_config)+"/register_service", params).read()
+        print "Response...", response
 
 	if has_succeded(response):
 	    service_ids.append(json.loads(response)['result'])
 	else:
 	    logger.error("NOT REGISTERED SERVICE "+str(responsibility))
 
-        response = json.loads(urllib2.urlopen(get_don_corleone_url(config)+"/get_services").read())
+        response = json.loads(urllib2.urlopen(get_don_corleone_url(node_config)+"/get_services").read())
 
         print "Succeded = ", has_succeded(response)
 
-    if run: 
+    if run:
+        trails = 20
         for service_id in service_ids:
-            response = urllib2.urlopen(get_don_corleone_url(config)+\
-		"/run_service?service_id="+str(service_id)).read()
-	    if not has_succeded(response):
-	        logger.error("SHOULDNT HAPPEN FAILED RUNNING")
-            logger.error(response)
+            print "Running ",service_id
+            for i in xrange(20):
+                print "Calling run service"
+                response = urllib2.urlopen(get_don_corleone_url(node_config)+\
+            "/run_service?service_id="+str(service_id)).read()
+                print "Response..."
+                if not has_succeded(response):
+                    logger.error("SHOULDNT HAPPEN FAILED RUNNING")
+                    logger.error(response)
+                else:
+                    logger.info(response)
+                    break
+
+                time.sleep(1.0)
+
+                if i == 4:
+                    logger.error("Failed running service 20 times in a row. Abandoning")
 
 #    for id, responsibility in enumerate(config[RESPONSIBILITIES]):
 
@@ -169,28 +184,50 @@ def run_client(config, state_callback):
             os.system("./scripts/run.sh don ./scripts/don_corleone_run.sh")
 
     #Ensure command_queue exists
+    os.system("rm command_queue")
 
-    #Install
-    install_node(config)    
+    def install_node_daemon():
+        #Install
+        install_node(config)
+
+        # Indicate having finished installing
+        state_callback['value']=True
+
+
+    t = threading.Thread(target=install_node_daemon)
+    t.daemon = True
+    t.start()
 
     # Init command queue
-    os.system("touch command_queue")
-    
 
-    # Indicate having finished installing
-    state_callback['value']=True
+    os.system("touch command_queue")
+
+
 
     #Run daemon - ONLY PROTOTYPED
     while True:
+        while os.path.exists("command_queue_lock"):
+            print "Locked.."
+            time.sleep(0.01)
+
         os.system("sudo -u {0} touch command_queue_lock".format(config[USER]))
-        commands = open("command_queue","r").readlines()
-        os.system("rm command_queue_lock && rm command_queue && sudo -u {0} touch command_queue".format(config[USER]))
+
+        commands = []
+
+        if os.path.exists("command_queue"):
+            commands = open("command_queue","r").readlines()
+            os.system("sudo rm command_queue")
+
+
+        os.system("sudo rm command_queue_lock".format(config[USER]))
+
         for cmd in commands:
             logger.info("Running remotedly requested command " + str(cmd))
             ret = os.system("sudo -u {0} sh -c \"{1}\"".format(config["ssh-user"], cmd))
             if ret != 0:
                 logger.info("Failed command")
             logger.info("Done")
+
         time.sleep(1)
 
 if __name__ == "__main__":

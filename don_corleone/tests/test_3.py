@@ -21,7 +21,10 @@ class BasicTests(unittest.TestCase):
         run_node(config, hang=False)
         print run_procedure(config, "get_services")
         print count_services(config)
-        assert(count_services(config) == 2)
+
+        raw_input("Press [enter] to finish test")
+
+        assert(count_services(config, running=True) == 2)
         print "Terminating don corleone node"
         # Terminate
         os.system("scripts/don_corleone_terminate.sh")
