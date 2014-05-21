@@ -227,11 +227,33 @@ class Client(object):
         result = self.recv()
         return result[0]
 
+    def get_by_username(self, username, **params):
+        """
+        Gets a node by given username
+        @param username string
+        """
+        data = {
+            'methodName': 'getByUsername',
+            'args': {
+                'username': username
+            }
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(request)
+        result = self.recv()
+        return result[0]
+
     def get_by_label(self, label, **params):
         """
-        Gets a node by given model_name and link
-        @param model_name string
-        @param link string
+        Gets a node by given label
+        @param label string
         """
         data = {
             'methodName': 'getByLabel',
@@ -315,6 +337,29 @@ class Client(object):
                 'modelName': model_name,
                 'childrenProps': children_properties,
                 'relProps': relationship_properties
+            }
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(request)
+        result = self.recv()
+        return result[0]
+
+    def get_user_feeds(self, uuid, **params):
+        """
+        Gets all feeds of given user uuid
+        @param uuid string
+        """
+        data = {
+            'methodName': 'getUserFeeds',
+            'args': {
+                'uuid': uuid
             }
         }
 

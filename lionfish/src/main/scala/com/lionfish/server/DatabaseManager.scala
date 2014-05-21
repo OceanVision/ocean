@@ -302,6 +302,44 @@ object DatabaseManager {
     result
   }
 
+  def getByUsername(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[Any] = null
+
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[Any] = ListBuffer()
+      val label = DynamicLabel.label("NeoUser")
+
+      // Gets nodes by uuid
+      for (item <- args) {
+        // Extracts result
+        val username = item("username").asInstanceOf[String]
+        val rawNode = graphDB.findNodesByLabelAndProperty(label, "username", username)
+
+        val it = rawNode.iterator()
+        if (it.hasNext) {
+          rawResult += parseMap(it.next())
+        } else {
+          rawResult += null
+        }
+        it.close()
+      }
+      tx.success()
+      result = rawResult.toList
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+        result = List()
+    } finally {
+      tx.close()
+    }
+
+    result
+  }
+
   def getByLabel(args: List[Map[String, Any]]): List[Any] = {
     var result: List[Any] = null
 

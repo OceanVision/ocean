@@ -105,6 +105,19 @@ object Database extends Factory {
     }
   }
 
+  case class getByUsername(private val username: String) extends Method {
+    override def getRequest: Map[String, Any] = {
+      val request = Map(
+        "methodName" -> "getByUsername",
+        "args" -> Map(
+          "username" -> username
+        )
+      )
+
+      request
+    }
+  }
+
   case class getModelNodes() extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(

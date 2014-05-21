@@ -36,6 +36,9 @@ class RequestHandler extends Actor {
           case "getByTag" => {
             rawResult = DatabaseManager.getByTag(fullArgs.toList)
           }
+          case "getByUsername" => {
+            rawResult = DatabaseManager.getByUsername(fullArgs.toList)
+          }
           case "getByLabel" => {
             rawResult = DatabaseManager.getByLabel(fullArgs.toList)
           }
@@ -128,6 +131,9 @@ class RequestHandler extends Actor {
           }
           case "getByTag" => {
             rawResult = DatabaseManager.getByTag(args)
+          }
+          case "getByUsername" => {
+            rawResult = DatabaseManager.getByUsername(args)
           }
           case "getByLabel" => {
             rawResult = DatabaseManager.getByLabel(args)

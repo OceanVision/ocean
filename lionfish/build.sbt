@@ -4,7 +4,7 @@ name := "lionfish"
 
 oneJarSettings
 
-version := "0.9.3"
+version := "0.9.5"
 
 scalaVersion := "2.10.4"
 
