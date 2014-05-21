@@ -217,7 +217,6 @@ class RequestHandler extends Actor {
     } catch {
       case e: Exception => {
         log.error(s"Failed to process a request. Error message: $e")
-        println(s"$request")
       }
         List()
     }

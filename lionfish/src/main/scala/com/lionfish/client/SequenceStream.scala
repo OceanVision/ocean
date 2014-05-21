@@ -5,23 +5,12 @@ class SequenceStream(
   protected val serverPort: Int) extends Stream {
 
   override def !!(method: Method): Any = {
-    val result = method.executeSequence().asInstanceOf[List[Any]]
-
-    if (result != null && result.length == 1) {
-      result(0)
-    } else {
-      result
-    }
+    method.executeSequence()
   }
 
   override def execute(): Any = {
-    val result = macroMethod.executeSequence().asInstanceOf[List[Any]]
+    val result = macroMethod.executeSequence()
     macroMethod = null
-
-    if (result != null && result.length == 1) {
-      result(0)
-    } else {
-      result
-    }
+    result
   }
 }
