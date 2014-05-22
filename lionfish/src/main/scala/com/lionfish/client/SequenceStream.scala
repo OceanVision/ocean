@@ -9,8 +9,17 @@ class SequenceStream(
   }
 
   override def execute(): Any = {
-    val result = macroMethod.executeSequence()
-    macroMethod = null
+    var result: List[Any] = null
+
+    try {
+      result = macroMethod.executeSequence()
+      macroMethod = null
+    } catch {
+      case e: Exception => {
+        println(s"Failed to execute the sequence.")
+      }
+    }
+
     result
   }
 }

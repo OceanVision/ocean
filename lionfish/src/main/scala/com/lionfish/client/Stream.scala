@@ -8,8 +8,11 @@ trait Stream {
 
   // Connects to the server
   protected implicit val socket: Socket = new Socket(serverAddress, serverPort)
-
   protected var macroMethod: Method = null
+
+  def close() = {
+    socket.close()
+  }
 
   def <<(method: Method): Stream = {
     if (macroMethod == null) {

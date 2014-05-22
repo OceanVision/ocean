@@ -294,7 +294,7 @@ class Client(object):
         return result[0]
 
     def get_children(self, parent_uuid, relationship_type, children_properties={},
-                     relationship_properties={}, **params):
+                     relationship_properties={}, limit=0, **params):
         """
         Gets children of node with parent_uuid uuid related by relation relationship_type
         with children_properties and relationship_properties
@@ -309,7 +309,8 @@ class Client(object):
                 'parentUuid': parent_uuid,
                 'relType': relationship_type,
                 'childrenProps': children_properties,
-                'relProps': relationship_properties
+                'relProps': relationship_properties,
+                'limit': limit
             }
         }
 
@@ -324,7 +325,8 @@ class Client(object):
         result = self.recv()
         return result[0]
 
-    def get_instances(self, model_name, children_properties={}, relationship_properties={}, **params):
+    def get_instances(self, model_name, children_properties={}, relationship_properties={},
+                      limit=0, **params):
         """
         Gets all instances of given model_name with children_properties and relationship_properties
         @param model_name string
@@ -336,7 +338,8 @@ class Client(object):
             'args': {
                 'modelName': model_name,
                 'childrenProps': children_properties,
-                'relProps': relationship_properties
+                'relProps': relationship_properties,
+                'limit': limit
             }
         }
 
@@ -351,7 +354,7 @@ class Client(object):
         result = self.recv()
         return result[0]
 
-    def get_user_feeds(self, uuid, **params):
+    def get_user_feeds(self, uuid, limit=0, **params):
         """
         Gets all feeds of given user uuid
         @param uuid string
@@ -359,7 +362,8 @@ class Client(object):
         data = {
             'methodName': 'getUserFeeds',
             'args': {
-                'uuid': uuid
+                'uuid': uuid,
+                'limit': limit
             }
         }
 
@@ -522,7 +526,7 @@ class Client(object):
 
     def create_relationship(self, start_node_uuid, end_node_uuid, relationship_type, **properties):
         """
-        Creates a relationship relationship_type with properties
+        Creates a relationship of type relationship_type with properties
         between nodes of start_node_uuid and end_node_uuid
         @param start_node_uuid string
         @param end_node_uuid string
@@ -531,6 +535,36 @@ class Client(object):
         """
         data = {
             'methodName': 'createRelationships',
+            'args': {
+                'startNodeUuid': start_node_uuid,
+                'endNodeUuid': end_node_uuid,
+                'type': relationship_type,
+                'props': properties
+            }
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(request)
+        result = self.recv()
+        return result[0]
+
+    def create_unique_relationship(self, start_node_uuid, end_node_uuid, relationship_type, **properties):
+        """
+        Creates an unique relationship of type relationship_type with properties
+        between nodes of start_node_uuid and end_node_uuid
+        @param start_node_uuid string
+        @param end_node_uuid string
+        @param relationship_type string
+        @param properties dictionary/keywords
+        """
+        data = {
+            'methodName': 'createUniqueRelationships',
             'args': {
                 'startNodeUuid': start_node_uuid,
                 'endNodeUuid': end_node_uuid,

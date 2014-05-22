@@ -21,13 +21,13 @@ trait Method {
     this
   }
 
-  def executeSequence()(implicit socket: Socket): Any = {
+  def executeSequence()(implicit socket: Socket): List[Any] = {
     val finalRequest: Map[String, Any] = Map(
       "type" -> "sequence",
       "tasks" -> tasks.toList
     )
 
-    execute(finalRequest)
+    execute(finalRequest).asInstanceOf[List[Any]]
   }
 
   def executeBatch()(implicit socket: Socket): List[Any] = {

@@ -78,6 +78,9 @@ class RequestHandler extends Actor {
           case "createRelationships" => {
             rawResult = DatabaseManager.createRelationships(fullArgs.toList)
           }
+          case "createUniqueRelationships" => {
+            rawResult = DatabaseManager.createUniqueRelationships(fullArgs.toList)
+          }
           case "deleteRelationships" => {
             rawResult = DatabaseManager.deleteRelationships(fullArgs.toList)
           }
@@ -173,6 +176,9 @@ class RequestHandler extends Actor {
           }
           case "createRelationships" => {
             rawResult = DatabaseManager.createRelationships(args)
+          }
+          case "createUniqueRelationships" => {
+            rawResult = DatabaseManager.createUniqueRelationships(args)
           }
           case "deleteRelationships" => {
             rawResult = DatabaseManager.deleteRelationships(args)

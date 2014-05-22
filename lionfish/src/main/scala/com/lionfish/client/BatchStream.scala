@@ -9,8 +9,17 @@ class BatchStream(
   }
 
   override def execute(): Any = {
-    val result = macroMethod.executeBatch()
-    macroMethod = null
+    var result: List[Any] = null
+
+    try {
+      result = macroMethod.executeBatch()
+      macroMethod = null
+    } catch {
+      case e: Exception => {
+        println(s"Failed to execute the batch.")
+      }
+    }
+
     result
   }
 }
