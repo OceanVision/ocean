@@ -21,7 +21,7 @@ class RequestHandler(private val master: ActorRef) extends Actor {
       socket = newSocket
       handle()
     }
-    case Response(_, result) => {
+    case Response(_, _, result) => {
       IO.send(result)
     }
   }

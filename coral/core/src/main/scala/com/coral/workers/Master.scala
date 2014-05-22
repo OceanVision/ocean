@@ -4,21 +4,21 @@ import akka.actor._
 import akka.routing._
 import com.typesafe.config.ConfigFactory
 import com.coral.messages._
+import com.coral.utils.Config
 
 // TODO: Use akka configuration!
 
 class Master extends Actor {
-  private val databaseWorkerSystemPort = 7781
+  private val cacheWorkerSystemPort = Config.cacheWorkerSystemPort
   private var senderMap: Map[String, ActorRef] = Map()
 
   // Database worker pool system
-  private val databaseWorkerPath =
-    s"akka.tcp://databaseWorkerSystem@localhost:$databaseWorkerSystemPort/user/databaseWorkerPool"
-  val databaseWorkerPool = context.actorSelection(databaseWorkerPath)
+  private val cacheWorkerPath =
+    s"akka.tcp://cacheWorkerSystem@localhost:$cacheWorkerSystemPort/user/cacheWorkerPool"
+  private val cacheWorkerPool = context.actorSelection(cacheWorkerPath)
 
-  // Decides whether data should be fetched from database or Memcached
   def processRequest(request: Request) = {
-    databaseWorkerPool ! request
+    cacheWorkerPool ! request
   }
 
   def receive = {
@@ -27,8 +27,8 @@ class Master extends Actor {
       senderMap += uuid -> sender
       processRequest(req)
     }
-    case res @ Response(uuid, result) => {
-      // A result is being returned to the request handler
+    case res @ Response(uuid, request, result) => {
+      // The result is being returned to the request handler
       senderMap(uuid) ! res
       senderMap -= uuid
     }

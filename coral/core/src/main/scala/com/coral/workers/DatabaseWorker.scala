@@ -8,9 +8,10 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.coral.messages._
 import com.lionfish.client._
+import com.coral.utils.Config
 
 class DatabaseWorker extends Actor {
-  private val sessionWorkerSystemPort = 7780
+  private val sessionWorkerSystemPort = Config.sessionWorkerSystemPort
   private implicit val timeout = Timeout(20 seconds)
 
   // Session worker system
@@ -273,7 +274,7 @@ class DatabaseWorker extends Actor {
       val coralMethodName = request("coralMethodName").asInstanceOf[String]
       val requestData = request("data").asInstanceOf[Map[String, Any]]
 
-      println(s"Executing $coralMethodName.")
+      println(s"Executing $coralMethodName in a database worker.")
 
       coralMethodName match {
         case "handshake" => {
@@ -315,7 +316,7 @@ class DatabaseWorker extends Actor {
   def receive = {
     case Request(uuid, request) => {
       val result = processRequest(request)
-      sender ! Response(uuid, result)
+      sender ! Response(uuid, request, result)
     }
   }
 }
