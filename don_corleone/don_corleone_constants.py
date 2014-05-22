@@ -4,7 +4,7 @@ File defines constants used by don corleone. Modify to reflect your needs.
 TODO: load from file
 """
 
-UPDATE_FREQ = 10
+UPDATE_FREQ = 1
 KILL_NODE_COUNTER = 1000*60 / (1000*UPDATE_FREQ) # Kill not answering server if doesn't answer for 60s
 CONFIG_DIRECTORY = "config"
 OK = "ok"
