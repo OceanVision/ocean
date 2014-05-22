@@ -499,8 +499,8 @@ def register_node():
 
             with synchronizer:
                 if not node_id in registered_nodes:
-                    node = {NODE_ID:node_id, NODE_ADDRESS:node_config[CLIENT_CONFIG_SSH_HOST],NODE_CONFIG:node_config, NODE_RESPONSIBILITIES:[], NODE_SSH_HOST:node_config[CLIENT_CONFIG_SSH_HOST],
-                    NODE_SSH_PORT:node_config[CLIENT_CONFIG_SSH_PORT], NODE_SSH_USER:node_config[CLIENT_CONFIG_SSH_USER]
+                    node = {NODE_ID:node_id, NODE_ADDRESS:config[CLIENT_CONFIG_SSH_HOST],NODE_CONFIG:config, NODE_RESPONSIBILITIES:[], NODE_SSH_HOST:config[CLIENT_CONFIG_SSH_HOST],
+                    NODE_SSH_PORT:config[CLIENT_CONFIG_SSH_PORT], NODE_SSH_USER:config[CLIENT_CONFIG_SSH_USER], NODE_LAST_PING_ANSWER:0
                     }
                     registered_nodes[node_id] = node
             
