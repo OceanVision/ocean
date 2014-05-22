@@ -12,6 +12,8 @@ import sys
 import uuid
 import os
 
+from ocean_init_graph import run_and_return_type_list
+
 from py2neo import neo4j, node, rel
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
@@ -26,13 +28,18 @@ from graph_workers.graph_defines import *
 APP_LABEL = 'rss'
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     # Create connection
+=======
+    # Create connection        
+>>>>>>> ed91c20a4917419eee01f2b2ca19cef6d0cadbb7
     neo4j_port = None
     neo4j_host = None
     graph_db = neo4j.GraphDatabaseService(
             'http://{0}:{1}/db/data/'.format(neo4j_host if neo4j_host else
         get_configuration("neo4j","host"), neo4j_port if  neo4j_port else get_configuration("neo4j", "port"))
         )
+<<<<<<< HEAD
     # graph_db = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
 
     print 'Running', __file__
@@ -102,14 +109,10 @@ if __name__ == '__main__':
     type_list = graph_db.create(*type_list)
     for item in type_list:
         item.add_labels('Model', 'Node')
+=======
+>>>>>>> ed91c20a4917419eee01f2b2ca19cef6d0cadbb7
 
-    # Creates type relations
-    graph_db.create(
-        rel(root, HAS_TYPE_RELATION, type_list[0]),
-        rel(root, HAS_TYPE_RELATION, type_list[1]),
-        rel(root, HAS_TYPE_RELATION, type_list[2]),
-        rel(root, HAS_TYPE_RELATION, type_list[3])
-    )
+    type_list = run_and_return_type_list() 
 
     # ===================== USERS =====================
     # Creates nodes
@@ -255,36 +258,36 @@ relacje na zywo i wiele wiecej.',
             uuid=str(uuid.uuid1()),
             link='http://www.gry-online.pl/S013.asp?ID=85249',
             time=int(time.time() - 100000),
-            title='Assassin\'s Creed IV i Far Cry 3 - wyniki sprzedaży gier Ubisoftu',
-            image_link='http://www.gry-online.pl/galeria/html/wiadomosci/bigphotos/preview/82726815.jpg',
+            title='Assassins Creed IV i Far Cry 3 - wyniki sprzedazy gier Ubisoftu'.encode('utf-8'),
+            image_link='http://www.gry-online.pl/galeria/html/wiadomosci/bigphotos/preview/82726815.jpg'.encode('utf-8'),
         ),
         node(
             uuid=str(uuid.uuid1()),
             link='http://www.tvnmeteo.pl/informacje/polska,28/na-wisle-tworzy-sie-fala-wezbraniowa,'
                  '123095,1,0.html',
             time=int(time.time() - 100000),
-            title='Na Wiśle tworzy się fala wezbraniowa',
+            title='Na Wisle tworzy sie fala wezbraniowa'.encode('utf-8'),
             image_link='http://r-scale-ca.dcs.redcdn.pl/scale/o2/tvn/web-content/m/p5/i/90db9da4fc'
                        '5414ab55a9fe495d555c06/6685b2b6-dce8-11e3-9205-0025b511226e.jpg?type=1&amp;'
-                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50',
+                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50'.encode('utf-8'),
         ),
         node(
             uuid=str(uuid.uuid1()),
             link='http://www.tvn24.pl/w-lodzi-jak-w-bombaju-totalny-chaos-na-skrzyzowaniach,429020,s.html',
             time=int(time.time() - 100000),
-            title='W Łodzi jak w Bombaju. "Totalny chaos na skrzyżowaniach"',
+            title='W Lodzi jak w Bombaju. "Totalny chaos na skrzyzowaniach"'.encode('utf-8'),
             image_link='http://r-scale-3f.dcs.redcdn.pl/scale/o2/tvn/web-content/m/p1/i/90db9da4fc5'
                        '414ab55a9fe495d555c06/84fe9534-dcf0-11e3-9d17-0025b511229e.jpg?type=1&amp;'
-                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50',
+                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50'.encode('utf-8'),
         ),
         node(
             uuid=str(uuid.uuid1()),
             link='http://www.tvn24.pl/krakow,50/w-krakowie-ogloszono-pogotowie-przeciwpowodziowe,428917.html',
             time=int(time.time() - 100000),
-            title='W Krakowie ogłoszono pogotowie przeciwpowodziowe',
+            title='W Krakowie ogloszono pogotowie przeciwpowodziowe'.encode('utf-8'),
             image_link='http://r-scale-8d.dcs.redcdn.pl/scale/o2/tvn/web-content/m/p1/i/90db9da4fc5'
                        '414ab55a9fe495d555c06/eeba57b0-dccd-11e3-8531-0025b511226e.jpg?type=1&amp;'
-                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50',
+                       'srcmode=4&amp;srcx=0/1&amp;srcy=0/1&amp;srcw=50&amp;srch=50&amp;dstw=50&amp;dsth=50'.encode('utf-8'),
         )
     ]
 

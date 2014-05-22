@@ -36,6 +36,6 @@ def get_test_config(config_name):
     return config_test
 
 
-def count_services(config):
-    response = urllib2.urlopen(config[MASTER_LOCAL_URL] +"/get_services").read()
+def count_services(config, running=False):
+    response = urllib2.urlopen(config[MASTER_LOCAL_URL] +"/get_services?running="+("true" if running else "false")).read()
     return len(json.loads(response)['result'])
