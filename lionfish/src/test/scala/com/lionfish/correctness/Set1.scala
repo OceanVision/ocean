@@ -1097,7 +1097,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 1)
@@ -1119,13 +1119,13 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.createNode(modelName, relType, props)
     val uuid = seqStream.execute()
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     seqStream !! Database.createRelationship(uuid, nonExistingUuid, relType + "2", relProps)
 
     seqStream << Database.getChildren(uuid, relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 0)
@@ -1160,7 +1160,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 2)
@@ -1206,7 +1206,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 1)

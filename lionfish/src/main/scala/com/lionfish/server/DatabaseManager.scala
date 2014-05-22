@@ -946,19 +946,34 @@ object DatabaseManager {
           item("endNodeUuid").asInstanceOf[String]
         )
 
+        val relType = item("type").asInstanceOf[String]
+
         val it1 = rawStartNode.iterator()
         val it2 = rawEndNode.iterator()
         if (it1.hasNext && it2.hasNext) {
           val startNode = it1.next()
           val endNode = it2.next()
-          val relType = DynamicRelationshipType.withName(item("type").asInstanceOf[String])
+          val dynamiceRelType = DynamicRelationshipType.withName(relType)
 
-          // Creates a relationship of a given type
-          val rel = startNode.createRelationshipTo(endNode, relType)
+          // Checks if the relationship is unique
+          var isUnique = true
+          val checkedRels = startNode.getRelationships(Direction.OUTGOING)
+          val it3 = checkedRels.iterator()
+          while (it3.hasNext) {
+            val checkedRel = it3.next()
+            if (checkedRel.getEndNode.getId == endNode.getId && checkedRel.getType.name() == relType) {
+              isUnique = false
+            }
+          }
 
-          // Sets properties to the relationship
-          for ((key, value) <- item("props").asInstanceOf[Map[String, Any]]) {
-            rel.setProperty(key, value)
+          if (isUnique) {
+            // Creates a relationship of a given type
+            val rel = startNode.createRelationshipTo(endNode, dynamiceRelType)
+
+            // Sets properties to the relationship
+            for ((key, value) <- item("props").asInstanceOf[Map[String, Any]]) {
+              rel.setProperty(key, value)
+            }
           }
         }
         it1.close()
