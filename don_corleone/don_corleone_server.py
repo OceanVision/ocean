@@ -291,6 +291,8 @@ def status_checker_job():
         for m in services:
                 update_status(m)
 
+	# Disable ping for now
+	"""
         with synchronizer:
             for n in registered_nodes.itervalues():
                 ret = os.system("ping {0} -c 1".format(n[NODE_ADDRESS]))
@@ -302,7 +304,7 @@ def status_checker_job():
 
                 if n[NODE_LAST_PING_ANSWER] > KILL_NODE_COUNTER:
                       _terminate_node(n[NODE_ID])
-
+	"""
         time.sleep(UPDATE_FREQ)
 
 
