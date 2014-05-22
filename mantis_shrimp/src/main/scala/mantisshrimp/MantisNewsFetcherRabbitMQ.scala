@@ -25,7 +25,7 @@ class MantisNewsFetcherRabbitMQ(config: Map[String, String]) extends Actor with 
   //Encoding for JSON parsing
   implicit val enc = Encodings.`UTF-8`
   //Stop fetching thread when exceedes
-  val maximumQueueSize = 100
+  val maximumQueueSize = 10
   //Queue to store messages
   val Q = new mutable.SynchronizedQueue[scala.collection.mutable.Map[String, AnyRef]]()
   val rabbitMqMetaData: mutable.HashMap[String, Long] = new mutable.HashMap[String, Long]
@@ -43,12 +43,21 @@ class MantisNewsFetcherRabbitMQ(config: Map[String, String]) extends Actor with 
       val auto_ack = false
       fetchingChannel.basicConsume(queue, auto_ack, consumer)
 
+
+      var fetched_count = 0
+
       while (true) {
         val delivery = consumer.nextDelivery();
 
         val msg_raw = new String(delivery.getBody());
         // Try parsing - if format is incorrect write error
         try {
+
+          fetched_count += 1
+
+          if(fetched_count % 100 == 0)
+            logSelf("Fetched already "+fetched_count.toString)
+
 
           val msg = JsonBuffer.parse(msg_raw)
           val uuid = msg.uuid.as[String]

@@ -63,6 +63,11 @@ if __name__ == "__main__":
         help='Data directory'
     )
     parser.add_option(
+        '-k',
+        dest='k',
+        default=1000
+    )
+    parser.add_option(
         '-n',
         '--name',
         dest='name',
@@ -87,10 +92,13 @@ if __name__ == "__main__":
 
     channel = connection.channel()
 
-    channel.queue_declare(queue='mantis_to_tag', durable=True)
+    channel.queue_declare(queue='mantis_totag', durable=True)
 
 
     for id, d in enumerate(get_documents(options.root_dir, options.file_encoding)):
+
+        if id > options.k:
+            break
 
         print "Sending ", id
 

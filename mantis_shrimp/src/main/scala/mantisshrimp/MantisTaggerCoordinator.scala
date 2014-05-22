@@ -8,7 +8,7 @@ import scala.concurrent._
 import scala.concurrent.duration._
 
 import java.util.concurrent.locks.{ReadWriteLock, ReentrantReadWriteLock}
-
+import akka.actor.{Actor, ActorRef, Terminated}
 import akka.util.Timeout
 
 /**
@@ -49,6 +49,7 @@ class MantisTaggerCoordinator(config: Map[String, String]) extends Actor with Ma
         try {
           actorsLock.writeLock().lock()
           logMaster("adding "+actor.toString)
+          context.watch(actor)
           implicit val timeout = Timeout(5 seconds)
           val mantisType = Await.result(actor ? GetMantisType, 5 seconds).
             asInstanceOf[MantisType].mantisType
@@ -85,12 +86,32 @@ class MantisTaggerCoordinator(config: Map[String, String]) extends Actor with Ma
 
   var tagged = 0
   override def receive = receiveMantisNode orElse {
+    case Terminated(ref) =>{
+        logMaster(this.getMantisType() + ref.toString + "terminated!")
+
+        //Reflect changes
+        actorsLock.writeLock().lock()
+           var new_taggers =  List[akka.actor.ActorRef]()
+           for(t <- taggers){
+              if(t != ref)
+                new_taggers = t :: new_taggers
+           }
+           taggers=new_taggers
+
+           if(ref == newsFetcher)
+             newsFetcher = null
+
+        actorsLock.writeLock().unlock()
+    }
+
+
     case Tagged(uuid, x) => {
       tagged += 1
-      if(tagged % 100 == 0)
-        logMaster(uuid + " tagged with " + x.mkString + " from "+sender.path)
+      //if(tagged % 100 == 0)
+      logMaster(uuid + " tagged with " + x.mkString + " from "+sender.path)
 
-      newsFetcher ! AlreadyTagged(uuid.toString)
+      if(ready)
+         newsFetcher ! AlreadyTagged(uuid.toString)
     }
     case ItemArrive(x) => {
       actorsLock.readLock().lock()
@@ -100,6 +121,7 @@ class MantisTaggerCoordinator(config: Map[String, String]) extends Actor with Ma
 
         taggers(currentTaggerLocal) ! Tag(x)
 
+      if(ready)
         sender ! GetNews
       actorsLock.readLock().unlock()
     }
