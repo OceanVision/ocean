@@ -13,10 +13,11 @@ import com.lionfish.messages.Request
 class Connection(private val master: ActorRef)(private implicit val socket: Socket) extends Runnable {
   private implicit val timeout = Timeout(600 seconds)
   private val connectionUuid = UUID.randomUUID().toString
-  println(s"New connection $connectionUuid")
+  println(s"New connection $connectionUuid.")
 
   private def disconnect() = {
     try {
+      println(s"Closing connection $connectionUuid.")
       socket.close()
     } catch {
       case e: Exception => {

@@ -27,18 +27,18 @@ object DatabaseManager {
   val cypherEngine = new ExecutionEngine(graphDB)
   var cypherResult: ExecutionResult = null
 
-  def initNeo4jConsole(){
-      val config = new ServerConfigurator(graphDB.asInstanceOf[GraphDatabaseAPI])
-      config.configuration().setProperty(
-        Configurator.WEBSERVER_PORT_PROPERTY_KEY, neo4jConsolePort
-      )
+  def initNeo4jConsole() {
+    val config = new ServerConfigurator(graphDB.asInstanceOf[GraphDatabaseAPI])
+    config.configuration().setProperty(
+      Configurator.WEBSERVER_PORT_PROPERTY_KEY, neo4jConsolePort
+    )
 
-      config.configuration().setProperty(
-        Configurator.HTTP_LOGGING, Configurator.DEFAULT_HTTP_LOGGING
-      )
+    config.configuration().setProperty(
+      Configurator.HTTP_LOGGING, Configurator.DEFAULT_HTTP_LOGGING
+    )
 
-      val srv = new WrappingNeoServerBootstrapper(graphDB.asInstanceOf[GraphDatabaseAPI], config)
-      srv.start()
+    val srv = new WrappingNeoServerBootstrapper(graphDB.asInstanceOf[GraphDatabaseAPI], config)
+    srv.start()
   }
 
   def setNeo4jPath(path: String) = {
@@ -64,7 +64,7 @@ object DatabaseManager {
         val line = e.getStackTrace()(2).getLineNumber
         println(s"Parsing node to map failed at line $line. Error message: $e")
       }
-      null
+        null
     }
   }
 
@@ -153,7 +153,7 @@ object DatabaseManager {
         val line = e.getStackTrace()(2).getLineNumber
         println(s"Executing Cypher script failed at line $line. Error message: $e")
       }
-      null
+        null
     }
   }
 
@@ -443,6 +443,8 @@ object DatabaseManager {
             .toSet[(String, Any)]
         }
 
+        val limit = item("limit").asInstanceOf[Int]
+
         val it = rawParentNode.iterator()
         if (it.hasNext) {
           val childrenOfOneNode: ListBuffer[Map[String, Any]] = ListBuffer()
@@ -453,14 +455,15 @@ object DatabaseManager {
           val relList = parentNode.getRelationships(relType, Direction.OUTGOING).iterator()
 
           // Gets children and extracts partial result
-          while (relList.hasNext) {
+          var count = 0
+          while (relList.hasNext && (limit == 0 || (limit > 0 && count < limit))) {
             val rel = relList.next()
             val node = parseSet(rel.getEndNode)
 
             // TODO: make it more efficient
-            val e = parseSet(rel)
             if (childrenProps.subsetOf(node) && relProps.subsetOf(parseSet(rel))) {
               childrenOfOneNode += node.toMap[String, Any]
+              count += 1
             }
           }
 
@@ -517,6 +520,8 @@ object DatabaseManager {
             .toSet[(String, Any)]
         }
 
+        val limit = item("limit").asInstanceOf[Int]
+
         val it = rawParentNode.iterator()
         if (it.hasNext) {
           val instancesOfOneNode: ListBuffer[Map[String, Any]] = ListBuffer()
@@ -527,13 +532,15 @@ object DatabaseManager {
           val relList = parentNode.getRelationships(relType, Direction.OUTGOING).iterator()
 
           // Gets children and extracts partial result
-          while (relList.hasNext) {
+          var count = 0
+          while (relList.hasNext && (limit == 0 || (limit > 0 && count < limit))) {
             val rel = relList.next()
             val node = parseSet(rel.getEndNode)
 
             // TODO: make it more efficient
             if (childrenProps.subsetOf(node) && relProps.subsetOf(parseSet(rel))) {
               instancesOfOneNode += node.toMap[String, Any]
+              count += 1
             }
           }
 
@@ -575,6 +582,8 @@ object DatabaseManager {
           item("uuid").asInstanceOf[String]
         )
 
+        val limit = item("limit").asInstanceOf[Int]
+
         val it = rawParentNode.iterator()
         if (it.hasNext) {
           val feedsOfOneNode: ListBuffer[Map[String, Any]] = ListBuffer()
@@ -585,10 +594,12 @@ object DatabaseManager {
           val relList = user.getRelationships(relType, Direction.OUTGOING).iterator()
 
           // Gets feeds and extracts partial result
-          while (relList.hasNext) {
+          var count = 0
+          while (relList.hasNext && (limit == 0 || (limit > 0 && count < limit))) {
             val rel = relList.next()
             val node = parseSet(rel.getEndNode)
             feedsOfOneNode += node.toMap[String, Any]
+            count += 1
           }
 
           rawResult += feedsOfOneNode.toList
@@ -619,22 +630,22 @@ object DatabaseManager {
       val nodeLabel = DynamicLabel.label("Node")
 
       for (item <- args) {
-          // Gets each node as an instance of Node
-          val rawNode = graphDB.findNodesByLabelAndProperty(
-            nodeLabel,
-            "uuid",
-            item("uuid").asInstanceOf[String]
-          )
+        // Gets each node as an instance of Node
+        val rawNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("uuid").asInstanceOf[String]
+        )
 
-          val it = rawNode.iterator()
-          if (it.hasNext) {
-            val node = it.next()
+        val it = rawNode.iterator()
+        if (it.hasNext) {
+          val node = it.next()
 
-            // Sets label to the node
-            val label = DynamicLabel.label(item("label").asInstanceOf[String])
-            node.addLabel(label)
-          }
-          it.close()
+          // Sets label to the node
+          val label = DynamicLabel.label(item("label").asInstanceOf[String])
+          node.addLabel(label)
+        }
+        it.close()
       }
       tx.success()
     } catch {
@@ -910,8 +921,8 @@ object DatabaseManager {
       // Builds query and executes
       val query =
         "MATCH (e:Node)-[r]-() " +
-        "WHERE e.uuid IN {uuid_list} " +
-        "DELETE e, r"
+          "WHERE e.uuid IN {uuid_list} " +
+          "DELETE e, r"
       executeCypher(query, Map("uuid_list" -> nodeUuidList.toList))
       tx.success()
     } catch {
@@ -946,19 +957,87 @@ object DatabaseManager {
           item("endNodeUuid").asInstanceOf[String]
         )
 
+        val relType = item("type").asInstanceOf[String]
+
         val it1 = rawStartNode.iterator()
         val it2 = rawEndNode.iterator()
         if (it1.hasNext && it2.hasNext) {
           val startNode = it1.next()
           val endNode = it2.next()
-          val relType = DynamicRelationshipType.withName(item("type").asInstanceOf[String])
+          val dynamiceRelType = DynamicRelationshipType.withName(relType)
 
           // Creates a relationship of a given type
-          val rel = startNode.createRelationshipTo(endNode, relType)
+          val rel = startNode.createRelationshipTo(endNode, dynamiceRelType)
 
           // Sets properties to the relationship
           for ((key, value) <- item("props").asInstanceOf[Map[String, Any]]) {
             rel.setProperty(key, value)
+          }
+        }
+        it1.close()
+        it2.close()
+      }
+      tx.success()
+    } catch {
+      case e: Exception => {
+        val line = e.getStackTrace()(2).getLineNumber
+        println(s"Failed to execute the function at line $line. Error message: $e")
+      }
+        tx.failure()
+    } finally {
+      tx.close()
+    }
+
+    null
+  }
+
+  def createUniqueRelationships(args: List[Map[String, Any]]): List[Any] = {
+    val tx = graphDB.beginTx()
+    try {
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each pair of nodes as instances of Node
+        val rawStartNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("startNodeUuid").asInstanceOf[String]
+        )
+
+        val rawEndNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("endNodeUuid").asInstanceOf[String]
+        )
+
+        val relType = item("type").asInstanceOf[String]
+
+        val it1 = rawStartNode.iterator()
+        val it2 = rawEndNode.iterator()
+        if (it1.hasNext && it2.hasNext) {
+          val startNode = it1.next()
+          val endNode = it2.next()
+          val dynamiceRelType = DynamicRelationshipType.withName(relType)
+
+          // Checks if the relationship is unique
+          var isUnique = true
+          val checkedRels = startNode.getRelationships(Direction.OUTGOING)
+          val it3 = checkedRels.iterator()
+          while (it3.hasNext) {
+            val checkedRel = it3.next()
+            if (checkedRel.getEndNode.getId == endNode.getId && checkedRel.getType.name() == relType) {
+              isUnique = false
+            }
+          }
+
+          if (isUnique) {
+            // Creates a relationship of a given type
+            val rel = startNode.createRelationshipTo(endNode, dynamiceRelType)
+
+            // Sets properties to the relationship
+            for ((key, value) <- item("props").asInstanceOf[Map[String, Any]]) {
+              rel.setProperty(key, value)
+            }
           }
         }
         it1.close()

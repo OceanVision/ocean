@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 import org.scalatest.{FlatSpec, BeforeAndAfterAll}
 import com.lionfish.server.{Server, Launcher}
 import com.lionfish.client._
-import com.lionfish.utils.Config
+import com.lionfish.utils.{Model, Config}
 
 class Set1 extends FlatSpec with BeforeAndAfterAll {
   private var seqStream: Stream = null
@@ -16,55 +16,63 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     Launcher.main(Array("--debug"))
     Database.setServerAddress(address)
     Database.setServerPort(port)
-
-    Server.debugLock.acquire()
-    seqStream = Database.getSequenceStream
-    batchStream = Database.getBatchStream
-    Server.debugLock.release()
   }
 
   // =================== GET BY UUID ===================
 
   // not using batch, non-empty output
   "getByUuid" should "return a map" in {
-    val modelName = "NeoUser"
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val relType = "<<TEST_GET_BY_UUID-1>>"
     val props: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
 
-    val uuid = (seqStream !! Database.createNode(modelName, relType, props))
-      .asInstanceOf[Map[String, String]]("uuid")
+    val uuid = (seqStream !! Database.createNode(Model.NEO_USER, relType, props))
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     var validNode = props
     validNode += "uuid" -> uuid
 
     val testedNode = (seqStream !! Database.getByUuid(uuid))
-      .asInstanceOf[Map[String, Any]]
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     assert(testedNode != null)
     assert(testedNode.equals(validNode))
 
     seqStream !! Database.deleteNode(uuid)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, empty output
   it should "return null" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val nonExistingUuid = ""
 
     val testedNode = (seqStream !! Database.getByUuid(nonExistingUuid))
-      .asInstanceOf[Map[String, Any]]
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     assert(testedNode == null)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, non-empty output
   it should "return a list of not null maps" in {
-    val modelName = "NeoUser"
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val relType = "<<TEST_GET_BY_UUID-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
     val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
-    seqStream << Database.createNode(modelName, relType, props0)
-    seqStream << Database.createNode(modelName, relType, props1)
+    seqStream << Database.createNode(Model.NEO_USER, relType, props0)
+    seqStream << Database.createNode(Model.NEO_USER, relType, props1)
     val uuidList = seqStream.execute()
       .asInstanceOf[List[Map[String, String]]]
 
@@ -74,7 +82,8 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     batchStream << Database.getByUuid(uuidList(0)("uuid"))
     batchStream << Database.getByUuid(uuidList(1)("uuid"))
-    val testedNodeList = batchStream.execute().asInstanceOf[List[Map[String, Any]]]
+    val testedNodeList = batchStream.execute()
+      .asInstanceOf[List[Map[String, Any]]]
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 2)
@@ -85,16 +94,22 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuidList(0)("uuid"))
     seqStream !! Database.deleteNode(uuidList(1)("uuid"))
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, empty output
   it should "return a list of mixed not null and null maps" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "NeoUser"
     val relType = "<<TEST_GET_BY_UUID-4>>"
     val props: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
 
     val uuid = (seqStream !! Database.createNode(modelName, relType, props))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     val nonExistingUuid = ""
     var validNode = props
@@ -111,6 +126,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     assert(testedNodeList(0).equals(validNode))
 
     seqStream !! Database.deleteNode(uuid)
+
+    seqStream.close()
+    batchStream.close()
   }
 
 
@@ -119,44 +137,58 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, non-empty output
   "getByLink" should "return a map" in {
-    val modelName = "ContentSource"
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val relType = "<<TEST_GET_BY_LINK-1>>"
     val props: Map[String, Any] = Map("key0" -> 1, "link" -> "http://example.com")
 
-    val uuid = (seqStream !! Database.createNode(modelName, relType, props))
-      .asInstanceOf[Map[String, String]]("uuid")
+    val uuid = (seqStream !! Database.createNode(Model.CONTENT_SOURCE, relType, props))
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
     val validNode = (seqStream !! Database.getByUuid(uuid))
-      .asInstanceOf[Map[String, Any]]
+      .asInstanceOf[List[Map[String, Any]]](0)
 
-    val testedNode = (seqStream !! Database.getByLink(modelName, props("link").asInstanceOf[String]))
-      .asInstanceOf[Map[String, Any]]
+    val testedNode = (seqStream !! Database.getByLink(Model.CONTENT_SOURCE, props("link").asInstanceOf[String]))
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     assert(testedNode != null)
     assert(testedNode.equals(validNode))
 
     seqStream !! Database.deleteNode(uuid)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, empty output
   it should "return null" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val nonExistingLink = "*abc([)*"
     val testedNode = (seqStream !! Database.getByLink("Content", nonExistingLink))
-      .asInstanceOf[Map[String, Any]]
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     assert(testedNode == null)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, non-empty output
   it should "return a list of not null maps" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_GET_BY_LINK-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "link" -> "http://example2.com")
     val props1: Map[String, Any] = Map("key0" -> "abc", "link" -> "http://example3.com")
 
     val uuid0 = (seqStream !! Database.createNode(modelName, relType, props0))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
     val uuid1 = (seqStream !! Database.createNode(modelName, relType, props1))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     batchStream << Database.getByUuid(uuid0)
     batchStream << Database.getByUuid(uuid1)
@@ -177,20 +209,26 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuid0)
     seqStream !! Database.deleteNode(uuid1)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, empty output
   it should "return a list of mixed not null and null maps" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_GET_BY_LINK-4>>"
     val props: Map[String, Any] = Map("key0" -> 1, "link" -> "http://example4.com")
 
     val uuid = (seqStream !! Database.createNode(modelName, relType, props))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
     val nonExistingLink = "*abc([)*"
 
     val validNode = (seqStream !! Database.getByUuid(uuid))
-      .asInstanceOf[Map[String, Any]]
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     batchStream << Database.getByLink("Content", props("link").asInstanceOf[String])
     batchStream << Database.getByLink("Content", nonExistingLink)
@@ -202,6 +240,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     assert(testedNodeList(0).equals(validNode))
 
     seqStream !! Database.deleteNode(uuid)
+
+    seqStream.close()
+    batchStream.close()
   }
 
 
@@ -210,8 +251,11 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, non-empty output
   "getModelNodes" should "return a list of maps" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val testedNodeList = (seqStream !! Database.getModelNodes())
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
 
@@ -223,6 +267,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
       .asInstanceOf[List[Map[String, Any]]]
 
     assert(testedNodeList.equals(validNodeList))
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, empty output
@@ -232,6 +279,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // using batch, non-empty output
   it should "return a list of not null lists of maps" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     batchStream << Database.getModelNodes()
     batchStream << Database.getModelNodes()
 
@@ -251,6 +301,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     for (item <- testedNodeList) {
       assert(item.equals(validNodeList))
     }
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, empty output
@@ -264,6 +317,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, non-empty output, empty props
   "getChildren" should "return a list of maps" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "NeoUser"
     val relType = "<<TEST_GET_CHILDREN-1>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -272,7 +328,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     var modelUuid = ""
 
     val modelNodeList = (seqStream !! Database.getModelNodes())
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     for (item <- modelNodeList) {
       if (item("model_name").asInstanceOf[String] == modelName) {
@@ -281,9 +337,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     }
 
     val uuid0 = (seqStream !! Database.createNode(modelName, relType, props0))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
     val uuid1 = (seqStream !! Database.createNode(modelName, relType, props1))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     batchStream << Database.getByUuid(uuid0)
     batchStream << Database.getByUuid(uuid1)
@@ -291,7 +347,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
       .asInstanceOf[List[Map[String, Any]]]
 
     val testedNodeList = (seqStream !! Database.getChildren(modelUuid, relType))
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 2)
@@ -310,23 +366,35 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuid0)
     seqStream !! Database.deleteNode(uuid1)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, empty output, non-empty props
   it should "return an empty list" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val nonExistingUuid = "*abc([)*"
     val relType = "<<TEST_GET_CHILDREN-2>>"
     val childrenProps: Map[String, Any] = Map("key0" -> 1)
 
     val testedNodeList = (seqStream !! Database.getChildren(nonExistingUuid, relType, childrenProps))
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 0)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, non-empty output, non-empty props
   it should "return a list of lists of not null maps" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_GET_CHILDREN-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -337,7 +405,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     var modelUuid = ""
 
     val modelNodeList = (seqStream !! Database.getModelNodes())
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     for (item <- modelNodeList) {
       if (item("model_name").asInstanceOf[String] == modelName) {
@@ -346,9 +414,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     }
 
     val uuid0 = (seqStream !! Database.createNode(modelName, relType, props0))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
     val uuid1 = (seqStream !! Database.createNode(modelName, relType, props1))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     batchStream << Database.getByUuid(uuid0)
     batchStream << Database.getByUuid(uuid1)
@@ -371,10 +439,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuid0)
     seqStream !! Database.deleteNode(uuid1)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, empty output, empty props
   it should "return a list of mixed non-empty and empty lists of maps" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_GET_CHILDREN-4>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -384,7 +458,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     val nonExistingUuid = "*abc([)*"
 
     val modelNodeList = (seqStream !! Database.getModelNodes())
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     for (item <- modelNodeList) {
       if (item("model_name").asInstanceOf[String] == modelName) {
@@ -393,9 +467,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     }
 
     val uuid0 = (seqStream !! Database.createNode(modelName, relType, props0))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
     val uuid1 = (seqStream !! Database.createNode(modelName, relType, props1))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     batchStream << Database.getByUuid(uuid0)
     batchStream << Database.getByUuid(uuid1)
@@ -407,7 +481,6 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     val testedNodeList = batchStream.execute()
       .asInstanceOf[List[List[Map[String, Any]]]]
 
-    //println(s"$testedNodeList")
     assert(testedNodeList != null)
     assert(testedNodeList.length == 2)
     assert(testedNodeList(0) != null)
@@ -429,6 +502,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuid0)
     seqStream !! Database.deleteNode(uuid1)
+
+    seqStream.close()
+    batchStream.close()
   }
 
 
@@ -437,15 +513,18 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, non-empty output, empty props
   "getInstances" should "return a list of maps" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "NeoUser"
     val relType = "<<INSTANCE>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
     val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
     val uuid0 = (seqStream !! Database.createNode(modelName, relType, props0))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
     val uuid1 = (seqStream !! Database.createNode(modelName, relType, props1))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     batchStream << Database.getByUuid(uuid0)
     batchStream << Database.getByUuid(uuid1)
@@ -453,7 +532,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
       .asInstanceOf[List[Map[String, Any]]]
 
     val testedNodeList = (seqStream !! Database.getInstances(modelName))
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length >= 2)
@@ -473,22 +552,34 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuid0)
     batchStream << Database.deleteNode(uuid1)
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, empty output, non-empty props
   it should "return an empty list" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val nonExistingModelName = "*abc([)*"
     val childrenProps: Map[String, Any] = Map("key0" -> 1)
 
     val testedNodeList = (seqStream !! Database.getInstances(nonExistingModelName, childrenProps))
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 0)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, non-empty output, non-empty props
   it should "return a list of lists of not null maps" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<INSTANCE>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -498,9 +589,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     val childrenProps1: Map[String, Any] = Map("key0" -> "abc")
 
     val uuid0 = (seqStream !! Database.createNode(modelName, relType, props0))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
     val uuid1 = (seqStream !! Database.createNode(modelName, relType, props1))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     batchStream << Database.getByUuid(uuid0)
     batchStream << Database.getByUuid(uuid1)
@@ -538,10 +629,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuid0)
     batchStream << Database.deleteNode(uuid1)
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, empty output, empty props
   it should "return a list of mixed non-empty and empty lists of maps" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<INSTANCE>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -550,9 +647,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     val nonExistingModelName = "*abc([)*"
 
     val uuid0 = (seqStream !! Database.createNode(modelName, relType, props0))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
     val uuid1 = (seqStream !! Database.createNode(modelName, relType, props1))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     batchStream << Database.getByUuid(uuid0)
     batchStream << Database.getByUuid(uuid1)
@@ -585,6 +682,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuid0)
     seqStream !! Database.deleteNode(uuid1)
+
+    seqStream.close()
+    batchStream.close()
   }
 
 
@@ -593,6 +693,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, correct input
   "setProperties" should "set properties to a node" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "ContentSource"
     val relType = "<<TEST_SET_PROPERTIES-1>>"
     val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
@@ -601,7 +704,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.createNode(modelName, relType, props)
     val uuid = seqStream.execute()
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     seqStream !! Database.setProperties(uuid, propsToSet)
 
@@ -609,16 +712,22 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getByUuid(uuid)
     val testedNode = seqStream.execute()
-      .asInstanceOf[Map[String, Any]]
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     assert(testedNode != null)
     assert(testedNode.equals(validNode))
 
     seqStream !! Database.deleteNode(uuid)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, incorrect input
   it should "not set properties to a node" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "ContentSource"
     val relType = "<<TEST_SET_PROPERTIES-2>>"
     val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
@@ -627,7 +736,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.createNode(modelName, relType, props)
     val uuid = seqStream.execute()
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     var validNode = props
     validNode += "uuid" -> uuid
@@ -636,16 +745,22 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getByUuid(uuid)
     val testedNode = seqStream.execute()
-      .asInstanceOf[Map[String, Any]]
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     assert(testedNode != null)
     assert(testedNode.equals(validNode))
 
     seqStream !! Database.deleteNode(uuid)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, correct input
   it should "set properties to exactly two nodes" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_SET_PROPERTIES-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -655,9 +770,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     val propsToSet1: Map[String, Any] = Map("key1" -> 0, "key2" -> "")
 
     val uuid0 = (seqStream !! Database.createNode(modelName, relType, props0))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
     val uuid1 = (seqStream !! Database.createNode(modelName, relType, props1))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     val validNodeList = List(
       Map("uuid" -> uuid0, "key0" -> 1, "key1" -> 55, "key2" -> 12),
@@ -680,10 +795,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuid0)
     seqStream !! Database.deleteNode(uuid1)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, incorrect input
   it should "set properties only to one node" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "NeoUser"
     val relType = "<<TEST_SET_PROPERTIES-4>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -693,9 +814,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     val propsToSet1: Map[String, Any] = Map("key1" -> 0, "key2" -> "")
 
     val uuid0 = (seqStream !! Database.createNode(modelName, relType, props0))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
     val uuid1 = (seqStream !! Database.createNode(modelName, relType, props1))
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     val validNodeList = List(
       Map("uuid" -> uuid0, "key0" -> 1, "key1" -> "string"),
@@ -718,6 +839,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuid0)
     seqStream !! Database.deleteNode(uuid1)
+
+    seqStream.close()
+    batchStream.close()
   }
 
 
@@ -726,6 +850,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, correct input
   "deleteProperties" should "delete node's properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "ContentSource"
     val relType = "<<TEST_DELETE_PROPERTIES-1>>"
     val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
@@ -734,7 +861,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.createNode(modelName, relType, props)
     val uuid = seqStream.execute()
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     seqStream !! Database.deleteProperties(uuid, propsToDelete)
 
@@ -742,16 +869,22 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getByUuid(uuid)
     val testedNode = seqStream.execute()
-      .asInstanceOf[Map[String, Any]]
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     assert(testedNode != null)
     assert(testedNode.equals(validNode))
 
     seqStream !! Database.deleteNode(uuid)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, incorrect input
   it should "not delete node's properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "ContentSource"
     val relType = "<<TEST_DELETE_PROPERTIES-2>>"
     val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
@@ -760,7 +893,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.createNode(modelName, relType, props)
     val uuid = seqStream.execute()
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     var validNode = props
     validNode += "uuid" -> uuid
@@ -769,16 +902,22 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getByUuid(uuid)
     val testedNode = seqStream.execute()
-      .asInstanceOf[Map[String, Any]]
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     assert(testedNode != null)
     assert(testedNode.equals(validNode))
 
     seqStream !! Database.deleteNode(uuid)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, correct input
   it should "delete properties of exactly two nodes" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_DELETE_PROPERTIES-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -813,10 +952,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuidList(0)("uuid"))
     seqStream !! Database.deleteNode(uuidList(1)("uuid"))
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, incorrect input
   it should "delete properties of only one node" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "NeoUser"
     val relType = "<<TEST_DELETE_PROPERTIES-4>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -851,6 +996,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuidList(0)("uuid"))
     seqStream !! Database.deleteNode(uuidList(1)("uuid"))
+
+    seqStream.close()
+    batchStream.close()
   }
 
 
@@ -859,42 +1007,57 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, correct input
   "createNode" should "create a node with properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_CREATE_NODE-1>>"
     val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
     seqStream << Database.createNode(modelName, relType, props)
     val uuid = seqStream.execute()
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     var validNode = props
     validNode += "uuid" -> uuid
 
     seqStream << Database.getByUuid(uuid)
     val testedNode = seqStream.execute()
-      .asInstanceOf[Map[String, Any]]
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     assert(testedNode != null)
     assert(testedNode.equals(validNode))
 
     seqStream !! Database.deleteNode(uuid)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, incorrect input
   it should "not create any node" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_CREATE_NODE-2>>"
     val props: Map[String, Any] = Map()
 
     seqStream << Database.createNode(modelName, relType, props)
     val uuid = seqStream.execute()
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     assert(uuid == null)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, correct input
   it should "create exactly two nodes with properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_CREATE_NODE-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -904,7 +1067,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getModelNodes()
     val modelNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     for (item <- modelNodeList) {
       if (item("model_name").asInstanceOf[String] == modelName) {
@@ -926,7 +1089,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(modelUuid, relType)
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 2)
@@ -945,10 +1108,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuidList(0)("uuid"))
     seqStream !! Database.deleteNode(uuidList(1)("uuid"))
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, incorrect input
   it should "create only one node with properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "ContentSource"
     val relType = "<<TEST_CREATE_NODE-4>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -958,7 +1127,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getModelNodes()
     val modelNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     for (item <- modelNodeList) {
       if (item("model_name").asInstanceOf[String] == modelName) {
@@ -983,7 +1152,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(modelUuid, relType)
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 1)
@@ -999,6 +1168,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream !! Database.deleteNode(uuidList(0)("uuid").asInstanceOf[String])
     seqStream !! Database.deleteNode(uuidList(1)("uuid").asInstanceOf[String])
+
+    seqStream.close()
+    batchStream.close()
   }
 
 
@@ -1007,21 +1179,27 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, correct input
   "deleteNode" should "delete a node" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_DELETE_NODE-1>>"
     val props: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
     seqStream << Database.createNode(modelName, relType, props)
     val uuid = seqStream.execute()
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     seqStream !! Database.deleteNode(uuid)
 
     seqStream << Database.getByUuid(uuid)
     val testedNode = seqStream.execute()
-      .asInstanceOf[Map[String, Any]]
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     assert(testedNode == null)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, incorrect input
@@ -1031,6 +1209,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // using batch, correct input
   it should "delete exactly two nodes" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_DELETE_NODE-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1040,7 +1221,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getModelNodes()
     val modelNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     for (item <- modelNodeList) {
       if (item("model_name").asInstanceOf[String] == modelName) {
@@ -1063,10 +1244,13 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(modelUuid, relType)
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 0)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, incorrect input
@@ -1080,6 +1264,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, correct input, empty props
   "createRelationship" should "create a relationship without properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_CREATE_RELATIONSHIP-1>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1097,7 +1284,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 1)
@@ -1106,10 +1293,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(0)("uuid"))
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, incorrect input, non-empty props
   it should "not create any relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_CREATE_RELATIONSHIP-2>>"
     val props: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1119,22 +1312,28 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.createNode(modelName, relType, props)
     val uuid = seqStream.execute()
-      .asInstanceOf[Map[String, String]]("uuid")
+      .asInstanceOf[List[Map[String, String]]](0)("uuid")
 
     seqStream !! Database.createRelationship(uuid, nonExistingUuid, relType + "2", relProps)
 
     seqStream << Database.getChildren(uuid, relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 0)
 
     seqStream !! Database.deleteNode(uuid)
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, correct input, non-empty props
   it should "create exactly two relationships with properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_CREATE_RELATIONSHIP-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1160,7 +1359,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 2)
@@ -1181,10 +1380,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream << Database.deleteNode(uuidList(2)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, incorrect input, empty props
   it should "create only one relationship without properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_CREATE_RELATIONSHIP-4>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1206,7 +1411,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 1)
@@ -1215,6 +1420,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(0)("uuid"))
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
 
@@ -1223,6 +1431,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, correct input
   "deleteRelationship" should "delete a relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_DELETE_RELATIONSHIP-1>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1241,7 +1452,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 0)
@@ -1249,10 +1460,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(0)("uuid"))
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, incorrect input
   it should "not delete any relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_DELETE_RELATIONSHIP-2>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1273,7 +1490,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 1)
@@ -1282,10 +1499,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(0)("uuid"))
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, correct input
   it should "delete exactly two relationships" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_DELETE_RELATIONSHIP-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1312,7 +1535,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 0)
@@ -1321,10 +1544,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream << Database.deleteNode(uuidList(2)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, incorrect input
   it should "delete only one relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_DELETE_RELATIONSHIP-4>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1353,7 +1582,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 1)
@@ -1363,6 +1592,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream << Database.deleteNode(uuidList(2)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
 
@@ -1371,6 +1603,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, correct input
   "setRelationshipProperties" should "set properties to a relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-1>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1403,10 +1638,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(0)("uuid"))
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, incorrect input
   it should "not set properties to a relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "ContentSource"
     val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-2>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1427,7 +1668,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", propsToSet)
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 0)
@@ -1435,10 +1676,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(0)("uuid"))
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, correct input
   it should "set properties to exactly two relationships" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1483,10 +1730,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream << Database.deleteNode(uuidList(2)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, incorrect input
   it should "set properties only to one relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "NeoUser"
     val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-4>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1530,6 +1783,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream << Database.deleteNode(uuidList(2)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
 
@@ -1538,6 +1794,9 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
   // not using batch, correct input
   "deleteRelationshipProperties" should "delete relationship's properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-1>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1572,10 +1831,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(0)("uuid"))
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // not using batch, incorrect input
   it should "not delete relationship's properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "ContentSource"
     val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-2>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1613,10 +1878,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(0)("uuid"))
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, correct input
   it should "delete properties of exactly two relationships" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "Content"
     val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1667,10 +1938,16 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream << Database.deleteNode(uuidList(2)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 
   // using batch, incorrect input
   it should "delete properties of only one relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
     val modelName = "NeoUser"
     val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-4>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
@@ -1701,7 +1978,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map())
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
     batchStream << Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToDelete0)
     batchStream << Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToDelete1)
@@ -1724,5 +2001,8 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream << Database.deleteNode(uuidList(2)("uuid"))
     batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
   }
 }

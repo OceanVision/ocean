@@ -132,7 +132,8 @@ object Database extends Factory {
   case class getChildren(private val parentUuid: String,
                          private val relationshipType: String,
                          private val childrenProperties: Map[String, Any] = Map(),
-                         private val relationshipProperties: Map[String, Any] = Map()) extends Method {
+                         private val relationshipProperties: Map[String, Any] = Map(),
+                         private val limit: Int = 0) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "getChildren",
@@ -140,7 +141,8 @@ object Database extends Factory {
           "parentUuid" -> parentUuid,
           "relType" -> relationshipType,
           "childrenProps" -> childrenProperties,
-          "relProps" -> relationshipProperties
+          "relProps" -> relationshipProperties,
+          "limit" -> limit
         )
       )
 
@@ -150,14 +152,16 @@ object Database extends Factory {
 
   case class getInstances(private val modelName: String,
                           private val childrenProperties: Map[String, Any] = Map(),
-                          private val relationshipProperties: Map[String, Any] = Map()) extends Method {
+                          private val relationshipProperties: Map[String, Any] = Map(),
+                          private val limit: Int = 0) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "getInstances",
         "args" -> Map(
           "modelName" -> modelName,
           "childrenProps" -> childrenProperties,
-          "relProps" -> relationshipProperties
+          "relProps" -> relationshipProperties,
+          "limit" -> limit
         )
       )
 
@@ -165,12 +169,14 @@ object Database extends Factory {
     }
   }
 
-  case class getUserFeeds(private val uuid: String) extends Method {
+  case class getUserFeeds(private val uuid: String,
+                          private val limit: Int = 0) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "getUserFeeds",
         "args" -> Map(
-          "uuid" -> uuid
+          "uuid" -> uuid,
+          "limit" -> limit
         )
       )
 
@@ -178,8 +184,8 @@ object Database extends Factory {
     }
   }
 
-  case class setLabel(private val uuid: String, label: String)
-    extends Method {
+  case class setLabel(private val uuid: String,
+                      private val label: String) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "setLabel",
@@ -193,8 +199,8 @@ object Database extends Factory {
     }
   }
 
-  case class deleteLabel(private val uuid: String, label: String)
-    extends Method {
+  case class deleteLabel(private val uuid: String,
+                         private val label: String) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "deleteLabel",
@@ -209,8 +215,7 @@ object Database extends Factory {
   }
 
   case class setProperties(private val uuid: String,
-                           private val properties: Map[String, Any])
-    extends Method {
+                           private val properties: Map[String, Any]) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "setProperties",
@@ -225,8 +230,7 @@ object Database extends Factory {
   }
 
   case class deleteProperties(private val uuid: String,
-                              private val propertyKeys: List[String])
-    extends Method {
+                              private val propertyKeys: List[String]) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
         "methodName" -> "deleteProperties",
