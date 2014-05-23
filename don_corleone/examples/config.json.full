@@ -1,0 +1,27 @@
+{
+"master":"http://ocean-don.no-ip.biz",
+"master_local_url":"http://127.0.0.1:8881",
+"master_local":true,
+"node_responsibilities":[
+    ["neo4j",{"port":7474, "host":"127.0.0.1", "local":true}],
+    ["lionfish",{"port":7777, "host":"127.0.0.1", "local":true}],
+    ["spidercrab_master", {
+            "local": false,
+            "update_interval_s": 10,
+            "graph_worker_id": "oceanic_crab"
+        }],
+    ["spidercrab_slave", {
+            "number":5,
+            "local": true,
+            "graph_worker_id": "oceanic_crab"
+        }]
+    ,
+    ["zookeeper", {"port":2181, "host":"127.0.0.1"}],
+    ["kafka", {"port":9091, "host":"127.0.0.1"}]]
+,
+"node_id":"staszek",
+"home":"/home/moje/Projekty/ocean/ocean",
+"public_ssh_domain":"127.0.0.1",
+"ssh-user":"staszek",
+"ssh-port":2215
+}

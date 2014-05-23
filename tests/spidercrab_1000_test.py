@@ -42,7 +42,8 @@ if __name__ == '__main__':
         #TODO: add logger
         print "Please download contentsource_nodes_1000 for Ocean Don Corleone"
         print "You can use this command: scp root@ocean-don.no-ip.biz:/webapps/ocean/data/contentsource_nodes_1000 . "
-
+        exit(1)
+    
 
     TEMP_SPIDERCRAB_CONFIG = OCEAN_ROOT + '/data/spidercrab_1000_test_config'
     TEMP_SPIDERCRAB_STATS_EXPORT = \

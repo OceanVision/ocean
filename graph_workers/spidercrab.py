@@ -15,13 +15,18 @@ import urllib2
 import uuid
 ### TODO: this line shouldn't be here (it worked on Konrad's laptop?) adding toquickly test
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../lionfish'))
 from don_corleone import don_utils as du
 
 from graph_workers.graph_defines import *
 from graph_workers.graph_utils import *
 from graph_workers.graph_worker import GraphWorker
 from graph_workers.privileges import construct_full_privilege
-from odm_client import ODMClient
+
+
+sys.path.append(os.path.join(__file__, '../lionfish'))
+import python_lionfish
+from python_lionfish.client.client import Client
 
 # Defining levels to get rid of other loggers
 info_level = 100
@@ -101,14 +106,22 @@ class Spidercrab(GraphWorker):
             export_stats_to=None,
             export_cs_to=None,
             no_corleone=False,
+            rabbit_mq_port=None,
+            rabbit_mq_host=None,
+            rabbit_mq_queue=None
     ):
         """
+        @param rabbit_mq_queue: Target queue where will be exported news as jsons
         @param master: master Spidercrab object
         @type master: Spidercrab
         """
 
-        # Clean logs. TODO: do not use unix command
-        os.system("rm "+self.STANDARD_STATS_EXPORT_FILE)
+        
+        try:
+            stats = json.loads(open(self.STANDARD_STATS_EXPORT_FILE, "r").read())
+        except:
+            # Clean logs. TODO: do not use unix command
+            os.system("rm "+self.STANDARD_STATS_EXPORT_FILE)
 
         self.logger = logger
         # Config used to be stored inside the database (only values from file)
@@ -118,7 +131,9 @@ class Spidercrab(GraphWorker):
         self._init_config(master, config_file_name)
 
         self.required_privileges = construct_full_privilege()
-        self.odm_client = ODMClient()
+	    
+        self.odm_client = Client()
+        
         self.terminate_event = threading.Event()
         self.runtime_id = runtime_id
         self.master_sources_urls_file = master_sources_urls_file
@@ -259,7 +274,7 @@ class Spidercrab(GraphWorker):
         return self.stats
 
     def stub_for_mantis_kafka_push(self, node_dictionary):
-        pass
+        print node_dictionary
 
     def _init_run(self):
         self.odm_client.connect()
@@ -328,7 +343,7 @@ class Spidercrab(GraphWorker):
                 + str(self.given_config['graph_worker_id']) + '\'!')
 
         master_config = du.get_running_service(
-            service_config={
+            service_params={
                 'graph_worker_id': self.given_config['graph_worker_id']
             },
             enforce_running=False

@@ -7,7 +7,10 @@
 """
 import sys, os
 sys.path.append(os.path.abspath(".."))
-from graph_workers import odm_client
+sys.path.append(os.path.abspath("../lionfish/"))
+import python_lionfish
+from python_lionfish.client.client import Client
+
 from don_corleone import don_utils as du
 
 
@@ -16,15 +19,20 @@ def check_corleone_config():
         Returns true if don_corleone config is provided
     """
     try:
-        neo4j_host = du.get_configuration('neo4j', 'host')
-        neo4j_port = du.get_configuration('neo4j', 'port')
+#       Checking for neo4j is obsolete because there won't be such service
+#       Lionfish is taking over neo4j (no REST console)
+#        neo4j_host = du.get_configuration('neo4j', 'host')
+#        neo4j_port = du.get_configuration('neo4j', 'port')
         lionfish_host = du.get_configuration('lionfish', 'host')
         lionfish_port = du.get_configuration('lionfish', 'port')
     except Exception as error:
         print unicode(error)
         return False
-    if not neo4j_host or not neo4j_port or not lionfish_host \
-            or not lionfish_port:
+#   Again: obsolete
+#    if not neo4j_host or not neo4j_port or not lionfish_host \
+#            or not lionfish_port:
+
+    if not lionfish_port or not lionfish_host:
         return False
     return True
 
@@ -33,7 +41,10 @@ def check_lionfish_communication():
     """
         Returns true if lionfish works OK
     """
-    lionfish_client = odm_client.ODMClient()
+    lionfish_host = du.get_configuration('lionfish', 'host')
+    lionfish_port = du.get_configuration('lionfish', 'port')
+
+    lionfish_client = Client(lionfish_host, lionfish_port)
     lionfish_client.connect()
     lionfish_client.create_model('spidercrab_integrity_test')
     found_instances = lionfish_client.get_model_nodes()
@@ -54,9 +65,11 @@ def warn_that_not_local(service, value):
 
 
 def warn_if_not_local():
-    neo4j_location = str(du.get_configuration('neo4j', 'host'))
-    if neo4j_location != 'localhost' and neo4j_location != '127.0.0.1':
-        warn_that_not_local('Neo4j', neo4j_location)
+    # See comment in check_corleone_config()
+    #neo4j_location = str(du.get_configuration('neo4j', 'host'))
+    #if neo4j_location != 'localhost' and neo4j_location != '127.0.0.1':
+    #    warn_that_not_local('Neo4j', neo4j_location)
+
     lionfish_location = str(du.get_configuration('lionfish', 'host'))
     if lionfish_location != 'localhost' and lionfish_location != '127.0.0.1':
         warn_that_not_local('Lionfish', lionfish_location)

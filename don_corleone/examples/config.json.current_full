@@ -1,0 +1,19 @@
+{
+"master":"http://ocean-don.no-ip.biz/don",
+"master_local_url":"http://127.0.0.1:8881",
+"master_local":false,
+"node_responsibilities":[
+    ["lionfish_scala", {"port":7777}],
+    ["rabbitmq", {}],
+    ["logstash", {}],
+    ["mantis_shrimp_master", {"config_path":"mantis_tagging_cluster_master.conf", "logging_strategy":"stderr"}],
+    ["mantis_shrimp", {"port":3345, "config_path":"mantis_tagging_cluster_slave.conf", "logging_strategy":"stderr"}]
+]
+,
+
+"node_id":"staszek",
+"home":"/home/moje/Projekty/ocean/ocean",
+"public_ssh_domain":"localhost",
+"ssh-user":"staszek",
+"ssh-port":2215
+}
