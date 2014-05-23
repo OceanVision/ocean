@@ -86,7 +86,7 @@ public class NavigationDrawerAdapter extends BaseAdapter {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        holder.textView.setText(mData.get(position).title);
+        holder.textView.setText(mData.get(position).name);
         return convertView;
     }
 

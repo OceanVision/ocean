@@ -27,6 +27,7 @@
         </activity>
         <activity android:name=".activities.NewsDetailsActivity"
                   android:parentActivityName=".activities.MainActivity"/>
+        <activity android:name=".activities.CreateFeedActivity"/>
     </application>
 
 </manifest>

@@ -15,6 +15,19 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLConnection;
+
+import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.widget.ImageView;
+
+import java.io.IOException;
 
 public final class MyHttpClient {
 
@@ -33,6 +46,29 @@ public final class MyHttpClient {
 
         DefaultHttpClient httpClient = new DefaultHttpClient(httpParameters);
         httpClient.setCookieStore(cookieStore);
+
+        ResponseHandler<String> handler = new BasicResponseHandler();
+        String response = null;
+        try {
+            response = httpClient.execute(request, handler);
+        } catch (ClientProtocolException e) {
+            Log.e("ClientProtocolException", e.toString());
+            e.printStackTrace();
+        } catch (IOException e) {
+            Log.e("IOException", e.toString());
+            e.printStackTrace();
+        }
+
+        return response;
+    }
+
+    // Based on given request, download data from web service and return it as simple String.
+    static public String runRequest(HttpUriRequest request) {
+        HttpParams httpParameters = new BasicHttpParams();
+        HttpConnectionParams.setConnectionTimeout(httpParameters, TIMEOUT_CONNECTION);
+        HttpConnectionParams.setSoTimeout(httpParameters, TIMEOUT_SOCKET);
+
+        DefaultHttpClient httpClient = new DefaultHttpClient(httpParameters);
 
         ResponseHandler<String> handler = new BasicResponseHandler();
         String response = null;
@@ -84,6 +120,9 @@ public final class MyHttpClient {
         } catch (JSONException e) {
             Log.e("JSONException", e.toString());
             e.printStackTrace();
+        } catch (NullPointerException e) {
+            Log.e("NullPointer", e.toString());
+            e.printStackTrace();
         }
 
         return jsonArray;
@@ -96,6 +135,9 @@ public final class MyHttpClient {
             jsonObject = new JSONObject(runRequestWithCookies(request, cookieStore));
         } catch (JSONException e) {
             Log.e("JSONException", e.toString());
+            e.printStackTrace();
+        } catch (NullPointerException e) {
+            Log.e("NullPointer", e.toString());
             e.printStackTrace();
         }
 
@@ -110,8 +152,53 @@ public final class MyHttpClient {
         } catch (JSONException e) {
             Log.e("JSONException", e.toString());
             e.printStackTrace();
+        } catch (NullPointerException e) {
+            Log.e("NullPointer", e.toString());
+            e.printStackTrace();
         }
 
         return jsonObject;
+    }
+
+    // Creates Bitmap from InputStream and returns it
+    static public Bitmap downloadImage(String url) {
+        Bitmap bitmap = null;
+        InputStream stream = null;
+        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+        bmOptions.inSampleSize = 1;
+
+        try {
+            stream = getHttpConnection(url);
+            bitmap = BitmapFactory.
+                    decodeStream(stream, null, bmOptions);
+            stream.close();
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        } catch (NullPointerException e2) {
+            e2.printStackTrace();
+        }
+
+        return bitmap;
+    }
+
+    // Makes HttpURLConnection and returns InputStream
+    static private InputStream getHttpConnection(String urlString)
+            throws IOException {
+        InputStream stream = null;
+        URL url = new URL(urlString);
+        URLConnection connection = url.openConnection();
+
+        try {
+            HttpURLConnection httpConnection = (HttpURLConnection) connection;
+            httpConnection.setRequestMethod("GET");
+            httpConnection.connect();
+
+            if (httpConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                stream = httpConnection.getInputStream();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return stream;
     }
 }

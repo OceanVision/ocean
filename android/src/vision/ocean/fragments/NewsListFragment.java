@@ -179,22 +179,28 @@ public class NewsListFragment extends Fragment implements EndlessScrollListener.
                             jsonObject.getString("title"),
                             jsonObject.getInt("time"),
                             jsonObject.getString("description"),
-                            jsonObject.getString("image_source")));
+                            jsonObject.getString("image_source"),
+                            jsonObject.getString("link")));
+                }
+
+                // If there is no adapter (activity created) create new one.
+                if (mGridView.getAdapter() == null) {
+                    mAdapter = new NewsAdapter(getActivity(), R.layout.item_news, data);
+                    mGridView.setAdapter(mAdapter);
+                }
+                // Adapter already exists, we only need to add data.
+                else {
+                    mAdapter.addAll(data);
                 }
 
             } catch (JSONException e) {
                 Log.e("JSONException", e.toString());
                 e.printStackTrace();
-            }
+            } catch (NullPointerException e) {
+                Log.e("NullPointerException", e.toString());
+                e.printStackTrace();
 
-            // If there is no adapter (activity created) create new one.
-            if (mGridView.getAdapter() == null) {
-                mAdapter = new NewsAdapter(getActivity(), R.layout.item_news, data);
-                mGridView.setAdapter(mAdapter);
-            }
-            // Adapter already exists, we only need to add data.
-            else {
-                mAdapter.addAll(data);
+                getActivity().setContentView(R.layout.layout_no_server_connection);
             }
         }
     }

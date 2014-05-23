@@ -6,14 +6,16 @@ public class News {
     public String title;
     public int time;
     public String description;
-    public String image;
+    public String imageSource;
+    public String link;
 
-    public News(String id, String author, String title, int time, String description, String image) {
+    public News(String id, String author, String title, int time, String description, String imageSource, String link) {
         this.id = id;
         this.author = author;
         this.title = title;
         this.time = time;
         this.description = description;
-        this.image = image;
+        this.imageSource = imageSource;
+        this.link = link;
     }
 }
