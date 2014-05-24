@@ -93,6 +93,9 @@ class Spidercrab(GraphWorker):
 
     SUPPORTED_CONTENT_TYPES = ['text/plain', 'text/html']
 
+    SPIDERCRAB_MODEL_NAME = 'Spidercrab'
+    PENDING_RELATIONSHIP_NAME = 'pending'
+
     def __init__(
             self,
             master=False,
@@ -128,7 +131,7 @@ class Spidercrab(GraphWorker):
 
         self.required_privileges = construct_full_privilege()
         # TODO: use configuration!
-        self.odm_client = Client(
+        self.lionfish = Client(
             du.get_configuration('lionfish', 'host'),
             du.get_configuration('lionfish', 'port')
         )
@@ -275,7 +278,7 @@ class Spidercrab(GraphWorker):
         print node_dictionary
 
     def _init_run(self):
-        self.odm_client.connect()
+        self.lionfish.connect()
 
         logger.log(info_level, self.fullname + ' Started.')
 
@@ -291,7 +294,7 @@ class Spidercrab(GraphWorker):
         self._check_and_register()
 
     def _end_run(self):
-        self.odm_client.disconnect()
+        self.lionfish.disconnect()
         logger.log(
             info_level,
             self.fullname + ' Finished!\nStats:\n' + str(self.stats))
@@ -358,7 +361,7 @@ class Spidercrab(GraphWorker):
         )
 
     def _is_master_registered(self):
-        response = self.odm_client.get_instances('Spidercrab')
+        response = self.lionfish.get_instances('Spidercrab')
         master_node = {}
         for instance in response:
             if instance['graph_worker_id'] == \
@@ -374,7 +377,7 @@ class Spidercrab(GraphWorker):
             If not - initializes them.
         """
         # Check if our model is present
-        response = self.odm_client.get_model_nodes()
+        response = self.lionfish.get_model_nodes()
         models = []
         logger.info("Response get_model_nodes(): "+str(response))
         for model in response:
@@ -389,7 +392,7 @@ class Spidercrab(GraphWorker):
                 info_level,
                 'Spidercrab model not found in the database. Creating...'
             )
-            self.odm_client.create_model_node('Spidercrab')
+            self.lionfish.create_model_node('Spidercrab')
             self.logger.log(
                 info_level,
                 'Spidercrab model created.'
@@ -405,7 +408,7 @@ class Spidercrab(GraphWorker):
             Checks if this Spidercrab instance is registered in the database.
             If not - registers it.
         """
-        instances = self.odm_client.get_instances('Spidercrab')
+        instances = self.lionfish.get_instances('Spidercrab')
         master_uuid = ''
         graph_worker_id = self.config[self.C_GRAPH_WORKER_ID]
 
@@ -420,7 +423,7 @@ class Spidercrab(GraphWorker):
                 + ' Updating config...'
             )
             params = self.given_config
-            self.odm_client.set(master_uuid, **params)
+            self.lionfish.set(master_uuid, **params)
         else:
             self.logger.log(
                 info_level,
@@ -428,7 +431,7 @@ class Spidercrab(GraphWorker):
                 + ' Spidercrab in the database.'
             )
             params = self.given_config
-            self.odm_client.create_node(
+            self.lionfish.create_node(
                 model_name='Spidercrab',
                 rel_type=HAS_INSTANCE_RELATION,
                 **params
@@ -537,19 +540,40 @@ class Spidercrab(GraphWorker):
                 self.fullname + ' Adding (' + str(n) + '/' + str(count) + ') '
                 + line[:-1] + ' ...'
             )
-            # Check if not in database
-            query = """
-            MATCH
-                (source:ContentSource {link: '%s'}),
-                (crab:Spidercrab {graph_worker_id: '%s'})
-            CREATE UNIQUE (crab)-[:pending]->(source)
-            RETURN source
-            """
-            query %= (
-                line[:-1],
-                self.config[self.C_GRAPH_WORKER_ID]
-            )
-            result = self.odm_client.execute_query(query)
+            ## Check if not in database
+            ### Lionfish version:
+            source = self.lionfish.get_by_link(line[:-1])
+            result = source
+
+            # TODO: Join ifs
+            if result:
+                source = source[0]
+                crab = self.lionfish.get_instances(
+                    self.SPIDERCRAB_MODEL_NAME,
+                    {
+                        self.C_GRAPH_WORKER_ID:
+                        self.config[self.C_GRAPH_WORKER_ID]
+                    }
+                )[0]
+                self.lionfish.create_unique_relationship(
+                    source['uuid'],
+                    crab['uuid'],
+                    self.PENDING_RELATIONSHIP_NAME
+                )
+            ### Cypher version:
+            # query = """
+            # MATCH
+            #     (source:ContentSource {link: '%s'}),
+            #     (crab:Spidercrab {graph_worker_id: '%s'})
+            # CREATE UNIQUE (crab)-[:pending]->(source)
+            # RETURN source
+            # """
+            # query %= (
+            #     line[:-1],
+            #     self.config[self.C_GRAPH_WORKER_ID]
+            # )
+            # result = self.odm_client.execute_query(query)
+            ##
             if result:
                 self.logger.log(
                     info_level,
@@ -563,24 +587,43 @@ class Spidercrab(GraphWorker):
                     'source_type': 'unknown',
                     'link': line[:-1],
                 }
-                self.odm_client.create_node(
+                self.lionfish.create_node(
                     CONTENT_SOURCE_TYPE_MODEL_NAME,
                     HAS_INSTANCE_RELATION,
                     **params
                 )
-                # Create a `pending` relation
-                query = """
-                MATCH
-                    (source:ContentSource {link: '%s'}),
-                    (crab:Spidercrab {graph_worker_id: '%s'})
-                CREATE UNIQUE (crab)-[:pending]->(source)
-                RETURN source
-                """
-                query %= (
-                    line[:-1],
-                    self.config[self.C_GRAPH_WORKER_ID]
+                ## Create a `pending` relation
+                ### Lionfish version:
+                source = self.lionfish.get_by_link(line[:-1])
+                assert (len(source) > 0)
+                source = source[0]
+                crab = self.lionfish.get_instances(
+                    self.SPIDERCRAB_MODEL_NAME,
+                    {
+                        self.C_GRAPH_WORKER_ID:
+                            self.config[self.C_GRAPH_WORKER_ID]
+                    }
+                )[0]
+                self.lionfish.create_unique_relationship(
+                    source['uuid'],
+                    crab['uuid'],
+                    self.PENDING_RELATIONSHIP_NAME
                 )
-                result = self.odm_client.execute_query(query)
+                result = source
+                ### Cypher version:
+                # query = """
+                # MATCH
+                #     (source:ContentSource {link: '%s'}),
+                #     (crab:Spidercrab {graph_worker_id: '%s'})
+                # CREATE UNIQUE (crab)-[:pending]->(source)
+                # RETURN source
+                # """
+                # query %= (
+                #     line[:-1],
+                #     self.config[self.C_GRAPH_WORKER_ID]
+                # )
+                # result = self.odm_client.execute_query(query)
+                ##
                 self.stats[self.S_QUEUED_SOURCES] += len(result)
             except Exception as error:
                 self.logger.log(
@@ -596,6 +639,10 @@ class Spidercrab(GraphWorker):
 
             Method used by master.
         """
+        ## Lionfish version:
+        # TODO: Methods needed
+
+        ## Cypher version:
         query = """
         MATCH
             (source:ContentSource),
@@ -612,7 +659,7 @@ class Spidercrab(GraphWorker):
             self.config[self.C_UPDATE_INTERVAL_S],
             self.config[self.C_SOURCES_ENQUEUE_PORTION],
         )
-        result = self.odm_client.execute_query(query)
+        result = self.lionfish.execute_query(query)
         self.logger.log(
             info_level,
             self.fullname + ' Master queued ' + str(len(result)) + ' sources.'
@@ -625,21 +672,42 @@ class Spidercrab(GraphWorker):
             Pick first free ContentSource (pending in master Spidercrab node),
             remove pending rel and mark it as updated. Method used by workers.
         """
-        query = """
-        MATCH
-            (crab:Spidercrab {graph_worker_id: '%s'})
-            -[r:pending]->
-            (source:ContentSource)
-        SET source.last_updated = %s
-        DELETE r
-        RETURN source
-        LIMIT 1
-        """
-        query %= (
-            self.config[self.C_GRAPH_WORKER_ID],
-            database_gmt_now(),
+        ## Lionfish version:
+        crab = self.lionfish.get_instances(
+            self.SPIDERCRAB_MODEL_NAME,
+            {
+                self.C_GRAPH_WORKER_ID:
+                self.config[self.C_GRAPH_WORKER_ID]
+            }
+        )[0]
+        source = self.lionfish.get_children(
+            parent_uuid=crab['uuid'],
+            relationship_type=self.PENDING_RELATIONSHIP_NAME,
+            limit=1
+        )[0]
+        self.lionfish.set_properties(
+            uuid=source['uuid'],
+            last_updated=database_gmt_now()
         )
-        result = self.odm_client.execute_query(query)
+        result = source
+
+        ## Cypher version:
+        # query = """
+        # MATCH
+        #     (crab:Spidercrab {graph_worker_id: '%s'})
+        #     -[r:pending]->
+        #     (source:ContentSource)
+        # SET source.last_updated = %s
+        # DELETE r
+        # RETURN source
+        # LIMIT 1
+        # """
+        # query %= (
+        #     self.config[self.C_GRAPH_WORKER_ID],
+        #     database_gmt_now(),
+        # )
+        # result = self.lionfish.execute_query(query)
+        ##
         if len(result) > 0:
             self.logger.log(
                 info_level,
@@ -684,7 +752,7 @@ class Spidercrab(GraphWorker):
                 + properties['link'] + ' ... (web page forwarding/transfer?)'
                 + ' Checking if this source already exists...'
             )
-            destination_node = self.odm_client.get_by_link(
+            destination_node = self.lionfish.get_by_link(
                 CONTENT_SOURCE_TYPE_MODEL_NAME,
                 properties['link']
             )
@@ -700,51 +768,77 @@ class Spidercrab(GraphWorker):
                 return properties
                 #source_node['uuid'] = destination_node['uuid']
 
-        query = """
-        MATCH (source:ContentSource {uuid: '%s'})
-        SET
-            source.language = '%s',
-            source.title = '%s',
-            source.link = '%s',
-            source.description = '%s',
-            source.source_type = '%s'
-        RETURN source
-        """
-        query %= (
-            source_node['uuid'],
-            properties.get('language', 'unknown'),
-            properties.get('title', 'unknown'),
-            properties.get('link', 'unknown'),
-            properties.get('description', 'unknown'),
-            properties.get('source_type', 'unknown')
-        )
         self.logger.log(
             info_level,
             self.fullname
             + ' Updating ContentSource of ' + properties['link']
         )
-        result = self.odm_client.execute_query(query)
+
+        ## Lionfish version:
+        source = self.lionfish.get_by_uuid(source_node['uuid'])
+        assert source
+        self.lionfish.set_properties(
+            uuid=source_node['uuid'],
+            language=properties.get('language', 'unknown'),
+            title=properties.get('title', 'unknown'),
+            link=properties.get('link', 'unknown'),
+            description=properties.get('description', 'unknown'),
+            source_type=properties.get('source_type', 'unknown')
+        )
+        result = source
+        ## Cypher version:
+        # query = """
+        # MATCH (source:ContentSource {uuid: '%s'})
+        # SET
+        #     source.language = '%s',
+        #     source.title = '%s',
+        #     source.link = '%s',
+        #     source.description = '%s',
+        #     source.source_type = '%s'
+        # RETURN source
+        # """
+        # query %= (
+        #     source_node['uuid'],
+        #     properties.get('language', 'unknown'),
+        #     properties.get('title', 'unknown'),
+        #     properties.get('link', 'unknown'),
+        #     properties.get('description', 'unknown'),
+        #     properties.get('source_type', 'unknown')
+        # )
+        # result = self.lionfish.execute_query(query)
+        ##
+
         self.stats[self.S_UPDATED_SOURCES] += len(result)
 
         # Optional ContentSource properties
         if 'image' in properties:
-            query = """
-            MATCH (source:ContentSource {uuid: '%s'})
-            SET
-                source.image_url = '%s',
-                source.image_width = '%s',
-                source.image_height = '%s',
-                source.image_link = '%s'
-            RETURN source
-            """
-            query %= (
-                source_node['uuid'],
-                properties.get('image_url'),
-                properties.get('image_width'),
-                properties.get('image_height'),
-                properties.get('image_link'),
+            ## Lionfish version:
+            self.lionfish.set_properties(
+                uuid=source_node['uuid'],
+                image_url=properties.get('image_url'),
+                image_width=properties.get('image_width'),
+                image_height=properties.get('image_height'),
+                image_link=properties.get('image_link'),
             )
-            self.odm_client.execute_query(query)
+
+            ## Cypher version:
+            # query = """
+            # MATCH (source:ContentSource {uuid: '%s'})
+            # SET
+            #     source.image_url = '%s',
+            #     source.image_width = '%s',
+            #     source.image_height = '%s',
+            #     source.image_link = '%s'
+            # RETURN source
+            # """
+            # query %= (
+            #     source_node['uuid'],
+            #     properties.get('image_url'),
+            #     properties.get('image_width'),
+            #     properties.get('image_height'),
+            #     properties.get('image_link'),
+            # )
+            # self.lionfish.execute_query(query)
         properties['uuid'] = source_node['uuid']
         return properties
 
@@ -874,19 +968,31 @@ class Spidercrab(GraphWorker):
                 break
 
             # Check if this news is already present in the database
-            query = """
-                MATCH
-                (source:ContentSource {uuid: '%s'})
-                -[:`%s`]->
-                (news:Content {link: '%s'})
-                RETURN news
-                """
-            query %= (
-                source_props['uuid'],
-                PRODUCES_RELATION,
-                news_props['link'],
+            ## Lionfish version:
+            news = self.lionfish.get_children(
+                parent_uuid=source_props['uuid'],
+                relationship_type=PRODUCES_RELATION,
+                children_properties={
+                    'link': news_props['link']
+                }
             )
-            result = self.odm_client.execute_query(query)
+            result = news
+
+            ## Cypher version:
+            # query = """
+            #     MATCH
+            #     (source:ContentSource {uuid: '%s'})
+            #     -[:`%s`]->
+            #     (news:Content {link: '%s'})
+            #     RETURN news
+            #     """
+            # query %= (
+            #     source_props['uuid'],
+            #     PRODUCES_RELATION,
+            #     news_props['link'],
+            # )
+            # result = self.lionfish.execute_query(query)
+            ##
 
             if not result:
 
@@ -901,42 +1007,65 @@ class Spidercrab(GraphWorker):
                 # Prepare strings to database
                 for key in news_props:
                     news_props[key] = self._db_encode(news_props[key])
-                query = u"""
-                    MATCH
-                    (source:ContentSource {uuid: '%s'}),
-                    (cs_model:Model {model_name: 'Content'})
-                    CREATE UNIQUE
-                    (source)
-                    -[:`%s`]->
-                    (news:Content:NotYetTagged {
-                        uuid: '%s',
-                        title: '%s',
-                        summary: '%s',
-                        link: '%s',
-                        published: %s,
-                        text: '%s',
-                        html: '%s',
-                        type: '%s'
-                    }),
-                    (cs_model)
-                    -[:`%s`]->
-                    (news)
-                    RETURN news
-                    """
-                query %= (
-                    source_props['uuid'],
-                    PRODUCES_RELATION,
-                    uuid.uuid1(),
-                    news_props.get('title', 'unknown'),
-                    news_props.get('summary', 'unknown'),
-                    news_props.get('link', 'unknown'),
-                    news_props.get('published', 'unknown'),
-                    news_props.get('text', 'unknown'),
-                    'TODO',  # news_props['html'],
-                    news_props.get('type', 'unknown'),
-                    HAS_INSTANCE_RELATION
+
+                ## Lionfish version:
+                content_node = self.lionfish.create_model_node(
+                    model_name='Content',
+                    title=news_props.get('title', 'unknown'),
+                    summary=news_props.get('summary', 'unknown'),
+                    link=news_props.get('link', 'unknown'),
+                    published=news_props.get('published', 'unknown'),
+                    text=news_props.get('text', 'unknown'),
+                    html='TODO',  # news_props['html'],
+                    type=news_props.get('type', 'unknown'),
                 )
-                result = self.odm_client.execute_query(query)
+                # TODO: Method needed: add_label()
+                self.lionfish.create_unique_relationship(
+                    start_node_uuid=source_props['uuid'],
+                    end_node_uuid=content_node['uuid'],
+                    relationship_type=PRODUCES_RELATION,
+                )
+                result = content_node
+
+                ## Cypher version:
+                # query = u"""
+                #     MATCH
+                #     (source:ContentSource {uuid: '%s'}),
+                #     (cs_model:Model {model_name: 'Content'})
+                #     CREATE UNIQUE
+                #     (source)
+                #     -[:`%s`]->
+                #     (news:Content:NotYetTagged {
+                #         uuid: '%s',
+                #         title: '%s',
+                #         summary: '%s',
+                #         link: '%s',
+                #         published: %s,
+                #         text: '%s',
+                #         html: '%s',
+                #         type: '%s'
+                #     }),
+                #     (cs_model)
+                #     -[:`%s`]->
+                #     (news)
+                #     RETURN news
+                #     """
+                # query %= (
+                #     source_props['uuid'],
+                #     PRODUCES_RELATION,
+                #     uuid.uuid1(),
+                #     news_props.get('title', 'unknown'),
+                #     news_props.get('summary', 'unknown'),
+                #     news_props.get('link', 'unknown'),
+                #     news_props.get('published', 'unknown'),
+                #     news_props.get('text', 'unknown'),
+                #     'TODO',  # news_props['html'],
+                #     news_props.get('type', 'unknown'),
+                #     HAS_INSTANCE_RELATION
+                # )
+                # result = self.lionfish.execute_query(query)
+                ##
+
                 if result:
                     self.stub_for_mantis_kafka_push(result[0][0])
                 fetched_news_ps += len(result)
