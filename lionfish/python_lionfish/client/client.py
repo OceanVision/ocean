@@ -150,11 +150,11 @@ class Client(object):
         self.send(request)
         result = None
         try:
-            result = self.recv()
-        except:
+            result = self.recv()[0]
+        except Exception as e:
             logger.log(error_level, 'Failed to execute query. {error}'
                        .format(error=str(e)))
-        return result[0]
+        return result
 
     def get_by_uuid(self, uuid, **params):
         """
@@ -378,9 +378,57 @@ class Client(object):
         result = self.recv()
         return result[0]
 
+    def set_label(self, uuid, label, **params):
+        """
+        Sets the label to the node of given uuid
+        @param uuid string
+        @param label string
+        """
+        data = {
+            'methodName': 'setLabel',
+            'args': {
+                'uuid': uuid,
+                'label': label
+            }
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(request)
+        self.recv()
+
+    def delete_label(self, uuid, label, **params):
+        """
+        Deletes the label from the node of given uuid
+        @param uuid string
+        @param label string
+        """
+        data = {
+            'methodName': 'deleteLabel',
+            'args': {
+                'uuid': uuid,
+                'label': label
+            }
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(request)
+        self.recv()
+
     def set(self, uuid, **properties):
         """
-        Sets properties to a node of given uuid
+        Sets properties to the node of given uuid
         @param uuid string
         @param properties dictionary/keywords
         """
@@ -404,7 +452,7 @@ class Client(object):
 
     def set_properties(self, uuid, **properties):
         """
-        Sets properties to a node of given uuid
+        Sets properties to the node of given uuid
         @param uuid string
         @param properties dictionary/keywords
         """
@@ -428,7 +476,7 @@ class Client(object):
 
     def delete_properties(self, uuid, **property_keys):
         """
-        Deletes property_keys of a node of given uuid
+        Deletes property_keys of the node of given uuid
         @param uuid string
         @param property_keys dictionary/keywords
         """

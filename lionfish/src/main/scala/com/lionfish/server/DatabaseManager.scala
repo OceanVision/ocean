@@ -126,8 +126,11 @@ object DatabaseManager {
   }
 
   private def executeCypher(query: String, params: Map[String, Any] = Map()): List[List[Any]] = {
+    val tx = graphDB.beginTx()
     try {
       cypherResult = cypherEngine.execute(query, params)
+      tx.success()
+
       var parsedResult: ListBuffer[List[Any]] = ListBuffer()
       for (row: Map[String, Any] <- cypherResult) {
         var rowItems: ListBuffer[Any] = ListBuffer()
@@ -151,9 +154,12 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Executing Cypher script failed at line $line. Error message: $e")
+        println(s"Executing Cypher query failed at line $line. Error message: $e")
       }
+        tx.failure()
         null
+    } finally {
+      tx.close()
     }
   }
 
