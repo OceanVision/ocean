@@ -95,6 +95,7 @@ class Spidercrab(GraphWorker):
 
     SPIDERCRAB_MODEL_NAME = 'Spidercrab'
     PENDING_RELATIONSHIP_NAME = 'pending'
+    NOT_YET_TAGGED_LABEL = 'NotYetTagged'
 
     def __init__(
             self,
@@ -130,7 +131,6 @@ class Spidercrab(GraphWorker):
         self._init_config(master, config_file_name)
 
         self.required_privileges = construct_full_privilege()
-        # TODO: use configuration!
         self.lionfish = Client(
             du.get_configuration('lionfish', 'host'),
             du.get_configuration('lionfish', 'port')
@@ -314,7 +314,7 @@ class Spidercrab(GraphWorker):
                 json_file.write(json.dumps({}))
         try:
             with open(file_name, 'r') as json_file: 
-                x= json_file.read()
+                x = json_file.read()
                 data = json.loads(x)
             try:
                 graph_worker_id = self.config[self.C_GRAPH_WORKER_ID]
@@ -639,27 +639,59 @@ class Spidercrab(GraphWorker):
 
             Method used by master.
         """
-        ## Lionfish version:
-        # TODO: Methods needed
 
-        ## Cypher version:
+        ## Non-lionfishable Cypher:
         query = """
-        MATCH
-            (source:ContentSource),
-            (crab:Spidercrab {graph_worker_id: '%s'})
-        WHERE %s - source.last_updated > %s
-            AND NOT (crab)-[:pending]->(source)
-        CREATE (crab)-[:pending]->(source)
-        RETURN source
-        LIMIT %s
-        """
+            MATCH
+                (source:ContentSource)
+            WHERE %s - source.last_updated > %s
+            RETURN source.uuid
+            """
         query %= (
-            self.config[self.C_GRAPH_WORKER_ID],
             database_gmt_now(),
-            self.config[self.C_UPDATE_INTERVAL_S],
-            self.config[self.C_SOURCES_ENQUEUE_PORTION],
+            self.config[self.C_UPDATE_INTERVAL_S]
         )
         result = self.lionfish.execute_query(query)
+
+        ## Lionfish part:
+        spidercrab_node = self.lionfish.get_instances(
+            self.SPIDERCRAB_MODEL_NAME,
+            {
+                self.C_GRAPH_WORKER_ID:
+                self.config[self.C_GRAPH_WORKER_ID]
+            }
+        )
+        assert len(spidercrab_node) > 0
+
+        lionfish_batch = self.lionfish.get_batch()
+        for source_uuid in result:
+            lionfish_batch.append(
+                self.lionfish.create_unique_relationship,
+                spidercrab_node['uuid'],
+                source_uuid,
+                self.PENDING_RELATIONSHIP_NAME
+            )
+
+        ## Cypher version:
+        # query = """
+        # MATCH
+        #     (source:ContentSource),
+        #     (crab:Spidercrab {graph_worker_id: '%s'})
+        # WHERE %s - source.last_updated > %s
+        #     AND NOT (crab)-[:pending]->(source)
+        # CREATE (crab)-[:pending]->(source)
+        # RETURN source
+        # LIMIT %s
+        # """
+        # query %= (
+        #     self.config[self.C_GRAPH_WORKER_ID],
+        #     database_gmt_now(),
+        #     self.config[self.C_UPDATE_INTERVAL_S],
+        #     self.config[self.C_SOURCES_ENQUEUE_PORTION],
+        # )
+        # result = self.lionfish.execute_query(query)
+        ##
+
         self.logger.log(
             info_level,
             self.fullname + ' Master queued ' + str(len(result)) + ' sources.'
@@ -1019,11 +1051,14 @@ class Spidercrab(GraphWorker):
                     html='TODO',  # news_props['html'],
                     type=news_props.get('type', 'unknown'),
                 )
-                # TODO: Method needed: add_label()
+                self.lionfish.set_label(
+                    uuid=content_node['uuid'],
+                    label=self.NOT_YET_TAGGED_LABEL
+                )
                 self.lionfish.create_unique_relationship(
                     start_node_uuid=source_props['uuid'],
                     end_node_uuid=content_node['uuid'],
-                    relationship_type=PRODUCES_RELATION,
+                    relationship_type=PRODUCES_RELATION
                 )
                 result = content_node
 
