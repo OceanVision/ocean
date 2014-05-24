@@ -2,8 +2,11 @@ package com.lionfish.utils
 
 import java.net.Socket
 import java.nio.ByteBuffer
+import com.lionfish.logging.Logging
 
 object IO {
+  private val log = Logging
+
   // Sends a message to socket
   def send(rawData: Any)(implicit socket: Socket) = {
     try {
@@ -22,7 +25,7 @@ object IO {
       outputStream.write(msg)
     } catch {
       case e: Exception => {
-        println(s"Failed to send data. Error message: $e")
+        log.error(s"Failed to send data. Error message: $e")
       }
     }
   }
@@ -57,7 +60,7 @@ object IO {
       JSON.deserialise[T](msg)
     } catch {
       case e: Exception => {
-        println(s"Failed to receive data. Error message: $e")
+        log.error(s"Failed to receive data. Error message: $e")
       }
         null.asInstanceOf[T]
     }

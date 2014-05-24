@@ -1,4 +1,4 @@
-package com.lionfish.server
+package com.lionfish.workers
 
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
@@ -6,28 +6,26 @@ import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb._
 import org.neo4j.cypher.{ExecutionEngine, ExecutionResult}
 import org.neo4j.tooling.GlobalGraphOperations
-import org.neo4j.server.WrappingNeoServerBootstrapper
-import org.neo4j.kernel.GraphDatabaseAPI
 import org.neo4j.kernel._
 import org.neo4j.server._
 import org.neo4j.server.configuration._
-import org.neo4j.server.database._
-import org.neo4j.server.preflight._
 import com.lionfish.utils.Config
+import com.lionfish.logging.Logging
 
 // TODO: logging, nicer way of handling errors
 
 object DatabaseManager {
-  val databasePath = "/data/graph.db"
-  var neo4jPath = Config.defaultNeo4jPath
-  var neo4jConsolePort = Config.defaultNeo4jConsolePort
-  val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(neo4jPath + databasePath)
+  private val log = Logging
+  private val databasePath = "/data/graph.db"
+  private val neo4jPath = Config.neo4jPath
+  private val neo4jConsolePort = Config.neo4jConsolePort
+  private val graphDB = new GraphDatabaseFactory().newEmbeddedDatabase(neo4jPath + databasePath)
 
-  val globalOperations = GlobalGraphOperations.at(graphDB)
-  val cypherEngine = new ExecutionEngine(graphDB)
-  var cypherResult: ExecutionResult = null
+  private val globalOperations = GlobalGraphOperations.at(graphDB)
+  private val cypherEngine = new ExecutionEngine(graphDB)
+  private var cypherResult: ExecutionResult = null
 
-  def initNeo4jConsole() {
+  def init() {
     val config = new ServerConfigurator(graphDB.asInstanceOf[GraphDatabaseAPI])
     config.configuration().setProperty(
       Configurator.WEBSERVER_PORT_PROPERTY_KEY, neo4jConsolePort
@@ -39,14 +37,6 @@ object DatabaseManager {
 
     val srv = new WrappingNeoServerBootstrapper(graphDB.asInstanceOf[GraphDatabaseAPI], config)
     srv.start()
-  }
-
-  def setNeo4jPath(path: String) = {
-    neo4jPath = path
-  }
-
-  def setNeo4jConsolePort(port: Int) = {
-    neo4jConsolePort = port
   }
 
   private def parseMap(node: Node): Map[String, Any] = {
@@ -62,7 +52,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Parsing node to map failed at line $line. Error message: $e")
+        log.error(s"Parsing node to map failed at line $line. Error message: $e")
       }
         null
     }
@@ -81,7 +71,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Parsing node to map failed at line $line. Error message: $e")
+        log.error(s"Parsing node to map failed at line $line. Error message: $e")
       }
         null
     }
@@ -100,7 +90,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Parsing node to set failed at line $line. Error message: $e")
+        log.error(s"Parsing node to set failed at line $line. Error message: $e")
       }
         null
     }
@@ -119,7 +109,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Parsing node to set failed at line $line. Error message: $e")
+        log.error(s"Parsing node to set failed at line $line. Error message: $e")
       }
         null
     }
@@ -154,7 +144,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Executing Cypher query failed at line $line. Error message: $e")
+        log.error(s"Executing Cypher query failed at line $line. Error message: $e")
       }
         tx.failure()
         null
@@ -183,7 +173,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -221,7 +211,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -259,7 +249,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -297,7 +287,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -335,7 +325,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -374,7 +364,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -407,7 +397,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -484,7 +474,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -561,7 +551,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -619,7 +609,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -657,7 +647,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
     } finally {
@@ -694,7 +684,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
     } finally {
@@ -736,7 +726,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
     } finally {
@@ -778,7 +768,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
     } finally {
@@ -843,7 +833,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -904,7 +894,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -934,7 +924,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
     } finally {
@@ -945,8 +935,11 @@ object DatabaseManager {
   }
 
   def createRelationships(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[Map[String, Any]] = null
+
     val tx = graphDB.beginTx()
     try {
+      val rawResult: ListBuffer[Map[String, Any]] = ListBuffer()
       val nodeLabel = DynamicLabel.label("Node")
 
       for (item <- args) {
@@ -979,27 +972,36 @@ object DatabaseManager {
           for ((key, value) <- item("props").asInstanceOf[Map[String, Any]]) {
             rel.setProperty(key, value)
           }
+
+          rawResult += Map("status" -> true)
+        } else {
+          rawResult += Map("status" -> false)
         }
         it1.close()
         it2.close()
       }
       tx.success()
+      result = rawResult.toList
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
+        result = List()
     } finally {
       tx.close()
     }
 
-    null
+    result
   }
 
   def createUniqueRelationships(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[Map[String, Any]] = null
+
     val tx = graphDB.beginTx()
     try {
+      val rawResult: ListBuffer[Map[String, Any]] = ListBuffer()
       val nodeLabel = DynamicLabel.label("Node")
 
       for (item <- args) {
@@ -1044,23 +1046,31 @@ object DatabaseManager {
             for ((key, value) <- item("props").asInstanceOf[Map[String, Any]]) {
               rel.setProperty(key, value)
             }
+
+            rawResult += Map("status" -> true)
+          } else {
+            rawResult += Map("status" -> false)
           }
+        } else {
+          rawResult += Map("status" -> false)
         }
         it1.close()
         it2.close()
       }
       tx.success()
+      result = rawResult.toList
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
+        result = List()
     } finally {
       tx.close()
     }
 
-    null
+    result
   }
 
   def deleteRelationships(args: List[Map[String, Any]]): List[Any] = {
@@ -1098,7 +1108,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
     } finally {
@@ -1149,7 +1159,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
     } finally {
@@ -1200,7 +1210,7 @@ object DatabaseManager {
     } catch {
       case e: Exception => {
         val line = e.getStackTrace()(2).getLineNumber
-        println(s"Failed to execute the function at line $line. Error message: $e")
+        log.error(s"Failed to execute the function at line $line. Error message: $e")
       }
         tx.failure()
     } finally {
