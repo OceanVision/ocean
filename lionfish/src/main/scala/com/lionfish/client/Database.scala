@@ -5,8 +5,8 @@ import com.typesafe.config.ConfigFactory
 import com.lionfish.utils.Config
 
 object Database extends Factory {
-  private var serverAddress = Config.defaultServerAddress
-  private var serverPort = Config.defaultServerPort
+  private var serverAddress = Config.serverAddress
+  private var serverPort = Config.serverPort
 
   def getServerAddress = {
     serverAddress

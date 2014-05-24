@@ -16,7 +16,7 @@ class BatchStream(
       macroMethod = null
     } catch {
       case e: Exception => {
-        println(s"Failed to execute the batch.")
+        log.error(s"Failed to execute the batch.")
       }
     }
 

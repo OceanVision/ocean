@@ -1,8 +1,10 @@
 package com.lionfish.client
 
 import java.net.Socket
+import com.lionfish.logging.Logging
 
 trait Stream {
+  protected val log = Logging
   protected val serverAddress: String
   protected val serverPort: Int
 

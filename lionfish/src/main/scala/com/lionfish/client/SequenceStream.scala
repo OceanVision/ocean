@@ -16,7 +16,7 @@ class SequenceStream(
       macroMethod = null
     } catch {
       case e: Exception => {
-        println(s"Failed to execute the sequence.")
+        log.error(s"Failed to execute the sequence.")
       }
     }
 

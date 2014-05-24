@@ -10,11 +10,9 @@ class Set2 extends FlatSpec with BeforeAndAfterAll {
   private var batchStream: Stream = null
 
   override def beforeAll() {
-    val address = Config.debugServerAddress
-    val port = Config.debugServerPort
     Launcher.main(Array("--debug"))
-    Database.setServerAddress(address)
-    Database.setServerPort(port)
+    Database.setServerAddress(Config.serverAddress)
+    Database.setServerPort(Config.serverPort)
   }
 
   // =================== SET 2.1 ===================

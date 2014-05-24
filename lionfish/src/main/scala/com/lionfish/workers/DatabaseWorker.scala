@@ -1,12 +1,13 @@
-package com.lionfish.server
+package com.lionfish.workers
 
 import scala.collection.mutable.ListBuffer
 import akka.actor.Actor
-import akka.event.Logging
 import com.lionfish.messages._
+import com.lionfish.logging.Logging
 
-class RequestHandler extends Actor {
-  val log = Logging(context.system, this)
+class DatabaseWorker extends Actor {
+  private val log = Logging
+
   private def executeBatch(request: Map[String, Any]): List[Any] = {
     try {
       val count = request("count").asInstanceOf[Int]
@@ -19,7 +20,7 @@ class RequestHandler extends Actor {
           fullArgs += item(0).asInstanceOf[Map[String, Any]]
         }
 
-        println(s"Executing $methodName in a batch.")
+        log.info(s"Executing $methodName in a batch.")
 
         // TODO: Solve this with reflection
         var rawResult: List[Any] = null
@@ -118,7 +119,7 @@ class RequestHandler extends Actor {
         val methodName = item("methodName").asInstanceOf[String]
         val args = List(item("args").asInstanceOf[Map[String, Any]])
 
-        println(s"Executing $methodName in a sequence.")
+        log.info(s"Executing $methodName in a sequence.")
 
         // TODO: Solve this with reflection
         var rawResult: List[Any] = null
@@ -229,9 +230,9 @@ class RequestHandler extends Actor {
   }
 
   def receive = {
-    case Request(connectionUuid, request) => {
+    case req @ Request(connectionUuid, request) => {
       val result = handle(request)
-      sender ! Response(connectionUuid, result)
+      sender ! Response(connectionUuid, req, result)
     }
   }
 }
