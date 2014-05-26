@@ -82,10 +82,7 @@ if __name__ == '__main__':
     os.system(command)
     print 'Contents:'
     os.system('cat ' + TEMP_SPIDERCRAB_CONFIG)
-
-    # TODO: Automatize below action
-    print '\nPlease *(RE)START* the Lionfish ODM now and press Enter...'
-    enter = raw_input()
+    time.sleep(1)
 
     print '\nRunning Spidercrab master with option to enqueue above sources.'
     command = OCEAN_ROOT + '/graph_workers/spidercrab_master.py -o -s %s -c %s'
@@ -96,7 +93,7 @@ if __name__ == '__main__':
 
     print '\nRunning 10 slaves (One ContentSource for every slave)...'
     command = OCEAN_ROOT \
-        + '/graph_workers/spidercrab_slave.py -o -n 10 -c %s -e %s'
+        + '/graph_workers/spidercrab_slave.py -o -n 10 -c %s -t %s'
     command %= (TEMP_SPIDERCRAB_CONFIG, TEMP_SLAVE_EXPORT_FILE)
     print command
     time.sleep(1)

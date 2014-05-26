@@ -542,7 +542,10 @@ class Spidercrab(GraphWorker):
             )
             ## Check if not in database
             ### Lionfish version:
-            source = self.lionfish.get_by_link(line[:-1])
+            source = self.lionfish.get_by_link(
+                CONTENT_SOURCE_TYPE_MODEL_NAME,
+                line[:-1]
+            )
             result = source
 
             # TODO: Join ifs
@@ -556,8 +559,8 @@ class Spidercrab(GraphWorker):
                     }
                 )[0]
                 self.lionfish.create_unique_relationship(
-                    source['uuid'],
                     crab['uuid'],
+                    source['uuid'],
                     self.PENDING_RELATIONSHIP_NAME
                 )
             ### Cypher version:
@@ -594,19 +597,20 @@ class Spidercrab(GraphWorker):
                 )
                 ## Create a `pending` relation
                 ### Lionfish version:
-                source = self.lionfish.get_by_link(line[:-1])
-                assert (len(source) > 0)
-                source = source[0]
+                source = self.lionfish.get_by_link(
+                    CONTENT_SOURCE_TYPE_MODEL_NAME,
+                    line[:-1]
+                )
                 crab = self.lionfish.get_instances(
                     self.SPIDERCRAB_MODEL_NAME,
                     {
                         self.C_GRAPH_WORKER_ID:
-                            self.config[self.C_GRAPH_WORKER_ID]
+                        self.config[self.C_GRAPH_WORKER_ID]
                     }
                 )[0]
                 self.lionfish.create_unique_relationship(
-                    source['uuid'],
                     crab['uuid'],
+                    source['uuid'],
                     self.PENDING_RELATIONSHIP_NAME
                 )
                 result = source
@@ -629,7 +633,8 @@ class Spidercrab(GraphWorker):
                 self.logger.log(
                     error_level,
                     self.fullname + ' Error occurred with adding `'
-                    + line[:-1] + '`:\n' + str(error) + '\nContinuing...\n'
+                    + line[:-1] + '`:\n' + str(type(error)) + ': ' +
+                    str(error) + '\nContinuing...\n'
                 )
 
     def _enqueue_sources_portion(self):
@@ -712,16 +717,11 @@ class Spidercrab(GraphWorker):
                 self.config[self.C_GRAPH_WORKER_ID]
             }
         )[0]
-        source = self.lionfish.get_children(
+        result = self.lionfish.get_children(
             parent_uuid=crab['uuid'],
             relationship_type=self.PENDING_RELATIONSHIP_NAME,
             limit=1
-        )[0]
-        self.lionfish.set_properties(
-            uuid=source['uuid'],
-            last_updated=database_gmt_now()
         )
-        result = source
 
         ## Cypher version:
         # query = """
@@ -741,11 +741,21 @@ class Spidercrab(GraphWorker):
         # result = self.lionfish.execute_query(query)
         ##
         if len(result) > 0:
+            source = result[0]
+            self.lionfish.set_properties(
+                uuid=source['uuid'],
+                last_updated=database_gmt_now()
+            )
+            self.lionfish.delete_relationship(
+                crab['uuid'],
+                source['uuid']
+            )
+
             self.logger.log(
                 info_level,
-                self.fullname + ' Picked ' + str(result[0][0]['link'])
+                self.fullname + ' Picked ' + str(result[0]['link'])
             )
-            return result[0][0]
+            return result[0]
         else:
             return None
 
@@ -763,8 +773,10 @@ class Spidercrab(GraphWorker):
             self.logger.log(
                 error_level,
                 self.fullname + ' ' + source_link
-                + ' - Parsing error: ' + str(error)
+                + ' - Parsing error: ' + str(type(error)) + ': ' + str(error)
             )
+
+        properties['uuid'] = source_node['uuid']
 
         if self.export_cs_to and len(properties) > 1:
             self._export_cs(properties)
@@ -871,7 +883,6 @@ class Spidercrab(GraphWorker):
             #     properties.get('image_link'),
             # )
             # self.lionfish.execute_query(query)
-        properties['uuid'] = source_node['uuid']
         return properties
 
     def _parse_source(self, source_link):
@@ -1102,9 +1113,9 @@ class Spidercrab(GraphWorker):
                 ##
 
                 if result:
-                    self.stub_for_mantis_kafka_push(result[0][0])
-                fetched_news_ps += len(result)
-                self.stats[self.S_FETCHED_NEWS] += len(result)
+                    self.stub_for_mantis_kafka_push(result)
+                    self.stats[self.S_FETCHED_NEWS] += 1
+                    fetched_news_ps += 1
                 if not result:
                     self.logger.log(
                         error_level,
