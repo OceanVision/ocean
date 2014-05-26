@@ -11,7 +11,12 @@ class CacheWorker extends Actor {
   private val log = Logging
   private val masterSystemPort = Config.masterSystemPort
   private val databaseWorkerSystemPort = Config.databaseWorkerSystemPort
-  private val cacheClient = new MemcachedClient(new InetSocketAddress("127.0.0.1", Config.cachePort))
+  private var cacheClient: MemcachedClient = null
+
+  // If the user wants to use cache
+  if (Config.useCache) {
+    cacheClient = new MemcachedClient(new InetSocketAddress(Config.cacheAddress, Config.cachePort))
+  }
 
   // Master worker
   private val masterPath =
