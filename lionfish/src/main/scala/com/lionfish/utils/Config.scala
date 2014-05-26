@@ -4,6 +4,8 @@ object Config {
   val masterSystemPort = 7775
   val cacheWorkerSystemPort = 7774
   val databaseWorkerSystemPort = 7773
+
+  var cacheAddress = "127.0.0.1"
   var cachePort = 7772
 
   var serverAddress = "ocean-lionfish.no-ip.biz"
