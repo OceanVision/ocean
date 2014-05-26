@@ -7,7 +7,7 @@ import com.lionfish.messages._
 import com.lionfish.utils.Config
 import com.lionfish.logging.Logging
 
-class CacheWorker extends Actor {
+class CacheWorker extends Worker with Actor {
   private val log = Logging
   private val masterSystemPort = Config.masterSystemPort
   private val databaseWorkerSystemPort = Config.databaseWorkerSystemPort
@@ -29,7 +29,7 @@ class CacheWorker extends Actor {
   private val databaseWorkerPool = context.actorSelection(databaseWorkerPath)
 
   // Decides whether fetch data from cache or database
-  def processRequest(request: Request) = {
+  override def processRequest(request: Request): Any = {
     val requestHash = request.hashCode().toString
 
     // If the user wants to use cache
@@ -47,6 +47,8 @@ class CacheWorker extends Actor {
     } else {
       databaseWorkerPool ! request
     }
+
+    null
   }
 
   // Saves response to the cache
@@ -55,9 +57,11 @@ class CacheWorker extends Actor {
     val result = response.result
 
     // TODO: make a set of "cacheable" methods
-    val cachedResult = cacheClient.get(requestHash)
-    if (cachedResult == null) {
-      cacheClient.set(requestHash, 3600, result)
+    if (Config.useCache) {
+      val cachedResult = cacheClient.get(requestHash)
+      if (cachedResult == null) {
+        cacheClient.set(requestHash, 3600, result)
+      }
     }
   }
 
