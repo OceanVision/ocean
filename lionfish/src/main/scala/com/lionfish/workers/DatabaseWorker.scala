@@ -5,7 +5,7 @@ import akka.actor.Actor
 import com.lionfish.messages._
 import com.lionfish.logging.Logging
 
-class DatabaseWorker extends Actor {
+class DatabaseWorker extends Worker with Actor {
   private val log = Logging
 
   private def executeBatch(request: Map[String, Any]): List[Any] = {
@@ -209,15 +209,17 @@ class DatabaseWorker extends Actor {
     }
   }
 
-  def handle(request: Map[String, Any]): Any = {
-    // Process request
+  override def processRequest(request: Request): Any = {
+    val requestData = request.request
+
+    // Processes request
     try {
       var result: Any = null
-      val requestType = request("type").asInstanceOf[String]
+      val requestType = requestData("type").asInstanceOf[String]
       if (requestType == "sequence") {
-        result = executeSequence(request)
+        result = executeSequence(requestData)
       } else {
-        result = executeBatch(request)
+        result = executeBatch(requestData)
       }
 
       result
@@ -231,7 +233,7 @@ class DatabaseWorker extends Actor {
 
   def receive = {
     case req @ Request(connectionUuid, request) => {
-      val result = handle(request)
+      val result = processRequest(req)
       sender ! Response(connectionUuid, req, result)
     }
   }
