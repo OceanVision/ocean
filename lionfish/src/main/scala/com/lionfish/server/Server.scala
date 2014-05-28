@@ -9,6 +9,7 @@ import com.lionfish.utils.Config
 import com.lionfish.messages.Connection
 import com.lionfish.workers._
 import com.lionfish.logging.Logging
+import com.lionfish.wrappers._
 
 object Server extends Runnable {
   private val log = Logging
@@ -17,11 +18,15 @@ object Server extends Runnable {
   val debugLock = new Lock
   debugLock.acquire()
 
+  // Sets database wrapper
+  private val wrapper: DatabaseWrapper = new Neo4jWrapper
+  wrapper.init()
+
   // Creates database workers
   private val databaseWorkerSystem = ActorSystem(
     "databaseWorkerSystem", ConfigFactory.load("databaseWorkerSystem"))
   private val databaseWorkerPool = databaseWorkerSystem.actorOf(
-    Props(new DatabaseWorker).withRouter(
+    Props(new DatabaseWorker(wrapper)).withRouter(
       RoundRobinPool(Config.numberOfDatabaseWorkers)), "databaseWorkerPool")
   log.info("Starting " + Config.numberOfDatabaseWorkers + " database workers.")
 
