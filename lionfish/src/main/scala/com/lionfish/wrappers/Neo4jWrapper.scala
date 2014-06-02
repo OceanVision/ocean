@@ -13,6 +13,7 @@ import com.lionfish.utils.Config
 import com.lionfish.logging.Logging
 
 // TODO: logging, nicer way of handling errors
+// TODO: add status to all the responses!
 
 class Neo4jWrapper extends DatabaseWrapper {
   private val log = Logging
@@ -928,7 +929,10 @@ class Neo4jWrapper extends DatabaseWrapper {
         val rel = DynamicRelationshipType.withName("<<TYPE>>")
         root.createRelationshipTo(modelNode, rel)
 
-        rawResult += Map("uuid" -> modelProps("uuid"))
+        rawResult += Map(
+          "status" -> true,
+          "uuid" -> modelProps("uuid")
+        )
       }
       tx.success()
       result = rawResult.toList
@@ -938,7 +942,10 @@ class Neo4jWrapper extends DatabaseWrapper {
         log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
-        result = List()
+        result = List.fill(args.length)(Map(
+          "status" -> false,
+          "uuid" -> null
+        ))
     } finally {
       tx.close()
     }
@@ -974,7 +981,10 @@ class Neo4jWrapper extends DatabaseWrapper {
 
         if (props != null && !props.isEmpty) {
           props += "uuid" -> uuid
-          rawResult += Map("uuid" -> uuid)
+          rawResult += Map(
+            "status" -> true,
+            "uuid" -> uuid
+          )
 
           val node = graphDB.createNode()
           for ((key, value) <- props) {
@@ -988,7 +998,10 @@ class Neo4jWrapper extends DatabaseWrapper {
           val relType = DynamicRelationshipType.withName(params("relType").asInstanceOf[String])
           modelNodes(modelName).createRelationshipTo(node, relType)
         } else {
-          rawResult += Map("uuid" -> null)
+          rawResult += Map(
+            "status" -> false,
+            "uuid" -> null
+          )
         }
       }
       tx.success()
@@ -999,7 +1012,10 @@ class Neo4jWrapper extends DatabaseWrapper {
         log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
-        result = List()
+        result = List.fill(args.length)(Map(
+          "status" -> false,
+          "uuid" -> null
+        ))
     } finally {
       tx.close()
     }
@@ -1057,7 +1073,7 @@ class Neo4jWrapper extends DatabaseWrapper {
         log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
-        result = List()
+        result = List.fill(args.length)(Map("status" -> false))
     } finally {
       tx.close()
     }
@@ -1119,7 +1135,7 @@ class Neo4jWrapper extends DatabaseWrapper {
         log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
-        result = List()
+        result = List.fill(args.length)(Map("status" -> false))
     } finally {
       tx.close()
     }
@@ -1196,7 +1212,7 @@ class Neo4jWrapper extends DatabaseWrapper {
         log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
-        result = List()
+        result = List.fill(args.length)(Map("status" -> false))
     } finally {
       tx.close()
     }
@@ -1250,7 +1266,72 @@ class Neo4jWrapper extends DatabaseWrapper {
         log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
-        result = List()
+        result = List.fill(args.length)(Map("status" -> false))
+    } finally {
+      tx.close()
+    }
+
+    result
+  }
+
+  def popRelationships(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[Map[String, Any]] = null
+
+    val tx = graphDB.beginTx()
+    try {
+      val rawResult: ListBuffer[Map[String, Any]] = ListBuffer()
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each start node as an instance of Node
+        val rawStartNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("startNodeUuid").asInstanceOf[String]
+        )
+
+        val it = rawStartNode.iterator()
+        if (it.hasNext) {
+          val startNode = it.next()
+          val relType = item("relType").asInstanceOf[String]
+
+          // Looks through a list of relationships to delete a proper one
+          val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
+          var isDeleted = false
+          var endNode: Map[String, Any] = null
+          while (!isDeleted && relList.hasNext) {
+            val rel = relList.next()
+            if (relType == rel.getType.name()) {
+              endNode = parseMap(rel.getEndNode)
+              rel.delete()
+              isDeleted = true
+            }
+          }
+
+          rawResult += Map(
+            "status" -> isDeleted,
+            "node" -> endNode
+          )
+        } else {
+          rawResult += Map(
+            "status" -> false,
+            "node" -> null
+          )
+        }
+        it.close()
+      }
+      tx.success()
+      result = rawResult.toList
+    } catch {
+      case e: Exception => {
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
+      }
+        tx.failure()
+        result = List.fill(args.length)(Map(
+          "status" -> false,
+          "node" -> null
+        ))
     } finally {
       tx.close()
     }

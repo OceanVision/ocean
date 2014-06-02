@@ -32,4 +32,5 @@ trait DatabaseWrapper {
   def createRelationships(args: List[Map[String, Any]]): List[Any]
   def createUniqueRelationships(args: List[Map[String, Any]]): List[Any]
   def deleteRelationships(args: List[Map[String, Any]]): List[Any]
+  def popRelationships(args: List[Map[String, Any]]): List[Any]
 }

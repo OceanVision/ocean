@@ -68,6 +68,12 @@ class DatabaseWorker(private val wrapper: DatabaseWrapper) extends Worker with A
           case "deleteProperties" => {
             rawResult = wrapper.deleteProperties(fullArgs.toList)
           }
+          case "setRelationshipProperties" => {
+            rawResult = wrapper.setRelationshipProperties(fullArgs.toList)
+          }
+          case "deleteRelationshipProperties" => {
+            rawResult = wrapper.deleteRelationshipProperties(fullArgs.toList)
+          }
           case "createModelNodes" => {
             rawResult = wrapper.createModelNodes(fullArgs.toList)
           }
@@ -86,11 +92,8 @@ class DatabaseWorker(private val wrapper: DatabaseWrapper) extends Worker with A
           case "deleteRelationships" => {
             rawResult = wrapper.deleteRelationships(fullArgs.toList)
           }
-          case "setRelationshipProperties" => {
-            rawResult = wrapper.setRelationshipProperties(fullArgs.toList)
-          }
-          case "deleteRelationshipProperties" => {
-            rawResult = wrapper.deleteRelationshipProperties(fullArgs.toList)
+          case "popRelationships" => {
+            rawResult = wrapper.popRelationships(fullArgs.toList)
           }
           case _ => throw new NoSuchMethodException(methodName)
         }
@@ -167,6 +170,12 @@ class DatabaseWorker(private val wrapper: DatabaseWrapper) extends Worker with A
           case "deleteProperties" => {
             rawResult = wrapper.deleteProperties(args)
           }
+          case "setRelationshipProperties" => {
+            rawResult = wrapper.setRelationshipProperties(args)
+          }
+          case "deleteRelationshipProperties" => {
+            rawResult = wrapper.deleteRelationshipProperties(args)
+          }
           case "createModelNodes" => {
             rawResult = wrapper.createModelNodes(args)
           }
@@ -185,11 +194,8 @@ class DatabaseWorker(private val wrapper: DatabaseWrapper) extends Worker with A
           case "deleteRelationships" => {
             rawResult = wrapper.deleteRelationships(args)
           }
-          case "setRelationshipProperties" => {
-            rawResult = wrapper.setRelationshipProperties(args)
-          }
-          case "deleteRelationshipProperties" => {
-            rawResult = wrapper.deleteRelationshipProperties(args)
+          case "popRelationships" => {
+            rawResult = wrapper.popRelationships(args)
           }
           case _ => throw new NoSuchMethodException(methodName)
         }

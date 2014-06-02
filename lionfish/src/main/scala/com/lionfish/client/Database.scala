@@ -244,6 +244,40 @@ object Database extends Factory {
     }
   }
 
+  case class setRelationshipProperties(private val startNodeUuid: String,
+                                       private val endNodeUuid: String,
+                                       private val properties: Map[String, Any]) extends Method {
+    override def getRequest: Map[String, Any] = {
+      val request = Map(
+        "methodName" -> "setRelationshipProperties",
+        "args" -> Map(
+          "startNodeUuid" -> startNodeUuid,
+          "endNodeUuid" -> endNodeUuid,
+          "props" -> properties
+        )
+      )
+
+      request
+    }
+  }
+
+  case class deleteRelationshipProperties(private val startNodeUuid: String,
+                                          private val endNodeUuid: String,
+                                          private val propertyKeys: List[String]) extends Method {
+    override def getRequest: Map[String, Any] = {
+      val request = Map(
+        "methodName" -> "deleteRelationshipProperties",
+        "args" -> Map(
+          "startNodeUuid" -> startNodeUuid,
+          "endNodeUuid" -> endNodeUuid,
+          "propKeys" -> propertyKeys
+        )
+      )
+
+      request
+    }
+  }
+
   case class createModelNode(private val modelName: String) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
@@ -321,33 +355,14 @@ object Database extends Factory {
     }
   }
 
-  case class setRelationshipProperties(private val startNodeUuid: String,
-                                       private val endNodeUuid: String,
-                                       private val properties: Map[String, Any]) extends Method {
+  case class popRelationship(private val startNodeUuid: String,
+                             private val relType: String) extends Method {
     override def getRequest: Map[String, Any] = {
       val request = Map(
-        "methodName" -> "setRelationshipProperties",
+        "methodName" -> "popRelationships",
         "args" -> Map(
           "startNodeUuid" -> startNodeUuid,
-          "endNodeUuid" -> endNodeUuid,
-          "props" -> properties
-        )
-      )
-
-      request
-    }
-  }
-
-  case class deleteRelationshipProperties(private val startNodeUuid: String,
-                                          private val endNodeUuid: String,
-                                          private val propertyKeys: List[String]) extends Method {
-    override def getRequest: Map[String, Any] = {
-      val request = Map(
-        "methodName" -> "deleteRelationshipProperties",
-        "args" -> Map(
-          "startNodeUuid" -> startNodeUuid,
-          "endNodeUuid" -> endNodeUuid,
-          "propKeys" -> propertyKeys
+          "relType" -> relType
         )
       )
 
