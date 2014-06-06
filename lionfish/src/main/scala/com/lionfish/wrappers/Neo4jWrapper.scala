@@ -1,4 +1,4 @@
-package com.lionfish.workers
+package com.lionfish.wrappers
 
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
@@ -13,8 +13,9 @@ import com.lionfish.utils.Config
 import com.lionfish.logging.Logging
 
 // TODO: logging, nicer way of handling errors
+// TODO: add status to all the responses!
 
-object DatabaseManager {
+class Neo4jWrapper extends DatabaseWrapper {
   private val log = Logging
   private val databasePath = "/data/graph.db"
   private val neo4jPath = Config.neo4jPath
@@ -39,7 +40,7 @@ object DatabaseManager {
     srv.start()
   }
 
-  private def parseMap(node: Node): Map[String, Any] = {
+  protected def parseMap(node: Node): Map[String, Any] = {
     try {
       val keys = node.getPropertyKeys
       var map: Map[String, Any] = Map()
@@ -58,7 +59,7 @@ object DatabaseManager {
     }
   }
 
-  private def parseMap(rel: Relationship): Map[String, Any] = {
+  protected def parseMap(rel: Relationship): Map[String, Any] = {
     try {
       val keys = rel.getPropertyKeys
       var map: Map[String, Any] = Map()
@@ -77,7 +78,7 @@ object DatabaseManager {
     }
   }
 
-  private def parseSet(node: Node): Set[(String, Any)] = {
+  protected def parseSet(node: Node): Set[(String, Any)] = {
     try {
       val keys = node.getPropertyKeys
       var set: Set[(String, Any)] = Set()
@@ -96,7 +97,7 @@ object DatabaseManager {
     }
   }
 
-  private def parseSet(rel: Relationship): Set[(String, Any)] = {
+  protected def parseSet(rel: Relationship): Set[(String, Any)] = {
     try {
       val keys = rel.getPropertyKeys
       var set: Set[(String, Any)] = Set()
@@ -172,8 +173,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -210,8 +211,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -248,8 +249,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -286,8 +287,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -324,8 +325,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -363,8 +364,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -396,8 +397,8 @@ object DatabaseManager {
       result = List.fill[Any](args.length)(rawResult.toList)
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -473,8 +474,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -550,8 +551,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -608,8 +609,8 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
         result = List()
@@ -646,8 +647,8 @@ object DatabaseManager {
       tx.success()
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
     } finally {
@@ -683,8 +684,8 @@ object DatabaseManager {
       tx.success()
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
     } finally {
@@ -725,8 +726,8 @@ object DatabaseManager {
       tx.success()
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
     } finally {
@@ -767,8 +768,110 @@ object DatabaseManager {
       tx.success()
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
+      }
+        tx.failure()
+    } finally {
+      tx.close()
+    }
+
+    null
+  }
+
+  def setRelationshipProperties(args: List[Map[String, Any]]): List[Any] = {
+    val tx = graphDB.beginTx()
+    try {
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each start node as an instance of Node
+        val rawStartNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("startNodeUuid").asInstanceOf[String]
+        )
+
+        val it = rawStartNode.iterator()
+        if (it.hasNext) {
+          val startNode = it.next()
+          val endNodeUuid = item("endNodeUuid").asInstanceOf[String]
+          val props = item("props").asInstanceOf[Map[String, Any]]
+
+          if (props != null) {
+            // Looks through a list of relationships to delete a proper one
+            val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
+            var break = false
+            while (!break && relList.hasNext) {
+              val rel = relList.next()
+              if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
+                // Sets properties to the relationship
+                for ((key, value) <- props) {
+                  rel.setProperty(key, value)
+                }
+                break = true
+              }
+            }
+          }
+        }
+        it.close()
+      }
+      tx.success()
+    } catch {
+      case e: Exception => {
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
+      }
+        tx.failure()
+    } finally {
+      tx.close()
+    }
+
+    null
+  }
+
+  def deleteRelationshipProperties(args: List[Map[String, Any]]): List[Any] = {
+    val tx = graphDB.beginTx()
+    try {
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each start node as an instance of Node
+        val rawStartNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("startNodeUuid").asInstanceOf[String]
+        )
+
+        val it = rawStartNode.iterator()
+        if (it.hasNext) {
+          val startNode = it.next()
+          val endNodeUuid = item("endNodeUuid").asInstanceOf[String]
+          val propKeys = item("propKeys").asInstanceOf[List[String]]
+
+          if (propKeys != null) {
+            // Looks through a list of relationships to delete a proper one
+            val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
+            var break = false
+            while (!break && relList.hasNext) {
+              val rel = relList.next()
+              if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
+                // Delete relationship's properties
+                for (key <- propKeys) {
+                  rel.removeProperty(key)
+                }
+                break = true
+              }
+            }
+          }
+        }
+        it.close()
+      }
+      tx.success()
+    } catch {
+      case e: Exception => {
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
     } finally {
@@ -826,17 +929,23 @@ object DatabaseManager {
         val rel = DynamicRelationshipType.withName("<<TYPE>>")
         root.createRelationshipTo(modelNode, rel)
 
-        rawResult += Map("uuid" -> modelProps("uuid"))
+        rawResult += Map(
+          "status" -> true,
+          "uuid" -> modelProps("uuid")
+        )
       }
       tx.success()
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
-        result = List()
+        result = List.fill(args.length)(Map(
+          "status" -> false,
+          "uuid" -> null
+        ))
     } finally {
       tx.close()
     }
@@ -872,7 +981,10 @@ object DatabaseManager {
 
         if (props != null && !props.isEmpty) {
           props += "uuid" -> uuid
-          rawResult += Map("uuid" -> uuid)
+          rawResult += Map(
+            "status" -> true,
+            "uuid" -> uuid
+          )
 
           val node = graphDB.createNode()
           for ((key, value) <- props) {
@@ -886,18 +998,24 @@ object DatabaseManager {
           val relType = DynamicRelationshipType.withName(params("relType").asInstanceOf[String])
           modelNodes(modelName).createRelationshipTo(node, relType)
         } else {
-          rawResult += Map("uuid" -> null)
+          rawResult += Map(
+            "status" -> false,
+            "uuid" -> null
+          )
         }
       }
       tx.success()
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
-        result = List()
+        result = List.fill(args.length)(Map(
+          "status" -> false,
+          "uuid" -> null
+        ))
     } finally {
       tx.close()
     }
@@ -906,32 +1024,61 @@ object DatabaseManager {
   }
 
   def deleteNodes(args: List[Map[String, Any]]): List[Any] = {
-    // Prepares params
-    var nodeUuidList: ListBuffer[String] = ListBuffer()
-    for (item <- args) {
-      nodeUuidList += item("uuid").asInstanceOf[String]
-    }
+    var result: List[Map[String, Any]] = null
 
     val tx = graphDB.beginTx()
     try {
-      // Builds query and executes
-      val query =
-        "MATCH (e:Node)-[r]-() " +
-          "WHERE e.uuid IN {uuid_list} " +
-          "DELETE e, r"
-      executeCypher(query, Map("uuid_list" -> nodeUuidList.toList))
+      val rawResult: ListBuffer[Map[String, Any]] = ListBuffer()
+      val nodeLabel = DynamicLabel.label("Node")
+
+      for (item <- args) {
+        // Gets each node as an instance of Node
+        val rawNode = graphDB.findNodesByLabelAndProperty(
+          nodeLabel,
+          "uuid",
+          item("uuid").asInstanceOf[String]
+        )
+
+        val it = rawNode.iterator()
+        if (it.hasNext) {
+          val node = it.next()
+
+          // Looks through a list of relationships to be deleted
+          val outgoingRelList = node.getRelationships(Direction.OUTGOING).iterator()
+          while (outgoingRelList.hasNext) {
+            val rel = outgoingRelList.next()
+            rel.delete()
+          }
+
+          val incomingRelList = node.getRelationships(Direction.INCOMING).iterator()
+          while (incomingRelList.hasNext) {
+            val rel = incomingRelList.next()
+            rel.delete()
+          }
+
+          // Finally deletes the node
+          node.delete()
+
+          rawResult += Map("status" -> true)
+        } else {
+          rawResult += Map("status" -> false)
+        }
+        it.close()
+      }
       tx.success()
+      result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
+        result = List.fill(args.length)(Map("status" -> false))
     } finally {
       tx.close()
     }
 
-    null
+    result
   }
 
   def createRelationships(args: List[Map[String, Any]]): List[Any] = {
@@ -984,11 +1131,11 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
-        result = List()
+        result = List.fill(args.length)(Map("status" -> false))
     } finally {
       tx.close()
     }
@@ -1061,11 +1208,11 @@ object DatabaseManager {
       result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
-        result = List()
+        result = List.fill(args.length)(Map("status" -> false))
     } finally {
       tx.close()
     }
@@ -1074,8 +1221,11 @@ object DatabaseManager {
   }
 
   def deleteRelationships(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[Map[String, Any]] = null
+
     val tx = graphDB.beginTx()
     try {
+      val rawResult: ListBuffer[Map[String, Any]] = ListBuffer()
       val nodeLabel = DynamicLabel.label("Node")
 
       for (item <- args) {
@@ -1093,34 +1243,43 @@ object DatabaseManager {
 
           // Looks through a list of relationships to delete a proper one
           val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
-          var break = false
-          while (!break && relList.hasNext) {
+          var isDeleted = false
+          while (!isDeleted && relList.hasNext) {
             val rel = relList.next()
             if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
               rel.delete()
-              break = true
+              isDeleted = true
             }
           }
+
+          rawResult += Map("status" -> isDeleted)
+        } else {
+          rawResult += Map("status" -> false)
         }
         it.close()
       }
       tx.success()
+      result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
+        result = List.fill(args.length)(Map("status" -> false))
     } finally {
       tx.close()
     }
 
-    null
+    result
   }
 
-  def setRelationshipProperties(args: List[Map[String, Any]]): List[Any] = {
+  def popRelationships(args: List[Map[String, Any]]): List[Any] = {
+    var result: List[Map[String, Any]] = null
+
     val tx = graphDB.beginTx()
     try {
+      val rawResult: ListBuffer[Map[String, Any]] = ListBuffer()
       val nodeLabel = DynamicLabel.label("Node")
 
       for (item <- args) {
@@ -1134,89 +1293,49 @@ object DatabaseManager {
         val it = rawStartNode.iterator()
         if (it.hasNext) {
           val startNode = it.next()
-          val endNodeUuid = item("endNodeUuid").asInstanceOf[String]
-          val props = item("props").asInstanceOf[Map[String, Any]]
+          val relType = item("relType").asInstanceOf[String]
 
-          if (props != null) {
-            // Looks through a list of relationships to delete a proper one
-            val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
-            var break = false
-            while (!break && relList.hasNext) {
-              val rel = relList.next()
-              if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
-                // Sets properties to the relationship
-                for ((key, value) <- props) {
-                  rel.setProperty(key, value)
-                }
-                break = true
-              }
+          // Looks through a list of relationships to delete a proper one
+          val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
+          var isDeleted = false
+          var endNode: Map[String, Any] = null
+          while (!isDeleted && relList.hasNext) {
+            val rel = relList.next()
+            if (relType == rel.getType.name()) {
+              endNode = parseMap(rel.getEndNode)
+              rel.delete()
+              isDeleted = true
             }
           }
+
+          rawResult += Map(
+            "status" -> isDeleted,
+            "node" -> endNode
+          )
+        } else {
+          rawResult += Map(
+            "status" -> false,
+            "node" -> null
+          )
         }
         it.close()
       }
       tx.success()
+      result = rawResult.toList
     } catch {
       case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
+        val methodName = Thread.currentThread().getStackTrace()(1).getMethodName
+        log.error(s"Failed to execute $methodName. Error message: $e")
       }
         tx.failure()
+        result = List.fill(args.length)(Map(
+          "status" -> false,
+          "node" -> null
+        ))
     } finally {
       tx.close()
     }
 
-    null
-  }
-
-  def deleteRelationshipProperties(args: List[Map[String, Any]]): List[Any] = {
-    val tx = graphDB.beginTx()
-    try {
-      val nodeLabel = DynamicLabel.label("Node")
-
-      for (item <- args) {
-        // Gets each start node as an instance of Node
-        val rawStartNode = graphDB.findNodesByLabelAndProperty(
-          nodeLabel,
-          "uuid",
-          item("startNodeUuid").asInstanceOf[String]
-        )
-
-        val it = rawStartNode.iterator()
-        if (it.hasNext) {
-          val startNode = it.next()
-          val endNodeUuid = item("endNodeUuid").asInstanceOf[String]
-          val propKeys = item("propKeys").asInstanceOf[List[String]]
-
-          if (propKeys != null) {
-            // Looks through a list of relationships to delete a proper one
-            val relList = startNode.getRelationships(Direction.OUTGOING).iterator()
-            var break = false
-            while (!break && relList.hasNext) {
-              val rel = relList.next()
-              if (endNodeUuid == rel.getEndNode.getProperty("uuid").asInstanceOf[String]) {
-                // Delete relationship's properties
-                for (key <- propKeys) {
-                  rel.removeProperty(key)
-                }
-                break = true
-              }
-            }
-          }
-        }
-        it.close()
-      }
-      tx.success()
-    } catch {
-      case e: Exception => {
-        val line = e.getStackTrace()(2).getLineNumber
-        log.error(s"Failed to execute the function at line $line. Error message: $e")
-      }
-        tx.failure()
-    } finally {
-      tx.close()
-    }
-
-    null
+    result
   }
 }

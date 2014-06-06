@@ -1,7 +1,6 @@
 package com.lionfish.server
 
 import com.lionfish.utils.Config
-import com.lionfish.workers.DatabaseManager
 import com.lionfish.logging.Logging
 
 object Launcher {
@@ -19,7 +18,7 @@ object Launcher {
               Config.serverAddress = "localhost"
               Config.serverPort = 7777
               debug = true
-              log.info("Running in debug mode.")
+              log.info("Running in the debug mode (port: 7777).")
             } else {
               throw new Exception()
             }
@@ -129,8 +128,6 @@ object Launcher {
 
   def main(args: Array[String]) = {
     configure(args)
-
-    DatabaseManager.init()
     new Thread(Server).start()
   }
 }

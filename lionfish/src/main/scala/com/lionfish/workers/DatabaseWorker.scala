@@ -4,8 +4,9 @@ import scala.collection.mutable.ListBuffer
 import akka.actor.Actor
 import com.lionfish.messages._
 import com.lionfish.logging.Logging
+import com.lionfish.wrappers._
 
-class DatabaseWorker extends Worker with Actor {
+class DatabaseWorker(private val wrapper: DatabaseWrapper) extends Worker with Actor {
   private val log = Logging
 
   private def executeBatch(request: Map[String, Any]): List[Any] = {
@@ -26,70 +27,73 @@ class DatabaseWorker extends Worker with Actor {
         var rawResult: List[Any] = null
         methodName match {
           case "executeQuery" => {
-            rawResult = DatabaseManager.executeQuery(fullArgs.toList)
+            rawResult = wrapper.executeQuery(fullArgs.toList)
           }
           case "getByUuid" => {
-            rawResult = DatabaseManager.getByUuid(fullArgs.toList)
+            rawResult = wrapper.getByUuid(fullArgs.toList)
           }
           case "getByLink" => {
-            rawResult = DatabaseManager.getByLink(fullArgs.toList)
+            rawResult = wrapper.getByLink(fullArgs.toList)
           }
           case "getByTag" => {
-            rawResult = DatabaseManager.getByTag(fullArgs.toList)
+            rawResult = wrapper.getByTag(fullArgs.toList)
           }
           case "getByUsername" => {
-            rawResult = DatabaseManager.getByUsername(fullArgs.toList)
+            rawResult = wrapper.getByUsername(fullArgs.toList)
           }
           case "getByLabel" => {
-            rawResult = DatabaseManager.getByLabel(fullArgs.toList)
+            rawResult = wrapper.getByLabel(fullArgs.toList)
           }
           case "getModelNodes" => {
-            rawResult = DatabaseManager.getModelNodes(fullArgs.toList)
+            rawResult = wrapper.getModelNodes(fullArgs.toList)
           }
           case "getChildren" => {
-            rawResult = DatabaseManager.getChildren(fullArgs.toList)
+            rawResult = wrapper.getChildren(fullArgs.toList)
           }
           case "getInstances" => {
-            rawResult = DatabaseManager.getInstances(fullArgs.toList)
+            rawResult = wrapper.getInstances(fullArgs.toList)
           }
           case "getUserFeeds" => {
-            rawResult = DatabaseManager.getUserFeeds(fullArgs.toList)
+            rawResult = wrapper.getUserFeeds(fullArgs.toList)
           }
           case "setLabel" => {
-            rawResult = DatabaseManager.setLabel(fullArgs.toList)
+            rawResult = wrapper.setLabel(fullArgs.toList)
           }
           case "deleteLabel" => {
-            rawResult = DatabaseManager.deleteLabel(fullArgs.toList)
+            rawResult = wrapper.deleteLabel(fullArgs.toList)
           }
           case "setProperties" => {
-            rawResult = DatabaseManager.setProperties(fullArgs.toList)
+            rawResult = wrapper.setProperties(fullArgs.toList)
           }
           case "deleteProperties" => {
-            rawResult = DatabaseManager.deleteProperties(fullArgs.toList)
-          }
-          case "createModelNodes" => {
-            rawResult = DatabaseManager.createModelNodes(fullArgs.toList)
-          }
-          case "createNodes" => {
-            rawResult = DatabaseManager.createNodes(fullArgs.toList)
-          }
-          case "deleteNodes" => {
-            rawResult = DatabaseManager.deleteNodes(fullArgs.toList)
-          }
-          case "createRelationships" => {
-            rawResult = DatabaseManager.createRelationships(fullArgs.toList)
-          }
-          case "createUniqueRelationships" => {
-            rawResult = DatabaseManager.createUniqueRelationships(fullArgs.toList)
-          }
-          case "deleteRelationships" => {
-            rawResult = DatabaseManager.deleteRelationships(fullArgs.toList)
+            rawResult = wrapper.deleteProperties(fullArgs.toList)
           }
           case "setRelationshipProperties" => {
-            rawResult = DatabaseManager.setRelationshipProperties(fullArgs.toList)
+            rawResult = wrapper.setRelationshipProperties(fullArgs.toList)
           }
           case "deleteRelationshipProperties" => {
-            rawResult = DatabaseManager.deleteRelationshipProperties(fullArgs.toList)
+            rawResult = wrapper.deleteRelationshipProperties(fullArgs.toList)
+          }
+          case "createModelNodes" => {
+            rawResult = wrapper.createModelNodes(fullArgs.toList)
+          }
+          case "createNodes" => {
+            rawResult = wrapper.createNodes(fullArgs.toList)
+          }
+          case "deleteNodes" => {
+            rawResult = wrapper.deleteNodes(fullArgs.toList)
+          }
+          case "createRelationships" => {
+            rawResult = wrapper.createRelationships(fullArgs.toList)
+          }
+          case "createUniqueRelationships" => {
+            rawResult = wrapper.createUniqueRelationships(fullArgs.toList)
+          }
+          case "deleteRelationships" => {
+            rawResult = wrapper.deleteRelationships(fullArgs.toList)
+          }
+          case "popRelationships" => {
+            rawResult = wrapper.popRelationships(fullArgs.toList)
           }
           case _ => throw new NoSuchMethodException(methodName)
         }
@@ -125,70 +129,73 @@ class DatabaseWorker extends Worker with Actor {
         var rawResult: List[Any] = null
         methodName match {
           case "executeQuery" => {
-            rawResult = DatabaseManager.executeQuery(args)
+            rawResult = wrapper.executeQuery(args)
           }
           case "getByUuid" => {
-            rawResult = DatabaseManager.getByUuid(args)
+            rawResult = wrapper.getByUuid(args)
           }
           case "getByLink" => {
-            rawResult = DatabaseManager.getByLink(args)
+            rawResult = wrapper.getByLink(args)
           }
           case "getByTag" => {
-            rawResult = DatabaseManager.getByTag(args)
+            rawResult = wrapper.getByTag(args)
           }
           case "getByUsername" => {
-            rawResult = DatabaseManager.getByUsername(args)
+            rawResult = wrapper.getByUsername(args)
           }
           case "getByLabel" => {
-            rawResult = DatabaseManager.getByLabel(args)
+            rawResult = wrapper.getByLabel(args)
           }
           case "getModelNodes" => {
-            rawResult = DatabaseManager.getModelNodes(args)
+            rawResult = wrapper.getModelNodes(args)
           }
           case "getChildren" => {
-            rawResult = DatabaseManager.getChildren(args)
+            rawResult = wrapper.getChildren(args)
           }
           case "getInstances" => {
-            rawResult = DatabaseManager.getInstances(args)
+            rawResult = wrapper.getInstances(args)
           }
           case "getUserFeeds" => {
-            rawResult = DatabaseManager.getUserFeeds(args)
+            rawResult = wrapper.getUserFeeds(args)
           }
           case "setLabel" => {
-            rawResult = DatabaseManager.setLabel(args)
+            rawResult = wrapper.setLabel(args)
           }
           case "deleteLabel" => {
-            rawResult = DatabaseManager.deleteLabel(args)
+            rawResult = wrapper.deleteLabel(args)
           }
           case "setProperties" => {
-            rawResult = DatabaseManager.setProperties(args)
+            rawResult = wrapper.setProperties(args)
           }
           case "deleteProperties" => {
-            rawResult = DatabaseManager.deleteProperties(args)
-          }
-          case "createModelNodes" => {
-            rawResult = DatabaseManager.createModelNodes(args)
-          }
-          case "createNodes" => {
-            rawResult = DatabaseManager.createNodes(args)
-          }
-          case "deleteNodes" => {
-            rawResult = DatabaseManager.deleteNodes(args)
-          }
-          case "createRelationships" => {
-            rawResult = DatabaseManager.createRelationships(args)
-          }
-          case "createUniqueRelationships" => {
-            rawResult = DatabaseManager.createUniqueRelationships(args)
-          }
-          case "deleteRelationships" => {
-            rawResult = DatabaseManager.deleteRelationships(args)
+            rawResult = wrapper.deleteProperties(args)
           }
           case "setRelationshipProperties" => {
-            rawResult = DatabaseManager.setRelationshipProperties(args)
+            rawResult = wrapper.setRelationshipProperties(args)
           }
           case "deleteRelationshipProperties" => {
-            rawResult = DatabaseManager.deleteRelationshipProperties(args)
+            rawResult = wrapper.deleteRelationshipProperties(args)
+          }
+          case "createModelNodes" => {
+            rawResult = wrapper.createModelNodes(args)
+          }
+          case "createNodes" => {
+            rawResult = wrapper.createNodes(args)
+          }
+          case "deleteNodes" => {
+            rawResult = wrapper.deleteNodes(args)
+          }
+          case "createRelationships" => {
+            rawResult = wrapper.createRelationships(args)
+          }
+          case "createUniqueRelationships" => {
+            rawResult = wrapper.createUniqueRelationships(args)
+          }
+          case "deleteRelationships" => {
+            rawResult = wrapper.deleteRelationships(args)
+          }
+          case "popRelationships" => {
+            rawResult = wrapper.popRelationships(args)
           }
           case _ => throw new NoSuchMethodException(methodName)
         }

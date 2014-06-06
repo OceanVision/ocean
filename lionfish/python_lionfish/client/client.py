@@ -498,6 +498,60 @@ class Client(object):
         self.send(request)
         self.recv()
 
+    def set_relationship_properties(self, start_node_uuid, end_node_uuid, **properties):
+        """
+        Sets properties to a relationship between two nodes given by start_node_uuid
+        and end_node_uuid
+        @param start_node_uuid string
+        @param end_node_uuid string
+        @param properties dictionary/keywords
+        """
+        data = {
+            'methodName': 'setRelationshipProperties',
+            'args': {
+                'startNodeUuid': start_node_uuid,
+                'endNodeUuid': end_node_uuid,
+                'props': properties
+            }
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(request)
+        self.recv()
+
+    def delete_relationship_properties(self, start_node_uuid, end_node_uuid, **prop_keys):
+        """
+        Deletes properties of a relationship between two nodes given by start_node_uuid
+        and end_node_uuid
+        @param start_node_uuid string
+        @param end_node_uuid string
+        @param property_keys dictionary/keywords
+        """
+        data = {
+            'methodName': 'deleteRelationshipProperties',
+            'args': {
+                'startNodeUuid': start_node_uuid,
+                'endNodeUuid': end_node_uuid,
+                'propKeys': prop_keys
+            }
+        }
+
+        request = {
+            'type': 'sequence',
+            'tasks': [data]
+        }
+
+        if inspect.stack()[1][3] == '_get_data_for_batch':
+            return data
+        self.send(request)
+        self.recv()
+
     def create_model_node(self, model_name, **properties):
         """
         Creates a node with properties to the model given by model_name
@@ -634,7 +688,7 @@ class Client(object):
 
     def delete_relationship(self, start_node_uuid, end_node_uuid, **params):
         """
-        Deletes a relationship between nodes of start_node_uuid and end_node_uuid
+        Deletes the relationship between nodes of start_node_uuid and end_node_uuid
         @param start_node_uuid string
         @param end_node_uuid string
         """
@@ -656,20 +710,17 @@ class Client(object):
         self.send(request)
         self.recv()
 
-    def set_relationship_properties(self, start_node_uuid, end_node_uuid, **properties):
+    def pop_relationship(self, start_node_uuid, rel_type, **params):
         """
-        Sets properties to a relationship between two nodes given by start_node_uuid
-        and end_node_uuid
+        Deletes the relationship of a given rel_type, starting from node of start_node_uuid
         @param start_node_uuid string
-        @param end_node_uuid string
-        @param properties dictionary/keywords
+        @param rel_type string
         """
         data = {
-            'methodName': 'setRelationshipProperties',
+            'methodName': 'popRelationships',
             'args': {
                 'startNodeUuid': start_node_uuid,
-                'endNodeUuid': end_node_uuid,
-                'props': properties
+                'relType': rel_type
             }
         }
 
@@ -683,29 +734,3 @@ class Client(object):
         self.send(request)
         self.recv()
 
-    def delete_relationship_properties(self, start_node_uuid, end_node_uuid, **prop_keys):
-        """
-        Deletes properties of a relationship between two nodes given by start_node_uuid
-        and end_node_uuid
-        @param start_node_uuid string
-        @param end_node_uuid string
-        @param property_keys dictionary/keywords
-        """
-        data = {
-            'methodName': 'deleteRelationshipProperties',
-            'args': {
-                'startNodeUuid': start_node_uuid,
-                'endNodeUuid': end_node_uuid,
-                'propKeys': prop_keys
-            }
-        }
-
-        request = {
-            'type': 'sequence',
-            'tasks': [data]
-        }
-
-        if inspect.stack()[1][3] == '_get_data_for_batch':
-            return data
-        self.send(request)
-        self.recv()
