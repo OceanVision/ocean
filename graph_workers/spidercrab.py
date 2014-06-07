@@ -717,11 +717,18 @@ class Spidercrab(GraphWorker):
                 self.config[self.C_GRAPH_WORKER_ID]
             }
         )[0]
-        result = self.lionfish.get_children(
+
+        children = self.lionfish.get_children(
             parent_uuid=crab['uuid'],
-            relationship_type=self.PENDING_RELATIONSHIP_NAME,
-            limit=1
+            relationship_type=self.PENDING_RELATIONSHIP_NAME
         )
+        print 'len(self.lionfish.get_children(...)) =', len(children)
+
+        pop_result = self.lionfish.pop_relationship(
+            start_node_uuid=crab['uuid'],
+            rel_type=self.PENDING_RELATIONSHIP_NAME
+        )
+        print 'self.lionfish.pop_relationship(...) =', pop_result, '\n'
 
         ## Cypher version:
         # query = """
@@ -740,22 +747,19 @@ class Spidercrab(GraphWorker):
         # )
         # result = self.lionfish.execute_query(query)
         ##
-        if len(result) > 0:
-            source = result[0]
+        if pop_result:
+            source_uuid = pop_result['uuid']
+            source = self.lionfish.get_by_uuid(source_uuid)
             self.lionfish.set_properties(
-                uuid=source['uuid'],
+                uuid=source_uuid,
                 last_updated=database_gmt_now()
-            )
-            self.lionfish.delete_relationship(
-                crab['uuid'],
-                source['uuid']
             )
 
             self.logger.log(
                 info_level,
-                self.fullname + ' Picked ' + str(result[0]['link'])
+                self.fullname + ' Picked ' + str(source['link'])
             )
-            return result[0]
+            return source
         else:
             return None
 
