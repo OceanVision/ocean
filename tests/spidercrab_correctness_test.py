@@ -99,7 +99,7 @@ if __name__ == '__main__':
     time.sleep(1)
     os.system(command)
 
-    print '\nFinished! spidercrab_slave.py export file contents:'
+    print '\nFinished! spidercrab_slave.py statistics export file contents:'
     os.system('cat ' + TEMP_SLAVE_EXPORT_FILE)
 
     print '\nResult files created under following paths:'

@@ -275,7 +275,8 @@ class Spidercrab(GraphWorker):
         return self.stats
 
     def stub_for_mantis_kafka_push(self, node_dictionary):
-        print node_dictionary
+        #print node_dictionary
+        pass
 
     def _init_run(self):
         self.lionfish.connect()
@@ -325,7 +326,7 @@ class Spidercrab(GraphWorker):
                 data[graph_worker_id][self.level].append(json_export)
             finally:
                 with open(file_name, 'w') as json_file:
-                    json_file.write(json.dumps(data))
+                    json_file.write(json.dumps(data, indent=4))
         except IOError as e:
             print e
             pass
@@ -722,13 +723,11 @@ class Spidercrab(GraphWorker):
             parent_uuid=crab['uuid'],
             relationship_type=self.PENDING_RELATIONSHIP_NAME
         )
-        print 'len(self.lionfish.get_children(...)) =', len(children)
 
         pop_result = self.lionfish.pop_relationship(
             start_node_uuid=crab['uuid'],
             rel_type=self.PENDING_RELATIONSHIP_NAME
         )
-        print 'self.lionfish.pop_relationship(...) =', pop_result, '\n'
 
         ## Cypher version:
         # query = """
@@ -748,7 +747,11 @@ class Spidercrab(GraphWorker):
         # result = self.lionfish.execute_query(query)
         ##
         if pop_result:
-            source_uuid = pop_result['uuid']
+            if not pop_result['status']:
+                return None
+            node = pop_result['node']
+            source_uuid = node['uuid']
+
             source = self.lionfish.get_by_uuid(source_uuid)
             self.lionfish.set_properties(
                 uuid=source_uuid,
