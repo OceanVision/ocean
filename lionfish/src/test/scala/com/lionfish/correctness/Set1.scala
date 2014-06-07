@@ -1003,6 +1003,415 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
 
 
+  // =================== SET RELATIONSHIP PROPERTIES ===================
+
+  // not using batch, correct input
+  "setRelationshipProperties" should "set properties to a relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
+    val modelName = "Content"
+    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-1>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val propsToSet: Map[String, Any] = Map("relKey" -> 92)
+
+    batchStream << Database.createNode(modelName, relType, props0)
+    batchStream << Database.createNode(modelName, relType, props1)
+    val uuidList = batchStream.execute()
+      .asInstanceOf[List[Map[String, String]]]
+
+    var validNode = props1
+    validNode += "uuid" -> uuidList(1)("uuid")
+
+    seqStream !! Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2")
+    seqStream !! Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), propsToSet)
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), propsToSet)
+    val testedNodeList = seqStream.execute()
+      .asInstanceOf[List[List[Map[String, Any]]]]
+
+    assert(testedNodeList(0) != null)
+    assert(testedNodeList(0).length == 1)
+    assert(testedNodeList(0)(0).equals(validNode))
+
+    assert(testedNodeList(0).equals(testedNodeList(1)))
+
+    batchStream << Database.deleteNode(uuidList(0)("uuid"))
+    batchStream << Database.deleteNode(uuidList(1)("uuid"))
+    batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
+  }
+
+  // not using batch, incorrect input
+  it should "not set properties to a relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
+    val modelName = "ContentSource"
+    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-2>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val nonExistingUuid = "*abc([)*"
+    val relProps: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
+    val propsToSet: Map[String, Any] = Map("relKey" -> 92)
+
+    batchStream << Database.createNode(modelName, relType, props0)
+    batchStream << Database.createNode(modelName, relType, props1)
+    val uuidList = batchStream.execute()
+      .asInstanceOf[List[Map[String, String]]]
+
+    seqStream !! Database.createRelationship(uuidList(0)("uuid"), nonExistingUuid, relType + "2", relProps)
+    seqStream !! Database.setRelationshipProperties(uuidList(0)("uuid"), nonExistingUuid, propsToSet)
+    seqStream !! Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), null)
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", propsToSet)
+    val testedNodeList = seqStream.execute()
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 0)
+
+    batchStream << Database.deleteNode(uuidList(0)("uuid"))
+    batchStream << Database.deleteNode(uuidList(1)("uuid"))
+    batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
+  }
+
+  // using batch, correct input
+  it should "set properties to exactly two relationships" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
+    val modelName = "Content"
+    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-3>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
+
+    val relPropsToSet0: Map[String, Any] = Map("relKey" -> 92)
+    val relPropsToSet1: Map[String, Any] = Map("relKey" -> 78)
+
+    batchStream << Database.createNode(modelName, relType, props0)
+    batchStream << Database.createNode(modelName, relType, props1)
+    batchStream << Database.createNode(modelName, relType, props2)
+    val uuidList = batchStream.execute()
+      .asInstanceOf[List[Map[String, String]]]
+
+    val validNodeList = ListBuffer(props1, props2)
+    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
+    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
+
+    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2")
+    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2")
+    batchStream.execute()
+
+    batchStream << Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToSet0)
+    batchStream << Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToSet1)
+    batchStream.execute()
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet0)
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet1)
+    val testedNodeList = seqStream.execute()
+      .asInstanceOf[List[List[Map[String, Any]]]]
+
+    assert(testedNodeList(0) != null)
+    assert(testedNodeList(0).length == 1)
+    assert(testedNodeList(0)(0).equals(validNodeList(0)))
+
+    assert(testedNodeList(1) != null)
+    assert(testedNodeList(1).length == 1)
+    assert(testedNodeList(1)(0).equals(validNodeList(1)))
+
+    batchStream << Database.deleteNode(uuidList(0)("uuid"))
+    batchStream << Database.deleteNode(uuidList(1)("uuid"))
+    batchStream << Database.deleteNode(uuidList(2)("uuid"))
+    batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
+  }
+
+  // using batch, incorrect input
+  it should "set properties only to one relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
+    val modelName = "NeoUser"
+    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-4>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
+
+    val relPropsToSet0: Map[String, Any] = Map("relKey" -> 92)
+    val relPropsToSet1: Map[String, Any] = null
+
+    batchStream << Database.createNode(modelName, relType, props0)
+    batchStream << Database.createNode(modelName, relType, props1)
+    batchStream << Database.createNode(modelName, relType, props2)
+    val uuidList = batchStream.execute()
+      .asInstanceOf[List[Map[String, String]]]
+
+    val validNodeList = ListBuffer(props1, props2)
+    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
+    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
+
+    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2")
+    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2")
+    batchStream.execute()
+
+    batchStream << Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToSet0)
+    batchStream << Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToSet1)
+    batchStream.execute()
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet0)
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet1)
+    val testedNodeList = seqStream.execute()
+      .asInstanceOf[List[List[Map[String, Any]]]]
+
+    assert(testedNodeList(0) != null)
+    assert(testedNodeList(0).length == 1)
+    assert(testedNodeList(0)(0).equals(validNodeList(0)))
+
+    assert(testedNodeList(1) != null)
+    assert(testedNodeList(1).length == 2)
+
+    batchStream << Database.deleteNode(uuidList(0)("uuid"))
+    batchStream << Database.deleteNode(uuidList(1)("uuid"))
+    batchStream << Database.deleteNode(uuidList(2)("uuid"))
+    batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
+  }
+
+
+
+  // =================== DELETE RELATIONSHIP PROPERTIES ===================
+
+  // not using batch, correct input
+  "deleteRelationshipProperties" should "delete relationship's properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
+    val modelName = "Content"
+    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-1>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val relProps: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
+    val propsToDelete: List[String] = List("keyB")
+
+    batchStream << Database.createNode(modelName, relType, props0)
+    batchStream << Database.createNode(modelName, relType, props1)
+    val uuidList = batchStream.execute()
+      .asInstanceOf[List[Map[String, String]]]
+
+    var validNode = props1
+    validNode += "uuid" -> uuidList(1)("uuid")
+
+    seqStream !! Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps)
+    seqStream !! Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), propsToDelete)
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps)
+    val testedNodeList = seqStream.execute()
+      .asInstanceOf[List[List[Map[String, Any]]]]
+
+    assert(testedNodeList(0) != null)
+    assert(testedNodeList(0).length == 1)
+    assert(testedNodeList(0)(0).equals(validNode))
+
+    assert(testedNodeList(1) != null)
+    assert(testedNodeList(1).length == 0)
+
+    batchStream << Database.deleteNode(uuidList(0)("uuid"))
+    batchStream << Database.deleteNode(uuidList(1)("uuid"))
+    batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
+  }
+
+  // not using batch, incorrect input
+  it should "not delete relationship's properties" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
+    val modelName = "ContentSource"
+    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-2>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+
+    val nonExistingUuid = "*abc([)*"
+    val relProps: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
+    val propsToDelete: List[String] = List("keyB")
+
+    batchStream << Database.createNode(modelName, relType, props0)
+    batchStream << Database.createNode(modelName, relType, props1)
+    val uuidList = batchStream.execute()
+      .asInstanceOf[List[Map[String, String]]]
+
+    seqStream !! Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps)
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps)
+    val testedNodeList = seqStream.execute()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    seqStream !! Database.deleteRelationshipProperties(uuidList(0)("uuid"), nonExistingUuid, propsToDelete)
+    seqStream !! Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), null)
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps)
+    val testedNodeList2 = seqStream.execute()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 1)
+
+    assert(testedNodeList2 != null)
+    assert(testedNodeList2.length == 1)
+    assert(testedNodeList.equals(testedNodeList2))
+
+    batchStream << Database.deleteNode(uuidList(0)("uuid"))
+    batchStream << Database.deleteNode(uuidList(1)("uuid"))
+    batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
+  }
+
+  // using batch, correct input
+  it should "delete properties of exactly two relationships" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
+    val modelName = "Content"
+    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-3>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
+
+    val relProps0: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
+    val relProps1: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "bca")
+
+    val relPropsToDelete0: List[String] = List("keyA")
+    val relPropsToDelete1: List[String] = List("keyB")
+
+    batchStream << Database.createNode(modelName, relType, props0)
+    batchStream << Database.createNode(modelName, relType, props1)
+    batchStream << Database.createNode(modelName, relType, props2)
+    val uuidList = batchStream.execute()
+      .asInstanceOf[List[Map[String, String]]]
+
+    val validNodeList = ListBuffer(props1, props2)
+    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
+    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
+
+    val validProps0: Map[String, Any] = Map("keyB" -> "aaa")
+    val validProps1: Map[String, Any] = Map("keyA" -> 5)
+
+    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps0)
+    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2", relProps1)
+    batchStream.execute()
+
+    batchStream << Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToDelete0)
+    batchStream << Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToDelete1)
+    batchStream.execute()
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), validProps0)
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), validProps1)
+    val testedNodeList = seqStream.execute()
+      .asInstanceOf[List[List[Map[String, Any]]]]
+
+    assert(testedNodeList(0) != null)
+    assert(testedNodeList(0).length == 1)
+    assert(testedNodeList(0)(0).equals(validNodeList(0)))
+
+    assert(testedNodeList(1) != null)
+    assert(testedNodeList(1).length == 1)
+    assert(testedNodeList(1)(0).equals(validNodeList(1)))
+
+    batchStream << Database.deleteNode(uuidList(0)("uuid"))
+    batchStream << Database.deleteNode(uuidList(1)("uuid"))
+    batchStream << Database.deleteNode(uuidList(2)("uuid"))
+    batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
+  }
+
+  // using batch, incorrect input
+  it should "delete properties of only one relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
+    val modelName = "NeoUser"
+    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-4>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
+
+    val relProps0: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
+    val relProps1: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "bca")
+
+    val relPropsToDelete0: List[String] = null
+    val relPropsToDelete1: List[String] = List("keyB")
+
+    batchStream << Database.createNode(modelName, relType, props0)
+    batchStream << Database.createNode(modelName, relType, props1)
+    batchStream << Database.createNode(modelName, relType, props2)
+    val uuidList = batchStream.execute()
+      .asInstanceOf[List[Map[String, String]]]
+
+    val validNodeList = ListBuffer(props1, props2)
+    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
+    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
+
+    val validProps1: Map[String, Any] = Map("keyA" -> 5)
+
+    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps0)
+    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2", relProps1)
+    batchStream.execute()
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map())
+    val testedNodeList = seqStream.execute()
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
+
+    batchStream << Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToDelete0)
+    batchStream << Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToDelete1)
+    batchStream.execute()
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps0)
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), validProps1)
+    val testedNodeList2 = seqStream.execute()
+      .asInstanceOf[List[List[Map[String, Any]]]]
+
+    assert(testedNodeList2(0) != null)
+    assert(testedNodeList2(0).length == 1)
+    assert(testedNodeList2(0)(0).equals(validNodeList(0)))
+
+    assert(testedNodeList2(1) != null)
+    assert(testedNodeList2(1).length == 2)
+    assert(testedNodeList.equals(testedNodeList2(1)))
+
+    batchStream << Database.deleteNode(uuidList(0)("uuid"))
+    batchStream << Database.deleteNode(uuidList(1)("uuid"))
+    batchStream << Database.deleteNode(uuidList(2)("uuid"))
+    batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
+  }
+
+
+
   // =================== CREATE NODE ===================
 
   // not using batch, correct input
@@ -1430,7 +1839,7 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
   // =================== DELETE RELATIONSHIP ===================
 
   // not using batch, correct input
-  "deleteRelationship" should "delete a relationship" in {
+  "deleteRelationship" should "delete the relationship" in {
     seqStream = Database.getSequenceStream
     batchStream = Database.getBatchStream
 
@@ -1599,19 +2008,68 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
 
 
 
-  // =================== SET RELATIONSHIP PROPERTIES ===================
+  // =================== POP RELATIONSHIP ===================
 
   // not using batch, correct input
-  "setRelationshipProperties" should "set properties to a relationship" in {
+  "popRelationship" should "delete the relationship and return end node" in {
     seqStream = Database.getSequenceStream
     batchStream = Database.getBatchStream
 
     val modelName = "Content"
-    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-1>>"
+    val relType = "<<TEST_POP_RELATIONSHIP-1>>"
+    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
+    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
+    val props2: Map[String, Any] = Map("key0" -> "def", "key1" -> 68)
+
+    batchStream << Database.createNode(modelName, relType, props0)
+    batchStream << Database.createNode(modelName, relType, props1)
+    batchStream << Database.createNode(modelName, relType, props2)
+    val uuidList = batchStream.execute()
+      .asInstanceOf[List[Map[String, String]]]
+
+    val validNodeList = ListBuffer(props1, props2)
+    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
+    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
+
+    seqStream !! Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2")
+    seqStream !! Database.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2")
+
+    seqStream << Database.popRelationship(uuidList(0)("uuid"), relType + "2")
+    val testedResult = seqStream.execute()
+      .asInstanceOf[List[Map[String, Any]]](0)
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
+    val testedNodeList = seqStream.execute()
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
+
+    assert(testedResult != null)
+    assert(testedResult("node") != null)
+    assert(testedResult("node").asInstanceOf[Map[String, Any]].equals(validNodeList(0)) ||
+      testedResult("node").asInstanceOf[Map[String, Any]].equals(validNodeList(1)))
+
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 1)
+
+    batchStream << Database.deleteNode(uuidList(0)("uuid"))
+    batchStream << Database.deleteNode(uuidList(1)("uuid"))
+    batchStream << Database.deleteNode(uuidList(2)("uuid"))
+    batchStream.execute()
+
+    seqStream.close()
+    batchStream.close()
+  }
+
+  // not using batch, incorrect input
+  it should "not delete any relationship" in {
+    seqStream = Database.getSequenceStream
+    batchStream = Database.getBatchStream
+
+    val modelName = "Content"
+    val relType = "<<TEST_POP_RELATIONSHIP-2>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
     val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
 
-    val propsToSet: Map[String, Any] = Map("relKey" -> 92)
+    val nonExistingRelType = "*abc([)*"
 
     batchStream << Database.createNode(modelName, relType, props0)
     batchStream << Database.createNode(modelName, relType, props1)
@@ -1622,18 +2080,20 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     validNode += "uuid" -> uuidList(1)("uuid")
 
     seqStream !! Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2")
-    seqStream !! Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), propsToSet)
+    seqStream << Database.popRelationship(uuidList(0)("uuid"), nonExistingRelType)
+    val testedResult = seqStream.execute()
+      .asInstanceOf[List[Map[String, Any]]](0)
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), propsToSet)
     val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[List[Map[String, Any]]]]
+      .asInstanceOf[List[List[Map[String, Any]]]](0)
 
-    assert(testedNodeList(0) != null)
-    assert(testedNodeList(0).length == 1)
-    assert(testedNodeList(0)(0).equals(validNode))
+    assert(testedResult != null)
+    assert(testedResult("node") == null)
 
-    assert(testedNodeList(0).equals(testedNodeList(1)))
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 1)
+    assert(testedNodeList(0).equals(validNode))
 
     batchStream << Database.deleteNode(uuidList(0)("uuid"))
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
@@ -1643,91 +2103,54 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream.close()
   }
 
-  // not using batch, incorrect input
-  it should "not set properties to a relationship" in {
+  // using batch, correct input
+  it should "delete exactly two relationships" in {
     seqStream = Database.getSequenceStream
     batchStream = Database.getBatchStream
 
-    val modelName = "ContentSource"
-    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-2>>"
+    val modelName = "Content"
+    val relType = "<<TEST_POP_RELATIONSHIP-3>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
     val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
-
-    val nonExistingUuid = "*abc([)*"
-    val relProps: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
-    val propsToSet: Map[String, Any] = Map("relKey" -> 92)
+    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
 
     batchStream << Database.createNode(modelName, relType, props0)
     batchStream << Database.createNode(modelName, relType, props1)
+    batchStream << Database.createNode(modelName, relType, props2)
     val uuidList = batchStream.execute()
       .asInstanceOf[List[Map[String, String]]]
 
-    seqStream !! Database.createRelationship(uuidList(0)("uuid"), nonExistingUuid, relType + "2", relProps)
-    seqStream !! Database.setRelationshipProperties(uuidList(0)("uuid"), nonExistingUuid, propsToSet)
-    seqStream !! Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), null)
+    val validNodeList = ListBuffer(props1, props2)
+    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
+    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
 
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", propsToSet)
+    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2")
+    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2")
+    batchStream.execute()
+
+    batchStream << Database.popRelationship(uuidList(0)("uuid"), relType + "2")
+    batchStream << Database.popRelationship(uuidList(0)("uuid"), relType + "2")
+    val testedResultList = batchStream.execute()
+      .asInstanceOf[List[Map[String, Any]]]
+
+    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
     val testedNodeList = seqStream.execute()
       .asInstanceOf[List[List[Map[String, Any]]]](0)
+
+    val condition1 = testedResultList(0)("node").asInstanceOf[Map[String, Any]].equals(validNodeList(0))
+    val condition2 = testedResultList(0)("node").asInstanceOf[Map[String, Any]].equals(validNodeList(1))
+    val condition3 = testedResultList(1)("node").asInstanceOf[Map[String, Any]].equals(validNodeList(0))
+    val condition4 = testedResultList(1)("node").asInstanceOf[Map[String, Any]].equals(validNodeList(1))
+
+    assert(testedResultList != null)
+    assert(testedResultList.length == 2)
+    assert((condition1 && condition4) || (condition2 && condition3))
 
     assert(testedNodeList != null)
     assert(testedNodeList.length == 0)
 
     batchStream << Database.deleteNode(uuidList(0)("uuid"))
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
-    batchStream.execute()
-
-    seqStream.close()
-    batchStream.close()
-  }
-
-  // using batch, correct input
-  it should "set properties to exactly two relationships" in {
-    seqStream = Database.getSequenceStream
-    batchStream = Database.getBatchStream
-
-    val modelName = "Content"
-    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-3>>"
-    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
-    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
-    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
-
-    val relPropsToSet0: Map[String, Any] = Map("relKey" -> 92)
-    val relPropsToSet1: Map[String, Any] = Map("relKey" -> 78)
-
-    batchStream << Database.createNode(modelName, relType, props0)
-    batchStream << Database.createNode(modelName, relType, props1)
-    batchStream << Database.createNode(modelName, relType, props2)
-    val uuidList = batchStream.execute()
-      .asInstanceOf[List[Map[String, String]]]
-
-    val validNodeList = ListBuffer(props1, props2)
-    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
-    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
-
-    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2")
-    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2")
-    batchStream.execute()
-
-    batchStream << Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToSet0)
-    batchStream << Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToSet1)
-    batchStream.execute()
-
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet0)
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet1)
-    val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[List[Map[String, Any]]]]
-
-    assert(testedNodeList(0) != null)
-    assert(testedNodeList(0).length == 1)
-    assert(testedNodeList(0)(0).equals(validNodeList(0)))
-
-    assert(testedNodeList(1) != null)
-    assert(testedNodeList(1).length == 1)
-    assert(testedNodeList(1)(0).equals(validNodeList(1)))
-
-    batchStream << Database.deleteNode(uuidList(0)("uuid"))
-    batchStream << Database.deleteNode(uuidList(1)("uuid"))
     batchStream << Database.deleteNode(uuidList(2)("uuid"))
     batchStream.execute()
 
@@ -1736,18 +2159,17 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
   }
 
   // using batch, incorrect input
-  it should "set properties only to one relationship" in {
+  it should "delete only one relationship" in {
     seqStream = Database.getSequenceStream
     batchStream = Database.getBatchStream
 
-    val modelName = "NeoUser"
-    val relType = "<<TEST_SET_RELATIONSHIP_PROPERTIES-4>>"
+    val modelName = "Content"
+    val relType = "<<TEST_POP_RELATIONSHIP-4>>"
     val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
     val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
     val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
 
-    val relPropsToSet0: Map[String, Any] = Map("relKey" -> 92)
-    val relPropsToSet1: Map[String, Any] = null
+    val nonExistingRelType = "*abc([)*"
 
     batchStream << Database.createNode(modelName, relType, props0)
     batchStream << Database.createNode(modelName, relType, props1)
@@ -1763,239 +2185,24 @@ class Set1 extends FlatSpec with BeforeAndAfterAll {
     batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2")
     batchStream.execute()
 
-    batchStream << Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToSet0)
-    batchStream << Database.setRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToSet1)
-    batchStream.execute()
-
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet0)
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relPropsToSet1)
-    val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[List[Map[String, Any]]]]
-
-    assert(testedNodeList(0) != null)
-    assert(testedNodeList(0).length == 1)
-    assert(testedNodeList(0)(0).equals(validNodeList(0)))
-
-    assert(testedNodeList(1) != null)
-    assert(testedNodeList(1).length == 2)
-
-    batchStream << Database.deleteNode(uuidList(0)("uuid"))
-    batchStream << Database.deleteNode(uuidList(1)("uuid"))
-    batchStream << Database.deleteNode(uuidList(2)("uuid"))
-    batchStream.execute()
-
-    seqStream.close()
-    batchStream.close()
-  }
-
-
-
-  // =================== DELETE RELATIONSHIP PROPERTIES ===================
-
-  // not using batch, correct input
-  "deleteRelationshipProperties" should "delete relationship's properties" in {
-    seqStream = Database.getSequenceStream
-    batchStream = Database.getBatchStream
-
-    val modelName = "Content"
-    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-1>>"
-    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
-    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
-
-    val relProps: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
-    val propsToDelete: List[String] = List("keyB")
-
-    batchStream << Database.createNode(modelName, relType, props0)
-    batchStream << Database.createNode(modelName, relType, props1)
-    val uuidList = batchStream.execute()
-      .asInstanceOf[List[Map[String, String]]]
-
-    var validNode = props1
-    validNode += "uuid" -> uuidList(1)("uuid")
-
-    seqStream !! Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps)
-    seqStream !! Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), propsToDelete)
+    batchStream << Database.popRelationship(uuidList(0)("uuid"), relType + "2")
+    batchStream << Database.popRelationship(uuidList(0)("uuid"), nonExistingRelType)
+    val testedResultList = batchStream.execute()
+      .asInstanceOf[List[Map[String, Any]]]
 
     seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2")
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps)
-    val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[List[Map[String, Any]]]]
-
-    assert(testedNodeList(0) != null)
-    assert(testedNodeList(0).length == 1)
-    assert(testedNodeList(0)(0).equals(validNode))
-
-    assert(testedNodeList(1) != null)
-    assert(testedNodeList(1).length == 0)
-
-    batchStream << Database.deleteNode(uuidList(0)("uuid"))
-    batchStream << Database.deleteNode(uuidList(1)("uuid"))
-    batchStream.execute()
-
-    seqStream.close()
-    batchStream.close()
-  }
-
-  // not using batch, incorrect input
-  it should "not delete relationship's properties" in {
-    seqStream = Database.getSequenceStream
-    batchStream = Database.getBatchStream
-
-    val modelName = "ContentSource"
-    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-2>>"
-    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
-    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
-
-    val nonExistingUuid = "*abc([)*"
-    val relProps: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
-    val propsToDelete: List[String] = List("keyB")
-
-    batchStream << Database.createNode(modelName, relType, props0)
-    batchStream << Database.createNode(modelName, relType, props1)
-    val uuidList = batchStream.execute()
-      .asInstanceOf[List[Map[String, String]]]
-
-    seqStream !! Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps)
-
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps)
-    val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
-
-    seqStream !! Database.deleteRelationshipProperties(uuidList(0)("uuid"), nonExistingUuid, propsToDelete)
-    seqStream !! Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), null)
-
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps)
-    val testedNodeList2 = seqStream.execute()
-      .asInstanceOf[List[Map[String, Any]]]
-
-    assert(testedNodeList != null)
-    assert(testedNodeList.length == 1)
-
-    assert(testedNodeList2 != null)
-    assert(testedNodeList2.length == 1)
-    assert(testedNodeList.equals(testedNodeList2))
-
-    batchStream << Database.deleteNode(uuidList(0)("uuid"))
-    batchStream << Database.deleteNode(uuidList(1)("uuid"))
-    batchStream.execute()
-
-    seqStream.close()
-    batchStream.close()
-  }
-
-  // using batch, correct input
-  it should "delete properties of exactly two relationships" in {
-    seqStream = Database.getSequenceStream
-    batchStream = Database.getBatchStream
-
-    val modelName = "Content"
-    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-3>>"
-    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
-    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
-    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
-
-    val relProps0: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
-    val relProps1: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "bca")
-
-    val relPropsToDelete0: List[String] = List("keyA")
-    val relPropsToDelete1: List[String] = List("keyB")
-
-    batchStream << Database.createNode(modelName, relType, props0)
-    batchStream << Database.createNode(modelName, relType, props1)
-    batchStream << Database.createNode(modelName, relType, props2)
-    val uuidList = batchStream.execute()
-      .asInstanceOf[List[Map[String, String]]]
-
-    val validNodeList = ListBuffer(props1, props2)
-    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
-    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
-
-    val validProps0: Map[String, Any] = Map("keyB" -> "aaa")
-    val validProps1: Map[String, Any] = Map("keyA" -> 5)
-
-    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps0)
-    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2", relProps1)
-    batchStream.execute()
-
-    batchStream << Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToDelete0)
-    batchStream << Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToDelete1)
-    batchStream.execute()
-
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), validProps0)
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), validProps1)
-    val testedNodeList = seqStream.execute()
-      .asInstanceOf[List[List[Map[String, Any]]]]
-
-    assert(testedNodeList(0) != null)
-    assert(testedNodeList(0).length == 1)
-    assert(testedNodeList(0)(0).equals(validNodeList(0)))
-
-    assert(testedNodeList(1) != null)
-    assert(testedNodeList(1).length == 1)
-    assert(testedNodeList(1)(0).equals(validNodeList(1)))
-
-    batchStream << Database.deleteNode(uuidList(0)("uuid"))
-    batchStream << Database.deleteNode(uuidList(1)("uuid"))
-    batchStream << Database.deleteNode(uuidList(2)("uuid"))
-    batchStream.execute()
-
-    seqStream.close()
-    batchStream.close()
-  }
-
-  // using batch, incorrect input
-  it should "delete properties of only one relationship" in {
-    seqStream = Database.getSequenceStream
-    batchStream = Database.getBatchStream
-
-    val modelName = "NeoUser"
-    val relType = "<<TEST_DELETE_RELATIONSHIP_PROPERTIES-4>>"
-    val props0: Map[String, Any] = Map("key0" -> 1, "key1" -> "string")
-    val props1: Map[String, Any] = Map("key0" -> "abc", "key1" -> 33)
-    val props2: Map[String, Any] = Map("key0" -> "aaa", "key1" -> 15)
-
-    val relProps0: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "aaa")
-    val relProps1: Map[String, Any] = Map("keyA" -> 5, "keyB" -> "bca")
-
-    val relPropsToDelete0: List[String] = null
-    val relPropsToDelete1: List[String] = List("keyB")
-
-    batchStream << Database.createNode(modelName, relType, props0)
-    batchStream << Database.createNode(modelName, relType, props1)
-    batchStream << Database.createNode(modelName, relType, props2)
-    val uuidList = batchStream.execute()
-      .asInstanceOf[List[Map[String, String]]]
-
-    val validNodeList = ListBuffer(props1, props2)
-    validNodeList(0) += "uuid" -> uuidList(1)("uuid")
-    validNodeList(1) += "uuid" -> uuidList(2)("uuid")
-
-    val validProps1: Map[String, Any] = Map("keyA" -> 5)
-
-    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(1)("uuid"), relType + "2", relProps0)
-    batchStream << Database.createRelationship(uuidList(0)("uuid"), uuidList(2)("uuid"), relType + "2", relProps1)
-    batchStream.execute()
-
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map())
     val testedNodeList = seqStream.execute()
       .asInstanceOf[List[List[Map[String, Any]]]](0)
 
-    batchStream << Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(1)("uuid"), relPropsToDelete0)
-    batchStream << Database.deleteRelationshipProperties(uuidList(0)("uuid"), uuidList(2)("uuid"), relPropsToDelete1)
-    batchStream.execute()
+    assert(testedResultList != null)
+    assert(testedResultList.length == 2)
+    assert(testedResultList(0)("node").asInstanceOf[Map[String, Any]].equals(validNodeList(0))
+      || testedResultList(0)("node").asInstanceOf[Map[String, Any]].equals(validNodeList(1)))
+    assert(testedResultList(1)("status").asInstanceOf[Boolean] == false)
 
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), relProps0)
-    seqStream << Database.getChildren(uuidList(0)("uuid"), relType + "2", Map(), validProps1)
-    val testedNodeList2 = seqStream.execute()
-      .asInstanceOf[List[List[Map[String, Any]]]]
-
-    assert(testedNodeList2(0) != null)
-    assert(testedNodeList2(0).length == 1)
-    assert(testedNodeList2(0)(0).equals(validNodeList(0)))
-
-    assert(testedNodeList2(1) != null)
-    assert(testedNodeList2(1).length == 2)
-    assert(testedNodeList.equals(testedNodeList2(1)))
+    assert(testedNodeList != null)
+    assert(testedNodeList.length == 1)
+    assert(testedNodeList(0).equals(validNodeList(1)))
 
     batchStream << Database.deleteNode(uuidList(0)("uuid"))
     batchStream << Database.deleteNode(uuidList(1)("uuid"))
