@@ -1026,23 +1026,36 @@ class Neo4jWrapper extends DatabaseWrapper {
   def deleteNodes(args: List[Map[String, Any]]): List[Any] = {
     var result: List[Map[String, Any]] = null
 
-    val tx = graphDB.beginTx()
+    var tx = graphDB.beginTx()
     try {
+      val rawNodeList: ListBuffer[Node] = ListBuffer()
       val rawResult: ListBuffer[Map[String, Any]] = ListBuffer()
       val nodeLabel = DynamicLabel.label("Node")
 
       for (item <- args) {
         // Gets each node as an instance of Node
-        val rawNode = graphDB.findNodesByLabelAndProperty(
-          nodeLabel,
-          "uuid",
-          item("uuid").asInstanceOf[String]
-        )
+        if (item("uuid") != null) {
+          val rawNode = graphDB.findNodesByLabelAndProperty(
+            nodeLabel,
+            "uuid",
+            item("uuid").asInstanceOf[String]
+          )
 
-        val it = rawNode.iterator()
-        if (it.hasNext) {
-          val node = it.next()
+          val it = rawNode.iterator()
+          if (it.hasNext) {
+            val node = it.next()
+            rawNodeList += node
+          } else {
+            rawNodeList += null
+          }
+          it.close()
+        } else {
+          rawNodeList += null
+        }
+      }
 
+      for (node <- rawNodeList) {
+        if (node != null) {
           // Looks through a list of relationships to be deleted
           val outgoingRelList = node.getRelationships(Direction.OUTGOING).iterator()
           while (outgoingRelList.hasNext) {
@@ -1055,18 +1068,24 @@ class Neo4jWrapper extends DatabaseWrapper {
             val rel = incomingRelList.next()
             rel.delete()
           }
+        }
+      }
+      tx.success()
+      tx.close()
 
+      tx = graphDB.beginTx()
+      for (node <- rawNodeList) {
+        if (node != null) {
           // Finally deletes the node
           node.delete()
+          result = rawResult.toList
 
           rawResult += Map("status" -> true)
         } else {
           rawResult += Map("status" -> false)
         }
-        it.close()
       }
       tx.success()
-      result = rawResult.toList
     } catch {
       case e: Exception => {
         val methodName = Thread.currentThread().getStackTrace()(1).getMethodName

@@ -732,5 +732,5 @@ class Client(object):
         if inspect.stack()[1][3] == '_get_data_for_batch':
             return data
         self.send(request)
-        self.recv()
-
+        result = self.recv()
+        return result[0]

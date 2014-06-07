@@ -118,8 +118,8 @@ The table below applies to read methods: **_getChildren_**, **_getInstances_**
 #### Set 1.3
 
 The table below applies to write methods: **_setProperties_**, **_deleteProperties_**,
-**_createNode_**, **_deleteNode_**, **_deleteRelationship_**, **_setRelationshipProperties_**,
-**_deleteRelationshipProperties_**
+**_setRelationshipProperties_**, **_deleteRelationshipProperties_**, **_createNode_**,
+**_deleteNode_**, **_deleteRelationship_**, **_popRelationship_**
 
 | using batch | correct input |
 | :---------: | :-----------: |
