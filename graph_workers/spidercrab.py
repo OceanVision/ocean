@@ -222,12 +222,13 @@ class Spidercrab(GraphWorker):
                 else:
                     # Enqueue existing sources to be browsed by workers
                     result = self._enqueue_sources_portion()
-                    queued_sources += len(result)
-                    if len(result) == 0:
+                    if result is None or len(result) == 0:
                         if self.config[self.C_TERMINATE_ON_END]:
                             break
                         else:
                             time.sleep(self.config[self.C_MASTER_SLEEP_S])
+                    else:
+                        queued_sources += len(result)
                     if self.terminate_event.is_set():
                         break
 
@@ -647,62 +648,88 @@ class Spidercrab(GraphWorker):
         """
 
         ## Non-lionfishable Cypher:
-        query = """
-            MATCH
-                (source:ContentSource)
-            WHERE %s - source.last_updated > %s
-            RETURN source.uuid
-            """
-        query %= (
-            database_gmt_now(),
-            self.config[self.C_UPDATE_INTERVAL_S]
-        )
-        result = self.lionfish.execute_query(query)
-
-        ## Lionfish part:
-        spidercrab_node = self.lionfish.get_instances(
-            self.SPIDERCRAB_MODEL_NAME,
-            {
-                self.C_GRAPH_WORKER_ID:
-                self.config[self.C_GRAPH_WORKER_ID]
-            }
-        )
-        assert len(spidercrab_node) > 0
-
-        lionfish_batch = self.lionfish.get_batch()
-        for source_uuid in result:
-            lionfish_batch.append(
-                self.lionfish.create_unique_relationship,
-                spidercrab_node['uuid'],
-                source_uuid,
-                self.PENDING_RELATIONSHIP_NAME
-            )
-
-        ## Cypher version:
         # query = """
-        # MATCH
-        #     (source:ContentSource),
-        #     (crab:Spidercrab {graph_worker_id: '%s'})
-        # WHERE %s - source.last_updated > %s
-        #     AND NOT (crab)-[:pending]->(source)
-        # CREATE (crab)-[:pending]->(source)
-        # RETURN source
-        # LIMIT %s
-        # """
+        #     MATCH
+        #         (crab:Spidercrab {graph_worker_id: '%s'}),
+        #         (source:ContentSource)
+        #     WHERE %s - source.last_updated > %s
+        #         AND NOT (crab)-[:pending]->(source)
+        #     RETURN source.uuid
+        #     LIMIT %s
+        #     """
         # query %= (
         #     self.config[self.C_GRAPH_WORKER_ID],
         #     database_gmt_now(),
         #     self.config[self.C_UPDATE_INTERVAL_S],
-        #     self.config[self.C_SOURCES_ENQUEUE_PORTION],
+        #     self.config[self.C_SOURCES_ENQUEUE_PORTION]
         # )
         # result = self.lionfish.execute_query(query)
-        ##
+        # # Enqueue only portion
+        # result = result[self.config[self.C_SOURCES_ENQUEUE_PORTION]]
+        # print 'Non-lionfishable cypher, ', result
+        #
+        # ## Lionfish part:
+        # spidercrab_nodes = self.lionfish.get_instances(
+        #     self.SPIDERCRAB_MODEL_NAME,
+        #     {
+        #         self.C_GRAPH_WORKER_ID:
+        #         self.config[self.C_GRAPH_WORKER_ID]
+        #     }
+        # )
+        # if len(spidercrab_nodes) == 0:
+        #     self.logger.log(
+        #         error_level,
+        #         self.fullname + ' There are no master spidercrabs with id '
+        #         + str(self.C_GRAPH_WORKER_ID) + '!'
+        #     )
+        #     # TODO: Raise something more sensible
+        #     raise ValueError
+        #
+        # spidercrab_node = spidercrab_nodes[0]
+        # assert 'uuid' in spidercrab_node
+        #
+        # lionfish_batch = self.lionfish.get_batch()
+        # for source_uuid_list in result:
+        #     # source_uuid_list is a list of len = 1 returned by Lionfish...
+        #     assert(len(source_uuid_list))
+        #     source_uuid = source_uuid_list[0]
+        #     self.lionfish.create_unique_relationship(
+        #         spidercrab_node['uuid'],
+        #         source_uuid,
+        #         self.PENDING_RELATIONSHIP_NAME
+        #     )
+        ##lionfish_batch.submit()
 
-        self.logger.log(
-            info_level,
-            self.fullname + ' Master queued ' + str(len(result)) + ' sources.'
+        ## Cypher version:
+        # TODO: execute_query - 2014-06-12 
+        # - Failed to execute query. Unterminated string starting at:
+        # line 1 column 6459 (char 6458)
+
+        query = """
+        MATCH
+            (source:ContentSource),
+            (crab:Spidercrab {graph_worker_id: '%s'})
+        WHERE %s - source.last_updated > %s
+            AND NOT (crab)-[:pending]->(source)
+        CREATE (crab)-[:pending]->(source)
+        RETURN source
+        LIMIT %s
+        """
+        query %= (
+            self.config[self.C_GRAPH_WORKER_ID],
+            database_gmt_now(),
+            self.config[self.C_UPDATE_INTERVAL_S],
+            self.config[self.C_SOURCES_ENQUEUE_PORTION],
         )
-        self.stats[self.S_QUEUED_SOURCES] += len(result)
+        result = self.lionfish.execute_query(query)
+        ##
+        if result:
+            self.logger.log(
+                info_level,
+                self.fullname + ' Master queued ' + str(len(result))
+                + ' sources.'
+            )
+            self.stats[self.S_QUEUED_SOURCES] += len(result)
         return result
 
     def _pick_pending_source(self):
@@ -720,8 +747,8 @@ class Spidercrab(GraphWorker):
         )[0]
 
         children = self.lionfish.get_children(
-            parent_uuid=crab['uuid'],
-            relationship_type=self.PENDING_RELATIONSHIP_NAME
+            crab['uuid'],
+            self.PENDING_RELATIONSHIP_NAME
         )
 
         pop_result = self.lionfish.pop_relationship(

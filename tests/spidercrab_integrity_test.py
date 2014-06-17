@@ -19,18 +19,11 @@ def check_corleone_config():
         Returns true if don_corleone config is provided
     """
     try:
-#       Checking for neo4j is obsolete because there won't be such service
-#       Lionfish is taking over neo4j (no REST console)
-#        neo4j_host = du.get_configuration('neo4j', 'host')
-#        neo4j_port = du.get_configuration('neo4j', 'port')
         lionfish_host = du.get_configuration('lionfish', 'host')
         lionfish_port = du.get_configuration('lionfish', 'port')
     except Exception as error:
         print unicode(error)
         return False
-#   Again: obsolete
-#    if not neo4j_host or not neo4j_port or not lionfish_host \
-#            or not lionfish_port:
 
     if not lionfish_port or not lionfish_host:
         return False
@@ -45,8 +38,11 @@ def check_lionfish_communication():
     lionfish_port = du.get_configuration('lionfish', 'port')
 
     lionfish_client = Client(lionfish_host, lionfish_port)
+    print 'Connecting to Lionfish...'
     lionfish_client.connect()
+    print 'Creating a test node...'
     lionfish_client.create_model_node('spidercrab_integrity_test')
+    print 'Asserting an existence of the node...'
     found_instances = lionfish_client.get_model_nodes()
     model_instance = None
     model_uuid = ''
@@ -55,6 +51,7 @@ def check_lionfish_communication():
             model_uuid = model['uuid']
             model_instance = model
     assert(model_instance == lionfish_client.get_by_uuid(model_uuid))
+    print 'OK'
     lionfish_client.delete_node(model_uuid)
     return True
 
@@ -82,5 +79,6 @@ if __name__ == '__main__':
     warn_if_not_local()
 
     print '\nChecking communication...'
+    print ''
     assert(check_lionfish_communication())
     print 'PASSED'

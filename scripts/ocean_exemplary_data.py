@@ -13,6 +13,7 @@ from optparse import OptionParser
 
 from py2neo import neo4j
 
+sys.path.append(os.path.abspath(".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), '../don_corleone/'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '../lionfish/python_lionfish/client/'))
 from don_utils import get_configuration
@@ -61,10 +62,6 @@ if __name__ == '__main__':
             get_configuration('neo4j', 'port')
         )
     )
-
-    print '\nPlease *(RE)START* the Lionfish ODM now and press Enter.'
-    print '(You are permitted to run whole system too during this process)'
-    enter = raw_input()
 
     odm_client = Client('localhost', 7777)
     odm_client.connect()

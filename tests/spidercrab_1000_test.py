@@ -14,6 +14,7 @@ import sys
 sys.path.append(os.path.abspath(".."))
 from don_corleone import don_utils as du
 
+
 def run_master():
     print '\nRunning two masters with option to enqueue above sources.'
     cmd = '../graph_workers/spidercrab_master.py -o -n 2 -c %s -t %s'
@@ -106,7 +107,9 @@ if __name__ == '__main__':
 
     master_thread = threading.Thread(target=run_master)
     master_thread.start()
-    time.sleep(1)
+
+    # "Experience teaches slowly, Robin. And at a cost of many mistakes..."
+    time.sleep(5)
 
     print '\nRunning 10 slaves...'
     command = OCEAN_ROOT \
@@ -116,7 +119,7 @@ if __name__ == '__main__':
         TEMP_SPIDERCRAB_CONFIG,
         TEMP_SPIDERCRAB_STATS_EXPORT
     )
-    print command
+    print command, '\n'
     time.sleep(1)
     os.system(command)
 
